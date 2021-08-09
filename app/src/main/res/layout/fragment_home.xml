@@ -1,0 +1,213 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/notification_color">
+
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+
+        android:background="@drawable/background">
+
+        <TableLayout
+            android:orientation="vertical"
+            android:layout_width="match_parent"
+            android:paddingHorizontal="10dp"
+            android:layout_height="wrap_content"
+            android:paddingTop="140dp"
+            android:layout_centerInParent="true"
+            android:layout_marginBottom="10dp">
+            <LinearLayout
+                android:orientation="horizontal"
+                android:layout_width="match_parent"
+                android:layout_weight="1"
+                android:layout_height="0dp">
+                <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/button_video"
+
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+
+                    android:layout_weight="1"
+
+                    android:layout_margin="8dp"
+                    android:layout_marginTop="20dp"
+
+
+
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:foreground="?android:attr/selectableItemBackground"
+
+                    app:cardCornerRadius="12dp"
+                    app:cardElevation="6dp"
+                    app:strokeColor="@color/light_blue_A200"
+                    app:strokeWidth="2dp">
+                    <LinearLayout
+                        android:layout_gravity="center"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:padding="16dp">
+
+                        <ImageView
+                            android:layout_width="wrap_content"
+                            android:layout_height="0dp"
+                            android:layout_weight="1"
+                            android:src="@drawable/ic_video" />
+
+                        <TextView
+                            android:textAlignment="center"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="Videos"
+                            android:textSize="20sp" />
+                    </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
+
+                <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/button_edit"
+
+
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+
+                    android:layout_weight="1"
+
+                    android:layout_margin="8dp"
+                    android:layout_marginTop="20dp"
+
+
+
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:foreground="?android:attr/selectableItemBackground"
+
+                    app:cardCornerRadius="12dp"
+                    app:cardElevation="6dp"
+                    app:strokeColor="@color/light_blue_A200"
+                    app:strokeWidth="2dp">
+
+                    <LinearLayout
+                        android:layout_gravity="center"
+
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+
+                        android:orientation="vertical"
+                        android:padding="16dp">
+
+                        <ImageView
+                            android:layout_width="wrap_content"
+                            android:layout_height="0dp"
+                            android:layout_weight="1"
+                            android:src="@drawable/ic_cut" />
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:textAlignment="center"
+                            android:layout_height="wrap_content"
+                            android:text="Edit"
+                            android:textSize="20sp" />
+                    </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
+            </LinearLayout>
+
+
+            <LinearLayout
+                android:layout_weight="1"
+                android:layout_width="match_parent"
+                android:layout_height="0dp">
+                <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/button_pic"
+
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+
+                    android:layout_weight="1"
+
+                    android:layout_margin="8dp"
+                    android:layout_marginTop="20dp"
+
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:foreground="?android:attr/selectableItemBackground"
+
+                    app:cardCornerRadius="12dp"
+                    app:cardElevation="6dp"
+                    app:strokeColor="@color/light_blue_A200"
+                    app:strokeWidth="2dp">
+
+                    <LinearLayout
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="center"
+                        android:orientation="vertical"
+                        android:padding="16dp">
+
+                        <ImageView
+                            android:layout_width="wrap_content"
+                            android:layout_height="0dp"
+                            android:layout_weight="1"
+                            android:src="@drawable/ic_pic"/>
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:textAlignment="center"
+                            android:layout_height="wrap_content"
+                            android:text="Images"
+                            android:textSize="20sp" />
+                    </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
+
+                <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/button_status"
+
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+
+                    android:layout_weight="1"
+
+                    android:layout_margin="8dp"
+                    android:layout_marginTop="20dp"
+
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:foreground="?android:attr/selectableItemBackground"
+
+                    app:cardCornerRadius="12dp"
+                    app:cardElevation="6dp"
+                    app:strokeColor="@color/light_blue_A200"
+                    app:strokeWidth="2dp">
+                    <!-- 160 * 180-->
+                    <LinearLayout
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="center"
+                        android:orientation="vertical"
+                        android:padding="16dp">
+
+                        <ImageView
+                            android:layout_width="wrap_content"
+                            android:layout_height="0dp"
+                            android:layout_weight="1"
+                            android:src="@drawable/ic_status"/>
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:textAlignment="center"
+                            android:layout_height="wrap_content"
+                            android:text="Status"
+                            android:textSize="20sp" />
+                    </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
+
+            </LinearLayout>
+        </TableLayout>
+
+    </RelativeLayout>
+
+
+</RelativeLayout>

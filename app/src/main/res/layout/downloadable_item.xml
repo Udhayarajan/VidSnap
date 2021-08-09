@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="160dp"
+    android:layout_height="180dp"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_gravity="center"
+    android:layout_margin="8dp"
+    android:layout_marginTop="20dp"
+    android:clickable="true"
+    android:focusable="true"
+    android:foreground="?android:attr/selectableItemBackground"
+    app:cardCornerRadius="12dp"
+    app:cardElevation="6dp"
+    app:strokeColor="@color/cardViewStoke"
+    app:strokeWidth="2dp">
+
+    <FrameLayout
+        android:id="@+id/downloadable_frame"
+        android:foreground="@drawable/downloadable_foreground"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+        <RelativeLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content">
+
+            <ImageView
+                android:id="@+id/downloadable_imageView"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"/>
+
+            <RadioButton
+                android:clickable="false"
+                android:id="@+id/downloadable_check_circle"
+                android:layout_alignParentEnd="true"
+                android:layout_alignParentTop="true"
+                style="@style/check_circle"
+                android:layout_width="wrap_content"
+                android:layout_marginTop="-6dp"
+                android:layout_marginEnd="7dp"
+                android:layout_height="wrap_content"
+                android:buttonTint="@color/cardViewStoke"
+                android:layoutDirection="rtl"
+                tools:checked="true" />
+
+        </RelativeLayout>
+    </FrameLayout>
+
+
+
+</com.google.android.material.card.MaterialCardView>

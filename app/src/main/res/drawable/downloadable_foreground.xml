@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <corners android:radius="12dp"/>
+    <stroke
+        android:color="@color/cardViewStoke"
+        android:width="2dp"/>
+    <gradient
+        android:type="radial"
+        android:centerX="1"
+        android:centerY="0"
+        android:gradientRadius="45dp"
+        android:startColor="#81000000"/>
+
+
+</shape>

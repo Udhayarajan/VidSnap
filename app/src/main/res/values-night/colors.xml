@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="purple_200">#FFBB86FC</color>
+    <color name="purple_500">#FF6200EE</color>
+    <color name="purple_700">#FF3700B3</color>
+    <color name="teal_200">#FF03DAC5</color>
+    <color name="teal_700">#FF018786</color>
+    <color name="black">#FF000000</color>
+    <color name="white">#FFFFFFFF</color>
+    <color name="BottomSheetColor" >#FF000000</color>
+    <color name="ripple_color">#FFFFFFFF</color>
+    <color name="ripple_mask">#FF000000</color>
+    <color name="notification_color">@color/black</color>
+    <color name="list_background">#373737</color>
+    <color name="list_color">#222222</color>
+</resources>

@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    tools:showIn="navigation_view">
+    <group android:checkableBehavior="single">
+        <item android:id="@+id/nav_home"
+            android:iconTint="@color/white"
+            android:icon="@drawable/ic_home"
+            android:title="Home"/>
+        <item android:id="@+id/nav_history"
+            android:icon="@drawable/ic_history"
+            android:title="Downloads"/>
+        <item android:id="@+id/nav_settings"
+            android:icon="@drawable/ic_settings"
+            android:title="Settings"/>
+    </group>
+
+    <item android:title="Social Contact">
+        <menu>
+            <item android:id="@+id/nav_contact_insta"
+                android:icon="@drawable/ic_insta"
+                android:title="Instagram"/>
+            <item android:id="@+id/nav_contact_twitter"
+                android:icon="@drawable/ic_twitter"
+                android:title="Twitter"/>
+            <item android:id="@+id/nav_contact_mail"
+                android:icon="@drawable/ic_email"
+                android:title="E-Mail"/>
+        </menu>
+    </item>
+
+    <item android:title="Others">
+        <menu>
+            <item android:id="@+id/nav_share"
+                android:icon="@drawable/ic_share"
+                android:title="Share App"/>
+            <item android:id="@+id/nav_bug_report"
+                android:icon="@drawable/ic_bug_report"
+                android:title="Report"/>
+            <item android:id="@+id/nav_check_update"
+                android:icon="@drawable/ic_update"
+                android:title="Check for Update"/>
+            <item android:id="@+id/nav_about_us"
+                android:icon="@drawable/ic_current_version"
+                android:title="About"/>
+        </menu>
+    </item>
+
+</menu>
