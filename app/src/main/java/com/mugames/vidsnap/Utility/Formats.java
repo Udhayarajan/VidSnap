@@ -6,16 +6,19 @@ import java.util.ArrayList;
 
 public class Formats {
     public String title;
-    public Bitmap thumbNailBit;
+
     public ArrayList<String> videoURLs;
     public ArrayList<String> qualities;
-    public ArrayList<String> mimeTypes_video;
-    public ArrayList<String> mimeTypes_audio;
+    public ArrayList<String> videoMime;
+    public ArrayList<String> audioMime;
     public ArrayList<String> audioURLs;
-    public ArrayList<String> raw_quality_size;
-    public ArrayList<String> quality_size;
-    public String thumbNailURL;
+    public ArrayList<Long> audioSizes;
+    public ArrayList<Long> videoSizes;
+    public ArrayList<String> videoSizeInString;// In displayable format 14.8MB etc
+
     public String src;
+
+    public ArrayList<ArrayList<String>> manifest;//Used in m3u8 logic
 
     //used only by Instagram.java
     public ArrayList<String> thumbNailsURL;
@@ -26,20 +29,20 @@ public class Formats {
     public String audioSP;
     public ArrayList<String> videoSIGs;
     public ArrayList<String> videoSPs;//to find that link needed to be generate should have sp or sig
-    public String audioURL;
-    public String mimeType_audio;
 
     public Formats() {
         videoURLs =new ArrayList<>();
         qualities = new ArrayList<>();
-        mimeTypes_video =new ArrayList<>();
-        mimeTypes_audio =new ArrayList<>();
+        videoMime =new ArrayList<>();
+        audioMime =new ArrayList<>();
         audioURLs =new ArrayList<>();
-        raw_quality_size =new ArrayList<>();
-        quality_size =new ArrayList<>();
+        audioSizes = new ArrayList<>();
+        videoSizes =new ArrayList<>();
+        videoSizeInString =new ArrayList<>();
         videoSPs =new ArrayList<>();
         videoSIGs =new ArrayList<>();
         thumbNailsURL = new ArrayList<>();
         thumbNailsBitMap = new ArrayList<>();
+        manifest = new ArrayList<>();
     }
 }

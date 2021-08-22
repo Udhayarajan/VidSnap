@@ -18,6 +18,7 @@ public class Statics {
     public static final int PROGRESS_UPDATE_MERGING = 1678;
     public static final int PROGRESS_UPDATE_AUDIO = 1456;
     public static final int PROGRESS_UPDATE_VIDEO = 7896;
+    public static final int PROGRESS_UPDATE_CHUNCK = 7996;
     public static final int PATH_CHOOSER = 9999;
     public static final int REQUEST_WRITE = 1248;
 

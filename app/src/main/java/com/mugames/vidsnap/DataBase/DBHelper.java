@@ -38,7 +38,7 @@ public class DBHelper extends SQLiteOpenHelper {
         statement.bindString(2,details.getDownloadDetails().fileType);
         statement.bindString(3,details.getDownloadDetails().src);
         statement.bindString(4,details.getDate());
-        statement.bindLong(5,details.getDownloadDetails().fileSize);
+        statement.bindLong(5,details.getDownloadDetails().videoSize);
         statement.bindString(6,details.getUri()+"");
         statement.bindBlob(7,bitmapToBytes(details.getDownloadDetails().thumbNail));
         statement.bindLong(8,details.getDownloadDetails().thumbNail.getWidth());

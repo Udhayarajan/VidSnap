@@ -6,6 +6,7 @@ import android.util.Log;
 import com.arthenica.ffmpegkit.ExecuteCallback;
 import com.arthenica.ffmpegkit.FFmpegKit;
 import com.arthenica.ffmpegkit.FFmpegKitConfig;
+import com.arthenica.ffmpegkit.NativeLoader;
 import com.arthenica.ffmpegkit.Session;
 import com.arthenica.ffmpegkit.StatisticsCallback;
 import com.mugames.vidsnap.Utility.MIMEType;
@@ -35,6 +36,8 @@ public class FFMPEG {
     public static String dexPath;
     public static String tempLibsPath;
 
+    static boolean isLibLoaded = false;
+
     public static String getString() {
         return String.format("\njniPath = %s\nfilesDri = %s\ndexPath = %s\ntempLibPath = %s", jniPath, filesDir, dexPath, tempLibsPath);
     }
@@ -60,44 +63,62 @@ public class FFMPEG {
     }
 
     static void loadJni(File file) throws IOException {
-            File lib = new File(filesDir + file.getName());
-            FileInputStream inputStream = new FileInputStream(file.getAbsolutePath());
-            FileOutputStream outputStream = new FileOutputStream(lib);
-            FileChannel inChannel = inputStream.getChannel();
-            FileChannel outChannel = outputStream.getChannel();
-            inChannel.transferTo(0, inChannel.size(), outChannel);
-            inputStream.close();
-            outputStream.close();
+        if (!file.exists()) return;
+        File lib = new File(filesDir + file.getName());
+        FileInputStream inputStream = new FileInputStream(file.getAbsolutePath());
+        FileOutputStream outputStream = new FileOutputStream(lib);
+        FileChannel inChannel = inputStream.getChannel();
+        FileChannel outChannel = outputStream.getChannel();
+        inChannel.transferTo(0, inChannel.size(), outChannel);
+        inputStream.close();
+        outputStream.close();
+        if (!file.getName().contains("ffmpegkit"))
             System.load(lib.getAbsolutePath());
     }
 
-    public static void loadSOFiles(String jniPath,ReflectionInterfaces.SOLoadCallbacks callbacks){
+    public static void loadSOFiles(String jniPath, ReflectionInterfaces.SOLoadCallbacks callbacks) {
+        if(isLibLoaded){
+            callbacks.onSOLoadingSuccess();
+            return;
+        }
         File jniDirectory = new File(jniPath);
         File[] sos = jniDirectory.listFiles();
 
         try {
 
             if (sos != null) {
-                loadJni(new File(jniPath, "libc++_shared.so"));
-                loadJni(new File(jniPath, "libffmpegkit_abidetect.so"));
-                loadJni(new File(jniPath, "libavutil.so"));
-                loadJni(new File(jniPath, "libswresample.so"));
-                loadJni(new File(jniPath, "libswscale.so"));
-                loadJni(new File(jniPath, "libavcodec.so"));
-                loadJni(new File(jniPath, "libavformat.so"));
-                loadJni(new File(jniPath, "libavfilter.so"));
+                NativeLoader.setSOPath(filesDir + "lib");
 
-                for (File file : sos) {
-                    if (file.getName().equals("libc++_shared.so")) continue;
-                    if (file.getName().equals("libavutil.so")) continue;
-                    if (file.getName().equals("libswresample.so")) continue;
-                    if (file.getName().equals("libavfilter.so")) continue;
-                    if (file.getName().equals("libswscale.so")) continue;
-                    if (file.getName().equals("libavformat.so")) continue;
-                    if (file.getName().equals("libavcodec.so")) continue;
-                    if (file.getName().equals("libffmpegkit_abidetect.so")) continue;
-                    loadJni(file);
-                }
+                loadJni(new File(jniPath, "libc++_shared.so"));
+
+                loadJni(new File(jniPath, "libffmpegkit_abidetect.so"));
+
+
+                loadJni(new File(jniPath, "libavutil.so"));
+                loadJni(new File(jniPath, "libavutil_neon.so"));
+
+                loadJni(new File(jniPath, "libswscale.so"));
+                loadJni(new File(jniPath, "libswscale_neon.so"));
+
+                loadJni(new File(jniPath, "libswresample.so"));
+                loadJni(new File(jniPath, "libswresample_neon.so"));
+
+                loadJni(new File(jniPath, "libavcodec.so"));
+                loadJni(new File(jniPath, "libavcodec_neon.so"));
+
+                loadJni(new File(jniPath, "libavformat.so"));
+                loadJni(new File(jniPath, "libavformat_neon.so"));
+
+                loadJni(new File(jniPath, "libavfilter.so"));
+                loadJni(new File(jniPath, "libavfilter_neon.so"));
+
+                loadJni(new File(jniPath, "libavdevice.so"));
+                loadJni(new File(jniPath, "libavdevice_neon.so"));
+
+                loadJni(new File(jniPath, "libffmpegkit.so"));
+                loadJni(new File(jniPath, "libffmpegkit_armv7a_neon.so"));
+
+                isLibLoaded = true;
                 callbacks.onSOLoadingSuccess();
             }
         } catch (IOException e) {

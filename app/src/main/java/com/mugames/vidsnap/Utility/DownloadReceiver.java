@@ -1,42 +1,29 @@
 package com.mugames.vidsnap.Utility;
 
 import android.app.Activity;
-import android.app.PendingIntent;
-import android.content.Intent;
 import android.media.MediaScannerConnection;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.ResultReceiver;
-import android.text.format.DateFormat;
 import android.util.Log;
 import android.view.View;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 
-import androidx.core.app.NotificationCompat;
-import androidx.core.app.NotificationManagerCompat;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 
 import com.mugames.vidsnap.DataBase.History;
-import com.mugames.vidsnap.DataBase.HistoryDatabase;
-import com.mugames.vidsnap.NotificationChannelCreator;
-import com.mugames.vidsnap.R;
 import com.mugames.vidsnap.ViewModels.MainActivityViewModel;
 import com.mugames.vidsnap.ui.main.Activities.MainActivity;
 
 import java.io.File;
-import java.util.Date;
-import java.util.Random;
 
 import static com.mugames.vidsnap.Utility.Statics.ERROR_DOWNLOADING;
 import static com.mugames.vidsnap.Utility.Statics.OUTFILE_URI;
 import static com.mugames.vidsnap.Utility.Statics.PROGRESS_DONE;
 import static com.mugames.vidsnap.Utility.Statics.PROGRESS_FAILED;
-import static com.mugames.vidsnap.Utility.Statics.PROGRESS_UPDATE_AUDIO;
-import static com.mugames.vidsnap.Utility.Statics.PROGRESS_UPDATE_MERGING;
-import static com.mugames.vidsnap.Utility.Statics.PROGRESS_UPDATE_VIDEO;
 import static com.mugames.vidsnap.Utility.Statics.RESULT_CODE;
 import static com.mugames.vidsnap.Utility.UtilityInterface.DownloadCallback;
 

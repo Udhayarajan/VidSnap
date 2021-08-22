@@ -7,7 +7,7 @@ import android.app.NotificationManager;
 import java.util.ArrayList;
 import java.util.List;
 
-public class NotificationChannelCreator extends Application {
+public class VidSnapApp extends Application {
     public static final String NOTIFY_DOWNLOADING ="downloadingChannel";
     public static final String NOTIFY_DOWNLOADED ="downloadedChannel";
 

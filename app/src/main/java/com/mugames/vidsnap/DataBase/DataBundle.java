@@ -20,7 +20,7 @@ public class DataBundle {
         this.name = tempDetails.getDownloadDetails().fileName;
         this.src = tempDetails.getDownloadDetails().src;
         this.date = tempDetails.getDate();
-        this.size = tempDetails.getDownloadDetails().fileSize;
+        this.size = tempDetails.getDownloadDetails().videoSize;
         this.uri = String.valueOf(tempDetails.getUri());
         this.thumbnail = bitmapToBytes(tempDetails.getDownloadDetails().thumbNail);
         this.width = (long) tempDetails.getDownloadDetails().thumbNail.getWidth();

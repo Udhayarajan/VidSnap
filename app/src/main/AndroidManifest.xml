@@ -12,7 +12,7 @@
     <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE"/>
 
     <application
-        android:name=".NotificationChannelCreator"
+        android:name=".VidSnapApp"
         android:extractNativeLibs="true"
         android:preserveLegacyExternalStorage="true"
         android:requestLegacyExternalStorage="true"
@@ -31,23 +31,23 @@
         <activity android:name=".ui.main.Activities.CheckUpdateActivity"
             android:theme="@style/Theme.YouTubeDownloader.NoActionBar"/>
         <!-- Sample AdMob app ID: ca-app-pub-3940256099942544~3347511713 -->
-        <meta-data
-            android:name="com.google.android.gms.ads.APPLICATION_ID"
-            android:value="ca-app-pub-5704943635302630~8191448037" />
 
-        <activity android:name=".ui.main.Activities.ShareActivity">
+        <activity android:name=".ui.main.Activities.ShareActivity"
+            android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.SEND" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <data android:mimeType="text/plain" />
             </intent-filter>
         </activity>
+
         <activity
             android:name=".ui.main.Activities.MainActivity"
             android:label="@string/app_name"
             android:launchMode="singleTop"
             android:screenOrientation="portrait"
-            android:theme="@style/Theme.YouTubeDownloader.NoActionBar">
+            android:theme="@style/Theme.YouTubeDownloader.NoActionBar"
+            android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 

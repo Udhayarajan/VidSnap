@@ -1,11 +1,9 @@
 package com.mugames.vidsnap.ViewModels;
 
 import android.app.Application;
-import android.view.View;
 
 import androidx.annotation.NonNull;
 import androidx.lifecycle.AndroidViewModel;
-import androidx.recyclerview.widget.GridLayoutManager;
 
 import com.mugames.vidsnap.Extractor.Facebook;
 import com.mugames.vidsnap.Extractor.Instagram;
@@ -16,7 +14,6 @@ import com.mugames.vidsnap.Utility.Extractor;
 import com.mugames.vidsnap.Utility.Formats;
 import com.mugames.vidsnap.Utility.UtilityInterface;
 import com.mugames.vidsnap.ui.main.Activities.MainActivity;
-import com.mugames.vidsnap.ui.main.Adapters.DownloadableAdapter;
 
 import org.jetbrains.annotations.NotNull;
 
@@ -39,18 +36,22 @@ public class VideoFragmentViewModel extends AndroidViewModel implements UtilityI
     public Extractor onClickAnalysis(String url,MainActivity activity){
         Extractor extractor;
         if (url.contains("youtu")) {
-            extractor = new YouTube(activity);
+            extractor = new YouTube();
         } else if (url.contains("instagram")) {
-            extractor = new Instagram(activity);
+            extractor = new Instagram();
         } else if (url.contains("twitter.com")) {
-            extractor = new Twitter(activity);
+            extractor = new Twitter();
         } else if (url.contains("fb") || url.contains("facebook")) {
-            extractor = new Facebook(activity);
+            extractor = new Facebook();
         } else {
             extractor = null;
             activity.error("URL Seems to be wrong",null);
         }
-        if(extractor!=null) extractor.Analyze(url,this);
+        if(extractor!=null) {
+            extractor.setLoginHelper(activity);
+            extractor.setDialogueInterface(activity);
+            extractor.analyze(url,this);
+        }
         return extractor;
 
     }
@@ -85,8 +86,8 @@ public class VideoFragmentViewModel extends AndroidViewModel implements UtilityI
         formatsArrayList.clear();
         for (int i = 0; i < format.thumbNailsURL.size(); i++) {
             Formats formats = new Formats();
-            formats.thumbNailBit = format.thumbNailsBitMap.get(i);
-            formats.raw_quality_size.add(format.raw_quality_size.get(i));
+            formats.thumbNailsBitMap.add(format.thumbNailsBitMap.get(i));
+            formats.videoSizes.add(format.videoSizes.get(i));
             formats.title = format.title;
             formats.videoURLs.add(format.videoURLs.get(i));
             formatsArrayList.add(formats);
@@ -98,10 +99,10 @@ public class VideoFragmentViewModel extends AndroidViewModel implements UtilityI
         for (int i = 0; i < getSelected().size(); i++) {
             Formats formats = getFormatsArrayList().get(getSelected().get(i));
             DownloadDetails details = new DownloadDetails();
-            details.fileSize = Long.parseLong(formats.raw_quality_size.get(0));
+            details.videoSize = formats.videoSizes.get(0);
             details.videoURL = formats.videoURLs.get(0);
             formats.title = removeStuffFromName(formats.title);
-            details.thumbNail = formats.thumbNailBit;
+            details.thumbNail = formats.thumbNailsBitMap.get(0);
             details.fileType=".mp4";
             details.fileName = formats.title + "_(" + (i + 1) + ")_";
             details.src = formats.src;

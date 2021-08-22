@@ -32,7 +32,7 @@ public class History {
         this.fileType = details.fileType;
         this.source = details.src;
         this.date = date;
-        this.size = String.valueOf(details.fileSize);
+        this.size = String.valueOf(details.videoSize);
         this.uriString = uri.toString();
         this.thumbnail = (byte[]) FileUtil.loadFile(details.thumbNailPath,byte.class);
         this.imageWidth = details.thumbWidth;

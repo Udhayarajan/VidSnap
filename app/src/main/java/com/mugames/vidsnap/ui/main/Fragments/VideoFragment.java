@@ -19,7 +19,6 @@ import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.google.firebase.crashlytics.FirebaseCrashlytics;
-import com.mugames.vidsnap.Utility.Extractor;
 import com.mugames.vidsnap.Utility.UtilityClass;
 import com.mugames.vidsnap.ViewModels.VideoFragmentViewModel;
 import com.mugames.vidsnap.ui.main.Activities.MainActivity;
@@ -193,7 +192,7 @@ public class VideoFragment extends Fragment implements
     @Override
     public void onCardSelected(int index) {
         viewModel.getSelected().add(index);
-        size += Long.parseLong(viewModel.getFormatsArrayList().get(index).raw_quality_size.get(0));
+        size += viewModel.getFormatsArrayList().get(index).videoSizes.get(0);
         button.setText("DOWNLOAD(" + UtilityClass.formatFileSize(size, false) + ")");
     }
 
@@ -201,7 +200,7 @@ public class VideoFragment extends Fragment implements
     public void onCardDeSelected(int index) {
         Log.e(TAG, "onCardDeSelected: " + index);
         viewModel.getSelected().remove((Object) index);
-        size -= Long.parseLong(viewModel.getFormatsArrayList().get(index).raw_quality_size.get(0));
+        size -= viewModel.getFormatsArrayList().get(index).videoSizes.get(0);
         button.setText("DOWNLOAD(" + UtilityClass.formatFileSize(size, false) + ")");
     }
 
@@ -225,7 +224,7 @@ public class VideoFragment extends Fragment implements
         final Formats formats;
         formats = viewModel.getFormatsArrayList().get(0);
 
-        dialogFragment = QualityFragment.newInstance(formats.qualities, formats.quality_size);
+        dialogFragment = QualityFragment.newInstance(formats.qualities, formats.videoSizeInString);
 
         dialogFragment.setRequired(new DownloadButtonCallBack() {
             @Override
@@ -249,13 +248,17 @@ public class VideoFragment extends Fragment implements
             public void onSelectedItem(int position, QualityFragment qualityFragment) {
                 Log.d(TAG, "onSelectedItem: " + position);
                 try {
-                    details.mimeVideo = formats.mimeTypes_video.get(position);
+                    details.mimeVideo = formats.videoMime.get(position);
+                    details.mimeAudio = formats.audioMime.get(position);
                 } catch (IndexOutOfBoundsException e) {
                     e.printStackTrace();
                 }
-                details.mimeAudio = formats.mimeType_audio;
-                details.fileSize = Long.parseLong(formats.raw_quality_size.get(position));
-                details.audioURL = formats.audioURL;
+                details.videoSize = formats.videoSizes.get(position);
+                try{
+                    details.audioURL = formats.audioURLs.get(0);
+                }catch (IndexOutOfBoundsException e){
+                    details.audioURL=null;
+                }
                 try {
                     details.videoURL = formats.videoURLs.get(position);
                 } catch (IndexOutOfBoundsException e) {
@@ -280,11 +283,13 @@ public class VideoFragment extends Fragment implements
 
             }
         });
-        details.thumbNail = formats.thumbNailBit;
-        if (details.thumbNail == null) {
-            //only in instagram case
-            details.thumbNail = formats.thumbNailsBitMap.get(0);
-        }
+        details.thumbNail = formats.thumbNailsBitMap.get(0);
+
+//
+//        if (formats.thumbNail == null) {
+//            //only in instagram case
+//            details.thumbNail = formats.thumbNailsBitMap.get(0);
+//        }
 
         dialogFragment.setThumbNail(details.thumbNail);
 

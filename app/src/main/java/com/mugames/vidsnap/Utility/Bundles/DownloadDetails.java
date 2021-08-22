@@ -29,7 +29,10 @@ public class DownloadDetails implements Parcelable {
     public ArrayList<String> m3u8URL;//Chuncks will be stored if null get from saved path chuncks path
     public String chuncksPath;
 
-    public long fileSize;
+    public long videoSize;
+    public long audioSize;
+
+
     public Bitmap thumbNail;
     public String thumbNailPath;
     public int thumbWidth;
@@ -56,7 +59,9 @@ public class DownloadDetails implements Parcelable {
         m3u8URL = in.createStringArrayList();
         chuncksPath = in.readString();
 
-        fileSize = in.readLong();
+        videoSize = in.readLong();
+        audioSize = in.readLong();
+
         thumbNail = in.readParcelable(Bitmap.class.getClassLoader());
         thumbNailPath = in.readString();
         thumbWidth = in.readInt();
@@ -82,7 +87,9 @@ public class DownloadDetails implements Parcelable {
         dest.writeStringList(m3u8URL);
         dest.writeString(chuncksPath);
 
-        dest.writeLong(fileSize);
+        dest.writeLong(videoSize);
+        dest.writeLong(audioSize);
+
         dest.writeParcelable(thumbNail, flags);
         dest.writeString(thumbNailPath);
         dest.writeInt(thumbWidth);

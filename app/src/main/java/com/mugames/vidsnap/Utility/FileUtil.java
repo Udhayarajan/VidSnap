@@ -8,6 +8,7 @@ import android.os.Environment;
 import android.os.storage.StorageManager;
 import android.os.storage.StorageVolume;
 import android.provider.DocumentsContract;
+import android.util.Log;
 
 import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
@@ -208,6 +209,7 @@ public final class FileUtil {
         if(uri==null) return "Not set";
         String path = uriToPath(activity,uri);
         path = path.equals(File.separator)?uri.getPath():path;
+
         String internal = getExternalStoragePublicDirectory(activity,"");
 
         String external = isSDPresent(activity) ? String.valueOf(ContextCompat.getExternalFilesDirs(activity, null)[1]) : null;
@@ -229,7 +231,7 @@ public final class FileUtil {
     public static String removeStuffFromName(String name) {
 
         name = name.replaceAll("https:.*", "");
-        name = name.replaceAll("[@#~].*", "");
+        name = name.replaceAll("[@#~\\n\\t]", "");
         if (name.length() > 45) {
             int i = 45;
             while (unicode(name, i)) i++;
@@ -269,7 +271,7 @@ public final class FileUtil {
             try {
                 return file.getCanonicalFile().delete();
             } catch (IOException e) {
-                e.printStackTrace();
+                Log.e("TAG", "deleteFile: ",e);
             }
         }
         return true;
@@ -358,6 +360,7 @@ public final class FileUtil {
                 file.setLastModified(time);
             */
             }
+            zipFile.delete();
         } finally {
             zis.close();
         }

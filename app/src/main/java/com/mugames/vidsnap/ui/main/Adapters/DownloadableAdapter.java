@@ -52,7 +52,7 @@ public class DownloadableAdapter extends RecyclerView.Adapter<DownloadableAdapte
         final ImageView thumbNail = holder.view.findViewById(R.id.downloadable_imageView);
 
         holder.view.setTag(position);
-        thumbNail.setImageBitmap(list.get(position).thumbNailBit);
+        thumbNail.setImageBitmap(list.get(position).thumbNailsBitMap.get(0));
 
         holder.view.setOnClickListener(new View.OnClickListener() {
             @Override
