@@ -50,7 +50,8 @@ public class VideoFragmentViewModel extends AndroidViewModel implements UtilityI
         if(extractor!=null) {
             extractor.setLoginHelper(activity);
             extractor.setDialogueInterface(activity);
-            extractor.analyze(url,this);
+            extractor.setAnalyzeCallback(this);
+            extractor.analyze(url);
         }
         return extractor;
 

@@ -1,3 +1,20 @@
+/*
+ *  This file is part of VidSnap.
+ *
+ *  VidSnap is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  any later version.
+ *
+ *  VidSnap is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with VidSnap.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 package com.mugames.vidsnap.ui.main.Activities;
 
 import android.Manifest;
@@ -6,7 +23,6 @@ import android.content.ActivityNotFoundException;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
-import android.graphics.Bitmap;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -26,7 +42,6 @@ import androidx.activity.result.ActivityResultCallback;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.appcompat.app.ActionBarDrawerToggle;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
@@ -46,7 +61,6 @@ import androidx.lifecycle.ViewModelProvider;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.navigation.NavigationView;
 import com.google.firebase.crashlytics.FirebaseCrashlytics;
-import com.google.firebase.database.annotations.NotNull;
 import com.mugames.vidsnap.Firebase.FirebaseCallBacks;
 import com.mugames.vidsnap.PopUpDialog;
 import com.mugames.vidsnap.R;
@@ -70,34 +84,23 @@ import com.mugames.vidsnap.ui.main.Fragments.LoginFragment;
 import com.mugames.vidsnap.ui.main.Fragments.SettingsFragment;
 import com.mugames.vidsnap.ui.main.Fragments.VideoFragment;
 import com.tonyodev.fetch2.Download;
-import com.tonyodev.fetch2.Error;
-import com.tonyodev.fetch2.Fetch;
-import com.tonyodev.fetch2.FetchConfiguration;
-import com.tonyodev.fetch2.FetchListener;
-import com.tonyodev.fetch2.HttpUrlConnectionDownloader;
-import com.tonyodev.fetch2.NetworkType;
-import com.tonyodev.fetch2.Priority;
-import com.tonyodev.fetch2.Request;
-import com.tonyodev.fetch2core.DownloadBlock;
-import com.tonyodev.fetch2core.Downloader.FileDownloaderType;
 import com.tonyodev.fetch2core.FetchObserver;
-import com.tonyodev.fetch2core.Func;
 import com.tonyodev.fetch2core.Reason;
 
 
 import java.io.File;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Objects;
 import java.util.Random;
 
-import static com.mugames.vidsnap.Utility.FileUtil.GetValidFile;
+import static com.mugames.vidsnap.Utility.FileUtil.getValidFile;
 import static com.mugames.vidsnap.Utility.Statics.COMMUNICATOR;
 import static com.mugames.vidsnap.Utility.Statics.REQUEST_WRITE;
 import static com.mugames.vidsnap.ViewModels.MainActivityViewModel.DYNAMIC_CACHE;
 import static com.mugames.vidsnap.ViewModels.MainActivityViewModel.STATIC_CACHE;
 import static com.mugames.vidsnap.ViewModels.MainActivityViewModel.service_in_use;
+import static com.mugames.vidsnap.ViewModels.VideoFragmentViewModel.URL_KEY;
 
 public class MainActivity extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener,
         Toolbar.OnMenuItemClickListener,FetchObserver<Download>, UtilityInterface.DialogueInterface, UtilityInterface.LoginHelper {
@@ -342,6 +345,9 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
         } else if (runningFragment != null) {
 
+            if(isInstanceof(runningFragment,fragment,VideoFragment.class)){
+                ((VideoFragment) runningFragment).startProcess(fragment.getArguments() != null ? fragment.getArguments().getString(URL_KEY) : null);
+            }
 //            if (isInstanceof(runningFragment,fragment,VideoFragment.class)) {
 //                VideoFragment videoFragment = ((VideoFragment) runningFragment);
 //                videoFragment.link = ((VideoFragment) fragment).link;
@@ -592,7 +598,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             return;
         }
         for(DownloadDetails d:activityViewModel.tempDetails)
-            if(d.audioURL!=null && !FileUtil.isFileExists(getExternalFilesDir("libs")+File.separator+"jni")){
+            if((d.audioURL != null || d.chunkUrl != null) && !FileUtil.isFileExists(getExternalFilesDir("libs")+File.separator+"lib.zip")){
                 fetchSOFiles();
                 return;
             }
@@ -612,7 +618,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         abiHashMap.put("x86","https://raw.githubusercontent.com/Udhayarajan/SOserver/master/x86.zip");
         abiHashMap.put("x86_64","https://raw.githubusercontent.com/Udhayarajan/SOserver/master/x86_64.zip");
 
-        new MiniExecute(null).getSize(abiHashMap.get(abi), (size, bundle) -> downloadAdditionalModule(size,abiHashMap.get(abi)));
+        new MiniExecute(null).getSize(abiHashMap.get(abi), (size, bundle) -> runOnUiThread(()-> downloadAdditionalModule(size,abiHashMap.get(abi))));
 
     }
 
@@ -622,18 +628,13 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         MaterialAlertDialogBuilder dialogBuilder = new MaterialAlertDialogBuilder(this);
         dialogBuilder.setTitle("Additional required");
         dialogBuilder.setMessage(String.format("Additional file (%s) needed to be download to use %s downloader. Would you like to download it ?",UtilityClass.formatFileSize(size,false),activityViewModel.tempDetails.get(0).src));
-        dialogBuilder.setPositiveButton("Download", new DialogInterface.OnClickListener() {
-            @Override
-            public void onClick(DialogInterface dialog, int which) {
-                addDownloadListener();
-                activityViewModel.downloadSO(url,moduleDownloadCallback);
-            }
+        dialogBuilder.setPositiveButton("Download", (dialog, which) -> {
+            addDownloadListener();
+            activityViewModel.downloadSO(url,moduleDownloadCallback);
         });
-        dialogBuilder.setNegativeButton("Leave", new DialogInterface.OnClickListener() {
-            @Override
-            public void onClick(DialogInterface dialog, int which) {
-                Toast.makeText(MainActivity.this,"Download aborted",Toast.LENGTH_SHORT).show();
-            }
+        dialogBuilder.setNegativeButton("Leave", (dialog, which) -> {
+            Toast.makeText(MainActivity.this,"Download aborted",Toast.LENGTH_SHORT).show();
+            activityViewModel.tempDetails.clear();
         });
         dialogBuilder.create().show();
 
@@ -724,7 +725,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         Intent downloadIntent = new Intent(this, Downloader.class);
 
 
-        activityViewModel.tempDetails.get(index).thumbNailPath = GetValidFile(activityViewModel.pref.getCachePath(DYNAMIC_CACHE), String.valueOf(new Random().nextInt()), ".muim");
+        activityViewModel.tempDetails.get(index).thumbNailPath = getValidFile(activityViewModel.pref.getCachePath(DYNAMIC_CACHE), String.valueOf(new Random().nextInt()), ".muim");
         activityViewModel.tempDetails.get(index).thumbWidth = activityViewModel.tempDetails.get(index).thumbNail.getWidth();
         activityViewModel.tempDetails.get(index).thumbHeight = activityViewModel.tempDetails.get(index).thumbNail.getHeight();
         FileUtil.saveFile(activityViewModel.tempDetails.get(index).thumbNailPath, UtilityClass.bitmapToBytes(activityViewModel.tempDetails.get(index).thumbNail));
@@ -733,8 +734,8 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
 
         if (activityViewModel.tempDetails.get(index).videoURL == null){
-            activityViewModel.tempDetails.get(index).chuncksPath = GetValidFile(activityViewModel.pref.getCachePath(DYNAMIC_CACHE), String.valueOf(new Random().nextInt()), ".much");
-            FileUtil.saveFile(activityViewModel.tempDetails.get(index).chuncksPath, String.valueOf(activityViewModel.tempDetails.get(index).m3u8URL));
+            activityViewModel.tempDetails.get(index).chunksPath = getValidFile(activityViewModel.pref.getCachePath(DYNAMIC_CACHE), String.valueOf(new Random().nextInt()), ".much");
+            FileUtil.saveFile(activityViewModel.tempDetails.get(index).chunksPath, String.valueOf(activityViewModel.tempDetails.get(index).m3u8URL));
         }
 
 

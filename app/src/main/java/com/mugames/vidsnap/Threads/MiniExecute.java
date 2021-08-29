@@ -1,3 +1,20 @@
+/*
+ *  This file is part of VidSnap.
+ *
+ *  VidSnap is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  any later version.
+ *
+ *  VidSnap is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with VidSnap.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 package com.mugames.vidsnap.Threads;
 
 import android.graphics.Bitmap;
@@ -24,6 +41,7 @@ public class MiniExecute {
     Bundle bundle;
 
     CountDownLatch countDownLatch;
+    Bitmap bitmap;
 
     long size;
 
@@ -40,7 +58,9 @@ public class MiniExecute {
     public void getSize(String url, UtilityInterface.SizeCallback sizeCallback) {
         url = url.replaceAll("\\\\", "");
         String finalUrl = url;
-        new Thread(() -> sizeCallback.onReceiveSize(calculateSize(finalUrl), bundle)).start();
+        new Thread(() -> {
+            sizeCallback.onReceiveSize(calculateSize(finalUrl), bundle);
+        }).start();
     }
 
     public void getSize(String url){
@@ -77,7 +97,7 @@ public class MiniExecute {
     }
 
 
-    public void getThumbnail(String url, UtilityInterface.ThumbnailCallbacks thumbnailCallbacks) {
+    public void getThumbnail(String url) {
         url = url.replaceAll("\\\\", "");
         String finalUrl = url;
         new Thread(() -> {
@@ -86,12 +106,15 @@ public class MiniExecute {
 
                 URLConnection urlConnection = url1.openConnection();
                 InputStream inputStream = urlConnection.getInputStream();
-                Bitmap bitmap = BitmapFactory.decodeStream(inputStream);
-                thumbnailCallbacks.onReceivedThumbnail(bitmap, bundle);
+                bitmap = BitmapFactory.decodeStream(inputStream);
+                countDownLatch.countDown();
             } catch (IOException e) {
                 e.printStackTrace();
             }
         }).start();
     }
 
+    public Bitmap getBitmap() {
+        return bitmap;
+    }
 }

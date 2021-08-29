@@ -1,3 +1,20 @@
+/*
+ *  This file is part of VidSnap.
+ *
+ *  VidSnap is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  any later version.
+ *
+ *  VidSnap is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with VidSnap.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 package com.mugames.vidsnap.Utility;
 
 import android.content.Context;
@@ -52,14 +69,15 @@ public class AppPref {
     /**
      * save path got from DOCUMENT_TREE
      * @param intent intent that we got from document tree
-     * @return displayable string eg: External Storage>folder> etc..
+     *  displayable string eg: External Storage>folder> etc..
      * */
 
     public void setSavePath(Intent intent){
         String path;
         Uri uri;
         if (intent != null) {
-            final int takeFlags = intent.getFlags() & (Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
+            int takeFlags = intent.getFlags();
+            takeFlags &= (Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
 
             uri = intent.getData();
             context.getContentResolver().takePersistableUriPermission(uri,takeFlags);

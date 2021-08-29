@@ -1,3 +1,20 @@
+/*
+ *  This file is part of VidSnap.
+ *
+ *  VidSnap is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  any later version.
+ *
+ *  VidSnap is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with VidSnap.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 package com.mugames.vidsnap.Utility.Bundles;
 
 import android.graphics.Bitmap;
@@ -27,7 +44,9 @@ public class DownloadDetails implements Parcelable {
     public String mimeAudio;
 
     public ArrayList<String> m3u8URL;//Chuncks will be stored if null get from saved path chuncks path
-    public String chuncksPath;
+    public String chunksPath;
+    public String chunkUrl;
+    public long chunkCount;
 
     public long videoSize;
     public long audioSize;
@@ -57,7 +76,9 @@ public class DownloadDetails implements Parcelable {
         mimeAudio = in.readString();
 
         m3u8URL = in.createStringArrayList();
-        chuncksPath = in.readString();
+        chunksPath = in.readString();
+        chunkUrl = in.readString();
+        chunkCount = in.readLong();
 
         videoSize = in.readLong();
         audioSize = in.readLong();
@@ -85,7 +106,9 @@ public class DownloadDetails implements Parcelable {
         dest.writeString(mimeAudio);
 
         dest.writeStringList(m3u8URL);
-        dest.writeString(chuncksPath);
+        dest.writeString(chunksPath);
+        dest.writeString(chunkUrl);
+        dest.writeLong(chunkCount);
 
         dest.writeLong(videoSize);
         dest.writeLong(audioSize);

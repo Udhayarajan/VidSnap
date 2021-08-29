@@ -1,3 +1,20 @@
+/*
+ *  This file is part of VidSnap.
+ *
+ *  VidSnap is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  any later version.
+ *
+ *  VidSnap is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with VidSnap.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 package com.mugames.vidsnap.Utility;
 
 import android.graphics.Bitmap;
@@ -18,7 +35,9 @@ public class Formats {
 
     public String src;
 
-    public ArrayList<ArrayList<String>> manifest;//Used in m3u8 logic
+    //Used in m3u8 logic
+    public ArrayList<ArrayList<String>> manifest;
+    public ArrayList<String> chunkUrlList;
 
     //used only by Instagram.java
     public ArrayList<String> thumbNailsURL;
@@ -44,5 +63,6 @@ public class Formats {
         thumbNailsURL = new ArrayList<>();
         thumbNailsBitMap = new ArrayList<>();
         manifest = new ArrayList<>();
+        chunkUrlList = new ArrayList<>();
     }
 }

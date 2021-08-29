@@ -1,4 +1,36 @@
+/*
+ *  This file is part of VidSnap.
+ *
+ *  VidSnap is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  any later version.
+ *
+ *  VidSnap is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with VidSnap.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 package com.mugames.vidsnap.Threads;
+
+import static com.mugames.vidsnap.Utility.Statics.COMMUNICATOR;
+import static com.mugames.vidsnap.Utility.Statics.DOWNLOADED;
+import static com.mugames.vidsnap.Utility.Statics.DOWNLOAD_SPEED;
+import static com.mugames.vidsnap.Utility.Statics.ERROR_DOWNLOADING;
+import static com.mugames.vidsnap.Utility.Statics.OUTFILE_URI;
+import static com.mugames.vidsnap.Utility.Statics.PROGRESS;
+import static com.mugames.vidsnap.Utility.Statics.PROGRESS_DONE;
+import static com.mugames.vidsnap.Utility.Statics.PROGRESS_FAILED;
+import static com.mugames.vidsnap.Utility.Statics.PROGRESS_UPDATE;
+import static com.mugames.vidsnap.Utility.Statics.PROGRESS_UPDATE_AUDIO;
+import static com.mugames.vidsnap.Utility.Statics.PROGRESS_UPDATE_MERGING;
+import static com.mugames.vidsnap.Utility.Statics.PROGRESS_UPDATE_VIDEO;
+import static com.mugames.vidsnap.Utility.Statics.TOTAL_SIZE;
+import static com.mugames.vidsnap.VidSnapApp.NOTIFY_DOWNLOADING;
 
 import android.app.PendingIntent;
 import android.app.Service;
@@ -18,61 +50,38 @@ import androidx.core.app.NotificationCompat;
 import androidx.core.app.NotificationManagerCompat;
 import androidx.documentfile.provider.DocumentFile;
 
-
-import com.arthenica.ffmpegkit.Session;
-import com.arthenica.ffmpegkit.Statistics;
-import com.arthenica.ffmpegkit.StatisticsCallback;
 import com.mugames.vidsnap.PostProcessor.FFMPEG;
-import com.mugames.vidsnap.PostProcessor.FFmpegCallbacks;
+import com.mugames.vidsnap.PostProcessor.FFMPEGInfo;
 import com.mugames.vidsnap.PostProcessor.ReflectionInterfaces;
 import com.mugames.vidsnap.R;
-
 import com.mugames.vidsnap.Utility.Bundles.DownloadDetails;
-import com.mugames.vidsnap.PostProcessor.FFMPEGInfo;
 import com.mugames.vidsnap.Utility.FileUtil;
 import com.mugames.vidsnap.Utility.MIMEType;
 import com.mugames.vidsnap.Utility.Statics;
 import com.mugames.vidsnap.ViewModels.MainActivityViewModel;
 import com.mugames.vidsnap.ui.main.Activities.MainActivity;
+
 import com.tonyodev.fetch2.Download;
 import com.tonyodev.fetch2.Fetch;
 import com.tonyodev.fetch2.FetchConfiguration;
+import com.tonyodev.fetch2.HttpUrlConnectionDownloader;
 import com.tonyodev.fetch2.Request;
 import com.tonyodev.fetch2core.FetchObserver;
 import com.tonyodev.fetch2core.MutableExtras;
 import com.tonyodev.fetch2core.Reason;
-import com.tonyodev.fetch2okhttp.OkHttpDownloader;
 
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.net.URL;
 import java.nio.channels.FileChannel;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Random;
 import java.util.Timer;
 import java.util.TimerTask;
-
-import static com.mugames.vidsnap.Utility.Statics.PROGRESS_UPDATE_CHUNCK;
-import static com.mugames.vidsnap.VidSnapApp.NOTIFY_DOWNLOADING;
-import static com.mugames.vidsnap.Utility.Statics.COMMUNICATOR;
-import static com.mugames.vidsnap.Utility.Statics.DOWNLOADED;
-import static com.mugames.vidsnap.Utility.Statics.DOWNLOAD_SPEED;
-import static com.mugames.vidsnap.Utility.Statics.ERROR_DOWNLOADING;
-import static com.mugames.vidsnap.Utility.Statics.OUTFILE_URI;
-import static com.mugames.vidsnap.Utility.Statics.PROGRESS;
-import static com.mugames.vidsnap.Utility.Statics.PROGRESS_DONE;
-import static com.mugames.vidsnap.Utility.Statics.PROGRESS_FAILED;
-import static com.mugames.vidsnap.Utility.Statics.PROGRESS_UPDATE;
-import static com.mugames.vidsnap.Utility.Statics.PROGRESS_UPDATE_AUDIO;
-import static com.mugames.vidsnap.Utility.Statics.PROGRESS_UPDATE_MERGING;
-import static com.mugames.vidsnap.Utility.Statics.PROGRESS_UPDATE_VIDEO;
-import static com.mugames.vidsnap.Utility.Statics.TOTAL_SIZE;
-
-import okhttp3.OkHttpClient;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class Downloader extends Service {
     String TAG = Statics.TAG + ":Downloader";
@@ -147,7 +156,6 @@ public class Downloader extends Service {
         boolean isFirst = true;
         double passedTime;
 
-        int downloadedClip;
 
         Timer notificationTimer;
 
@@ -166,17 +174,17 @@ public class Downloader extends Service {
             manager = NotificationManagerCompat.from(context);
             ran = new Random().nextInt();
 
-            path = context.getExternalFilesDir("").getPath();
+            path = context.getExternalFilesDir("").getPath() + File.separator;
 
-            TEMP_AUDIO_NAME = path + "/" + TEMP_AUDIO_NAME;
-            TEMP_VIDEO_NAME = path + "/" + TEMP_VIDEO_NAME;
-            TEMP_RESULT_NAME = path + "/" + TEMP_RESULT_NAME;
+            TEMP_VIDEO_NAME = FileUtil.getValidFile(path, ran + "Video", ".muvideo");
+            TEMP_AUDIO_NAME = FileUtil.getValidFile(path, ran + "Audio", ".muaudio");
+            TEMP_RESULT_NAME = FileUtil.getValidFile(path, ran + "FullVideo", ".muout");
 
             details = intent.getParcelableExtra(COMMUNICATOR);
 
 
-            if (details.chuncksPath != null) {
-                String line = (String) FileUtil.loadFile(details.chuncksPath, String.class);
+            if (details.chunksPath != null) {
+                String line = (String) FileUtil.loadFile(details.chunksPath, String.class);
                 if (line != null) {
                     String[] links = line.split(",");
                     chunkURLs = new ArrayList<>(Arrays.asList(links));
@@ -191,7 +199,7 @@ public class Downloader extends Service {
                 if (file != null)
                     outputUri = file.getUri();
             } catch (IllegalArgumentException e) {
-                outputUri = Uri.fromFile(new File(FileUtil.GetValidFile(details.pathUri.getPath() + File.separator, details.fileName, details.fileType)));
+                outputUri = Uri.fromFile(new File(FileUtil.getValidFile(details.pathUri.getPath() + File.separator, details.fileName, details.fileType)));
             }
 
 
@@ -214,54 +222,77 @@ public class Downloader extends Service {
 
             if (details.audioURL != null) MainActivityViewModel.service_in_use = true;
 
-            new Thread(new Runnable() {
-                @Override
-                public void run() {
+            new Thread(() -> {
 
-                    builder.setContentTitle("Downloading " + details.fileName + details.fileType);
+                builder.setContentTitle("Downloading " + details.fileName + details.fileType);
 
-                    if (finalChunkURLs == null || finalChunkURLs.size() == 0) {
-                        String video_url = details.videoURL;
-                        video_url = video_url.replaceAll("\\\\", "");
-                        PROCESS = PROGRESS_UPDATE_VIDEO;
-                        Download(video_url,TEMP_VIDEO_NAME,PROGRESS_UPDATE_VIDEO);
+                if (details.chunkUrl == null || details.chunkUrl.isEmpty()) {
+                    String video_url = details.videoURL;
+                    video_url = video_url.replaceAll("\\\\", "");
+                    PROCESS = PROGRESS_UPDATE_VIDEO;
+                    download(video_url, TEMP_VIDEO_NAME, PROGRESS_UPDATE_VIDEO);
 
-                    } else {
-                        //TODO:Fix for chunck urls
-                        for (String s : finalChunkURLs) {
-                            s = s.replaceAll("\\\\", "");
-                            Download(s, TEMP_VIDEO_NAME, PROGRESS_UPDATE_CHUNCK);
-                        }
-                    }
-
-
+                } else {
+                    initFFMPEG(hlsSoLoadCallbacks);
                 }
+
+
             }).start();
         }
 
-        void fetch2Downloaded(Download download){
+        void downloadChunk(FFMPEG ffmpeg) {
+            AtomicInteger got = new AtomicInteger();
+            final Timer notifyTimer = notifyProgress();
+            ffmpeg.setExecuteCallback(session -> {
+                Log.e(TAG, "apply: HLS Successfull");
+                Bundle progressData = new Bundle();
+                onDoneDownload(ffmpeg.getOutputPath());
+                progressData.putInt(PROGRESS, 100);
+                sendBundle(PROGRESS_UPDATE_MERGING, progressData);
+                notifyTimer.cancel();
+            });
+
+            ffmpeg.downloadHLS(log -> {
+                if (log.getMessage().contains("Opening")) got.getAndIncrement();
+                int progress = (int) (got.get() * 100 / details.chunkCount);
+                Bundle bundle = new Bundle();
+                bundle.putInt(PROGRESS, progress);
+                notificationVal = progress;
+                sendBundle(PROGRESS_UPDATE_VIDEO, bundle);
+            });
+        }
+
+        void fetch2Downloaded(Download download) {
             notificationTimer.cancel();
 
-            int currentCode = download.getExtras().getInt(PROGRESS,PROGRESS_UPDATE_VIDEO);
+            int currentCode = download.getExtras().getInt(PROGRESS, PROGRESS_UPDATE_VIDEO);
 
-            if(currentCode==PROGRESS_UPDATE_VIDEO){
-                if(details.audioURL==null)
-                    onDoneDownload(TEMP_VIDEO_NAME);
+
+            if (currentCode == PROGRESS_UPDATE_VIDEO) {
+                if (details.audioURL == null)
+                    onDoneDownload(null);
                 else {
                     String audio_url = details.audioURL;
                     audio_url = audio_url.replaceAll("\\\\", "");
                     file_size = details.audioSize;
                     PROCESS = PROGRESS_UPDATE_AUDIO;
-                    Download(audio_url,TEMP_AUDIO_NAME, PROGRESS_UPDATE_AUDIO);
+                    download(audio_url, TEMP_AUDIO_NAME, PROGRESS_UPDATE_AUDIO);
                 }
-            }
-            else if(currentCode==PROGRESS_UPDATE_AUDIO)
-                loadAndMerge();
-            else if(currentCode==PROGRESS_UPDATE_CHUNCK){
-                downloadedClip++;
-                if(downloadedClip== chunkURLs.size()) onDoneDownload(TEMP_VIDEO_NAME);
-            }
+            } else if (currentCode == PROGRESS_UPDATE_AUDIO)
+                initFFMPEG(mergeSOCallback);
 
+        }
+
+        private void initFFMPEG(ReflectionInterfaces.SOLoadCallbacks soLoadCallbacks) {
+            FFMPEGInfo info = new FFMPEGInfo();
+            info.videoPath = TEMP_VIDEO_NAME;
+            info.audioPath = TEMP_AUDIO_NAME;
+            info.outPut = TEMP_RESULT_NAME;
+            info.hlsURL = details.chunkUrl;
+            info.mime_video = details.mimeVideo;
+            info.mime_audio = details.mimeAudio;
+
+            FFMPEG.newFFMPEGInstance(info, context, soLoadCallbacks);
         }
 
         private void onDownloadFailed(Bundle data) {
@@ -273,6 +304,7 @@ public class Downloader extends Service {
         }
 
         void onDoneDownload(String finalPath) {
+            if (finalPath == null) finalPath = TEMP_VIDEO_NAME;
             copyVideoToDestination(finalPath);
             Bundle bundle = new Bundle();
             bundle.putString(OUTFILE_URI, outputUri.toString());
@@ -285,52 +317,33 @@ public class Downloader extends Service {
                 stopForeground(true);
         }
 
-        void loadAndMerge(){
-            FFMPEG.dexPath = context.getExternalFilesDir("libs").getPath() + File.separator + "ffmpeg.jar";
-            FFMPEG.tempLibsPath = new File(context.getDir("dex", MODE_PRIVATE), "ffmpeg.jar").getAbsolutePath();
-            FFMPEG.jniPath = context.getExternalFilesDir("libs") + File.separator + "jni" + File.separator;
-            FFMPEG.filesDir = context.getFilesDir().getAbsolutePath() + File.separator;
-
-            Log.e(TAG, FFMPEG.getString());
-
-            FFMPEG.loadSOFiles(context.getExternalFilesDir("libs") + File.separator + "jni" + File.separator,soLoadCallbacks);
-
-        }
-
-        void mergeFiles() {
+        void mergeFiles(FFMPEG ffmpeg) {
             int videoLength = MediaPlayer.create(context, Uri.fromFile(new File(TEMP_VIDEO_NAME))).getDuration();
 
             builder.setContentTitle("Merging Video...");
             notificationVal = 0;
             final Timer notifyTimer = notifyProgress();
 
-            FFMPEG.mergeAsync(new FFMPEGInfo(details.mimeVideo,
-                            details.mimeAudio, TEMP_VIDEO_NAME, TEMP_AUDIO_NAME, TEMP_RESULT_NAME),
-                    new StatisticsCallback() {
-                        @Override
-                        public void apply(Statistics statistics) {
-                            float progress = 0;
-                            progress = (Float.parseFloat(String.valueOf(statistics.getTime())) / videoLength) * 100;
-                            Bundle progressData = new Bundle();
-                            int val = (int) progress;
-                            notificationVal = val;
-                            progressData.putInt(PROGRESS, val);
-                            sendBundle(PROGRESS_UPDATE_MERGING, progressData);
-                        }
-                    }, new FFmpegCallbacks() {
-                        @Override
-                        public void apply(Session session, String outputPath) {
-                            Bundle progressData = new Bundle();
-                            onDoneDownload(outputPath);
-                            progressData.putInt(PROGRESS, 100);
-                            sendBundle(PROGRESS_UPDATE_MERGING, progressData);
-                            notifyTimer.cancel();
-                        }
-                    });
+            ffmpeg.setExecuteCallback(session -> {
+                Bundle progressData = new Bundle();
+                onDoneDownload(ffmpeg.getOutputPath());
+                progressData.putInt(PROGRESS, 100);
+                sendBundle(PROGRESS_UPDATE_MERGING, progressData);
+                notifyTimer.cancel();
+            });
 
+            ffmpeg.mergeAsync(statistics -> {
+                float progress = 0;
+                progress = (Float.parseFloat(String.valueOf(statistics.getTime())) / videoLength) * 100;
+                Bundle progressData = new Bundle();
+                int val = (int) progress;
+                notificationVal = val;
+                progressData.putInt(PROGRESS, val);
+                sendBundle(PROGRESS_UPDATE_MERGING, progressData);
+            });
         }
 
-        void copyVideoToDestination(String finalFile){
+        void copyVideoToDestination(String finalFile) {
 
             try {
 
@@ -346,47 +359,64 @@ public class Downloader extends Service {
                 inChannel.close();
                 outChannel.close();
 
-            }catch (IOException e){
-                Log.e(TAG, "copyVideoToDestination: ",e );
+            } catch (IOException e) {
+                Log.e(TAG, "copyVideoToDestination: ", e);
             }
             FileUtil.deleteFile(finalFile);
             FileUtil.deleteFile(TEMP_AUDIO_NAME);
             FileUtil.deleteFile(TEMP_VIDEO_NAME);
         }
 
-        ReflectionInterfaces.SOLoadCallbacks soLoadCallbacks = new ReflectionInterfaces.SOLoadCallbacks() {
+        ReflectionInterfaces.SOLoadCallbacks mergeSOCallback = new ReflectionInterfaces.SOLoadCallbacks() {
             @Override
-            public void onSOLoadingSuccess() {
-                mergeFiles();
+            public void onSOLoadingSuccess(FFMPEG ffmpeg) {
+                mergeFiles(ffmpeg);
             }
 
             @Override
             public void onSOLoadingFailed(Exception e) {
-                Log.e(TAG, "onSOLoadingFailed: ",e );
+                Log.e(TAG, "onSOLoadingFailed: ", e);
+            }
+        };
+
+        ReflectionInterfaces.SOLoadCallbacks hlsSoLoadCallbacks = new ReflectionInterfaces.SOLoadCallbacks() {
+            @Override
+            public void onSOLoadingSuccess(FFMPEG ffmpegInstance) {
+                downloadChunk(ffmpegInstance);
+            }
+
+            @Override
+            public void onSOLoadingFailed(Exception e) {
+                Log.e(TAG, "onSOLoadingFailed: ", e);
             }
         };
 
 
-
-        void Download(String url, String outPath, int whatDownloading) {
+        void download(String url, String outPath, int whatDownloading) {
             notificationTimer = notifyProgress();
-            OkHttpClient okHttpClient = new OkHttpClient().newBuilder().build();
 
             FetchConfiguration fetchConfiguration = new FetchConfiguration.Builder(context)
-                    .setHttpDownloader(new OkHttpDownloader(okHttpClient)).build();
+                    .setHttpDownloader(new HttpUrlConnectionDownloader(com.tonyodev.fetch2core.Downloader.FileDownloaderType.PARALLEL))
+                    .setDownloadConcurrentLimit(3)
+                    .enableRetryOnNetworkGain(true)
+                    .build();
 
             Fetch fetch = Fetch.Impl.getInstance(fetchConfiguration);
 
-            Request request = new Request(url,outPath);
+
+            url = url.replace("http://", "https://");
+
+            Request request = new Request(url, outPath);
             MutableExtras extra = new MutableExtras();
-            extra.putInt(PROGRESS,whatDownloading);
+            extra.putInt(PROGRESS, whatDownloading);
             request.setExtras(extra);
 
 
-            fetch.attachFetchObserversForDownload(request.getId(),this).enqueue(request,result -> {},error->{
+            fetch.attachFetchObserversForDownload(request.getId(), this).enqueue(request, result -> {
+            }, error -> {
                 Bundle bundle = new Bundle();
                 bundle.putString(ERROR_DOWNLOADING, String.valueOf(error));
-                Log.e(TAG, "run: "+error );
+                Log.e(TAG, "run: " + error);
                 onDownloadFailed(bundle);
             });
 
@@ -442,29 +472,6 @@ public class Downloader extends Service {
 
         }
 
-        void calculateSpeed() {
-            long elapsedTime = System.nanoTime() - startTime;
-            passedTime = (double) elapsedTime / 1_000_000_000.0;
-
-            long passedBytes = (passed - startBytes) / 1024;
-            speed = (double) passedBytes / passedTime;
-
-            startTime = System.nanoTime();
-            startBytes = passed;
-
-
-            Log.d(TAG, "calculateSpeed: " + speed);
-        }
-
-        private void ResetMetrics() {
-            passed = 0;
-            val_cache = 0;
-            startTime = System.nanoTime();
-            startBytes = 0;
-            speed = -10;
-            isFirst = true;
-        }
-
         Timer notifyProgress() {
             Timer timer = new Timer();
             timer.scheduleAtFixedRate(new TimerTask() {
@@ -486,14 +493,15 @@ public class Downloader extends Service {
 
         @Override
         public void onChanged(Download download, @NonNull Reason reason) {
-            if(reason==Reason.DOWNLOAD_COMPLETED){
+            Log.e(TAG, "onChanged: " + reason);
+            if (reason == Reason.DOWNLOAD_COMPLETED) {
                 fetch2Downloaded(download);
-            }else if(download.getDownloadedBytesPerSecond()!=-1) {
+            } else if (download.getDownloadedBytesPerSecond() != -1) {
                 notificationVal = download.getProgress();
                 passed = download.getDownloaded();
                 speed = download.getDownloadedBytesPerSecond();
-                Log.e(TAG, "onChanged: "+speed);
-                speed/=1024;
+                Log.e(TAG, "onChanged: " + speed);
+                speed /= 1024;
                 uiSpeed();
             }
         }

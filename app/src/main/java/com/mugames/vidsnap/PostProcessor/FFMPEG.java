@@ -1,14 +1,34 @@
+/*
+ *  This file is part of VidSnap.
+ *
+ *  VidSnap is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  any later version.
+ *
+ *  VidSnap is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with VidSnap.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 package com.mugames.vidsnap.PostProcessor;
 
 
+import android.content.Context;
 import android.util.Log;
 
 import com.arthenica.ffmpegkit.ExecuteCallback;
 import com.arthenica.ffmpegkit.FFmpegKit;
 import com.arthenica.ffmpegkit.FFmpegKitConfig;
+import com.arthenica.ffmpegkit.LogCallback;
 import com.arthenica.ffmpegkit.NativeLoader;
 import com.arthenica.ffmpegkit.Session;
 import com.arthenica.ffmpegkit.StatisticsCallback;
+import com.mugames.vidsnap.Utility.FileUtil;
 import com.mugames.vidsnap.Utility.MIMEType;
 
 import java.io.File;
@@ -29,37 +49,86 @@ import dalvik.system.DexClassLoader;
 import static com.mugames.vidsnap.Utility.Statics.TAG;
 
 public class FFMPEG {
-    static DexClassLoader loader;
-    static String opFilePath;
+//    static DexClassLoader loader;
     public static String jniPath;
     public static String filesDir;
-    public static String dexPath;
-    public static String tempLibsPath;
+    private static int INSTANCE_COUNT;
+//    public static String dexPath;
+//    public static String tempLibsPath;
 
-    static boolean isLibLoaded = false;
+    public static boolean isLibLoaded = false;
 
-    public static String getString() {
-        return String.format("\njniPath = %s\nfilesDri = %s\ndexPath = %s\ntempLibPath = %s", jniPath, filesDir, dexPath, tempLibsPath);
+    ExecuteCallback executeCallback;
+    FFMPEGInfo info;
+
+    String opFilePath;
+
+
+    public static void newFFMPEGInstance(FFMPEGInfo ffmpegInfo, Context context, ReflectionInterfaces.SOLoadCallbacks soLoadCallbacks){
+        INSTANCE_COUNT++;
+        new FFMPEG(ffmpegInfo,context,soLoadCallbacks);
     }
-
-
-    static DexClassLoader getLoader() throws IOException {
-        if (loader == null) {
-            loadDEX();
-            loader = new DexClassLoader(tempLibsPath, null, filesDir, FFMPEG.class.getClassLoader());
+    ExecuteCallback wrappedExecuteCallback = new ExecuteCallback() {
+        @Override
+        public void apply(Session session) {
+            deleteLibs();
+            if(executeCallback!=null)
+                executeCallback.apply(session);
         }
-        return loader;
+    };
+
+
+    public FFMPEG(FFMPEGInfo ffmpegInfo, Context context, ReflectionInterfaces.SOLoadCallbacks soLoadCallbacks) {
+        this.info = ffmpegInfo;
+        String libsPath = context.getExternalFilesDir("libs").getAbsolutePath();
+        if(jniPath==null) jniPath = libsPath + File.separator + "jni" + File.separator;
+
+        if(!FileUtil.isFileExists(jniPath)) {
+            try {
+                FileUtil.unzip(new File(libsPath, "lib.zip"), new File(libsPath));
+            } catch (IOException e) {
+                Log.e(TAG, "onReceive: ", e);
+                e.printStackTrace();
+            }
+        }
+        if(filesDir==null) filesDir = context.getFilesDir().getAbsolutePath() + File.separator;
+        loadSOFiles(jniPath,soLoadCallbacks);
     }
 
-    static void loadDEX() throws IOException {
-        File src = new File(dexPath);
-        FileInputStream inputStream = new FileInputStream(src.getAbsolutePath());
-        FileOutputStream outputStream = new FileOutputStream(tempLibsPath);
-        FileChannel inChannel = inputStream.getChannel();
-        FileChannel outChannel = outputStream.getChannel();
-        inChannel.transferTo(0, inChannel.size(), outChannel);
-        inputStream.close();
-        outputStream.close();
+    public void setExecuteCallback(ExecuteCallback executeCallback) {
+        this.executeCallback = executeCallback;
+    }
+
+
+    static void deleteLibs(){
+        INSTANCE_COUNT--;
+        Log.e(TAG, "deleteLibs: "+INSTANCE_COUNT);
+        if(INSTANCE_COUNT==0)
+            FileUtil.deleteFolder(jniPath);
+    }
+
+    //    static DexClassLoader getLoader() throws IOException {
+//        if (loader == null) {
+//            loadDEX();
+//            loader = new DexClassLoader(tempLibsPath, null, filesDir, FFMPEG.class.getClassLoader());
+//        }
+//        return loader;
+//    }
+
+//    static void loadDEX() throws IOException {
+//        File src = new File(dexPath);
+//        FileInputStream inputStream = new FileInputStream(src.getAbsolutePath());
+//        FileOutputStream outputStream = new FileOutputStream(tempLibsPath);
+//        FileChannel inChannel = inputStream.getChannel();
+//        FileChannel outChannel = outputStream.getChannel();
+//        inChannel.transferTo(0, inChannel.size(), outChannel);
+//        inputStream.close();
+//        outputStream.close();
+//    }
+
+
+    public String getOutputPath() {
+        return opFilePath;
     }
 
     static void loadJni(File file) throws IOException {
@@ -76,9 +145,11 @@ public class FFMPEG {
             System.load(lib.getAbsolutePath());
     }
 
-    public static void loadSOFiles(String jniPath, ReflectionInterfaces.SOLoadCallbacks callbacks) {
+
+
+    public void loadSOFiles(String jniPath, ReflectionInterfaces.SOLoadCallbacks callbacks) {
         if(isLibLoaded){
-            callbacks.onSOLoadingSuccess();
+            callbacks.onSOLoadingSuccess(this);
             return;
         }
         File jniDirectory = new File(jniPath);
@@ -119,7 +190,7 @@ public class FFMPEG {
                 loadJni(new File(jniPath, "libffmpegkit_armv7a_neon.so"));
 
                 isLibLoaded = true;
-                callbacks.onSOLoadingSuccess();
+                callbacks.onSOLoadingSuccess(this);
             }
         } catch (IOException e) {
             e.printStackTrace();
@@ -127,7 +198,7 @@ public class FFMPEG {
         }
     }
 
-    public static void mergeAsync(FFMPEGInfo info, StatisticsCallback statisticsCallback, FFmpegCallbacks ffmpegCallback) {
+    public void mergeAsync(StatisticsCallback statisticsCallback) {
 
 //        try {
 //            String command = findCommand(FFMPEGType.MERGE, info.mime_audio, info.mime_video);
@@ -194,27 +265,24 @@ public class FFMPEG {
 //        }
 
 
-        String command = findCommand(FFMPEGType.MERGE, info.mime_audio, info.mime_video);
+        String command = findCommand(FFMPEGType.MERGE, info);
         opFilePath = String.format(opFilePath, info.outPut);
         FFmpegKitConfig.enableStatisticsCallback(statisticsCallback);
-        FFmpegKit.executeAsync(String.format(command, info.videoPath, info.audioPath, opFilePath), new ExecuteCallback() {
-            @Override
-            public void apply(Session session) {
-                ffmpegCallback.apply(session, opFilePath);
-            }
-        });
+        FFmpegKit.executeAsync(String.format(command, info.videoPath, info.audioPath, opFilePath), wrappedExecuteCallback);
     }
 
 
-    static String findCommand(String type, String audio_mime, String video_mime) {
+    String findCommand(String type, FFMPEGInfo info) {
         switch (type) {
             case FFMPEGType.MERGE:
-                return findEncodeType(audio_mime, video_mime);
+                return findEncodeType(info.mime_audio, info.mime_video);
+            case FFMPEGType.HLS_DOWNLOAD:
+                return "-i \""+info.hlsURL+"\" -codec copy "+info.videoPath;
         }
         return null;
     }
 
-    private static String findEncodeType(String audio_mime, String video_mime) {
+    private  String findEncodeType(String audio_mime, String video_mime) {
         if (MIMEType.AUDIO_WEBM.equals(audio_mime) && MIMEType.VIDEO_WEBM.equals(video_mime)) {
             opFilePath = "%s.webm";
             return "-i %s -i %s -c copy %s";
@@ -229,5 +297,11 @@ public class FFMPEG {
             return "-i %s -i %s -c copy %s";
         }
         return null;
+    }
+
+    public void downloadHLS(LogCallback logCallback){
+        info.outPut += ".mp4";
+        String command = findCommand(FFMPEGType.HLS_DOWNLOAD,info);
+        FFmpegKit.executeAsync(command, wrappedExecuteCallback, logCallback,null);
     }
 }

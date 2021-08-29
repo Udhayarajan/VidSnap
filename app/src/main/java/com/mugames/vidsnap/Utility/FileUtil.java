@@ -1,3 +1,20 @@
+/*
+ *  This file is part of VidSnap.
+ *
+ *  VidSnap is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  any later version.
+ *
+ *  VidSnap is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with VidSnap.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 package com.mugames.vidsnap.Utility;
 
 import android.app.Activity;
@@ -29,8 +46,7 @@ import java.lang.reflect.Array;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.List;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+import java.util.Objects;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
@@ -246,7 +262,7 @@ public final class FileUtil {
         return Character.UnicodeBlock.of(c) != Character.UnicodeBlock.BASIC_LATIN;
     }
 
-    public static String GetValidFile(String path, String name, String extention) {
+    public static String getValidFile(String path, String name, String extention) {
         int num = 1;
 
         if (path == null) {
@@ -263,18 +279,17 @@ public final class FileUtil {
         return path;
     }
 
-    public static boolean deleteFile(String path) {
+    public static void deleteFile(String path) {
         File file = new File(path);
         if (file.exists()) {
             if (file.delete())
-                return true;
+                return;
             try {
-                return file.getCanonicalFile().delete();
+                file.getCanonicalFile().delete();
             } catch (IOException e) {
                 Log.e("TAG", "deleteFile: ",e);
             }
         }
-        return true;
     }
 
     public static void saveFile(String path, Object value) {
@@ -360,11 +375,19 @@ public final class FileUtil {
                 file.setLastModified(time);
             */
             }
-            zipFile.delete();
         } finally {
             zis.close();
         }
     }
 
 
+    public static void deleteFolder(String path) {
+        File directory = new File(path);
+        if(directory.isDirectory()) {
+            for (File file : Objects.requireNonNull(directory.listFiles())) {
+                deleteFile(file.getAbsolutePath());
+            }
+            directory.delete();
+        }
+    }
 }

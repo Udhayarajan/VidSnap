@@ -1,3 +1,20 @@
+/*
+ *  This file is part of VidSnap.
+ *
+ *  VidSnap is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  any later version.
+ *
+ *  VidSnap is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with VidSnap.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 package com.mugames.vidsnap.Extractor;
 
 import android.graphics.Bitmap;
@@ -55,7 +72,6 @@ public class Facebook extends Extractor {
 
     Hashtable<String,String> headers;
 
-    AnalyzeCallback analyzeCallback;
 
     public Facebook() {
         super("FaceBook");
@@ -70,7 +86,7 @@ public class Facebook extends Extractor {
     }
 
     @Override
-    public void analyze(String url, AnalyzeCallback analyzeCallback) {
+    public void analyze(String url) {
         ID= getId(url);
         formats=new Formats();
         headers=new Hashtable<>();
@@ -83,7 +99,6 @@ public class Facebook extends Extractor {
         if(url.startsWith("facebook:")) url=String.format("https://www.facebook.com/video/video.php?v=%s",ID);
         this.url=url;
         getDialogueInterface().show("Accessing Server...");
-        this.analyzeCallback = analyzeCallback;
         ExtractInfo();
     }
 

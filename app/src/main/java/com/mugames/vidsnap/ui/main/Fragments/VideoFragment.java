@@ -1,3 +1,20 @@
+/*
+ *  This file is part of VidSnap.
+ *
+ *  VidSnap is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  any later version.
+ *
+ *  VidSnap is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with VidSnap.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 package com.mugames.vidsnap.ui.main.Fragments;
 
 import android.graphics.Rect;
@@ -51,11 +68,8 @@ public class VideoFragment extends Fragment implements
     Button button;
 
 
-
-
     RecyclerView list;
     DownloadableAdapter adapter;
-
 
 
     long size;
@@ -74,11 +88,10 @@ public class VideoFragment extends Fragment implements
     public static VideoFragment newInstance(String link) {
         VideoFragment fragment = new VideoFragment();
         Bundle bundle = new Bundle();
-        bundle.putString(URL_KEY,link);
+        bundle.putString(URL_KEY, link);
         fragment.setArguments(bundle);
         return fragment;
     }
-
 
 
     @Override
@@ -111,13 +124,10 @@ public class VideoFragment extends Fragment implements
         String link = getArguments() != null ? getArguments().getString(URL_KEY) : null;
 
 
-        analysis.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                analysis.setEnabled(false);
-                hideKeyboard(null);
-                startProcess(urlBox.getText().toString());
-            }
+        analysis.setOnClickListener(v -> {
+            analysis.setEnabled(false);
+            hideKeyboard(null);
+            startProcess(urlBox.getText().toString());
         });
 
         urlBox.setOnFocusChangeListener((v, hasFocus) -> {
@@ -130,10 +140,12 @@ public class VideoFragment extends Fragment implements
 
     }
 
-    private void startProcess(String link) {
+    public void startProcess(String link) {
         urlBox.setText(link);
+        if (dialogFragment != null) dialogFragment.dismiss();
+        dialogFragment = null;
         viewModel.setAnalyzeUICallback(this);
-        if(viewModel.onClickAnalysis(urlBox.getText().toString(), (MainActivity) getActivity())==null)
+        if (viewModel.onClickAnalysis(urlBox.getText().toString(), (MainActivity) getActivity()) == null)
             unLockAnalysis();
         else linkFor(link);
     }
@@ -152,7 +164,7 @@ public class VideoFragment extends Fragment implements
 
     void linkFor(String link) {
         size = 0;
-        if(dialogFragment != null && dialogFragment.isVisible())dialogFragment.dismiss();
+        if (dialogFragment != null && dialogFragment.isVisible()) dialogFragment.dismiss();
 
         Fragment fragment = activity.getSupportFragmentManager().findFragmentByTag("TAG");
         if (fragment != null)
@@ -173,20 +185,20 @@ public class VideoFragment extends Fragment implements
 
     @Override
     public void onAnalyzeCompleted(boolean isMultipleFile) {
-        unLockAnalysis();
         activity.dialog.dismiss();
-        if (isMultipleFile) {
-            adapter = new DownloadableAdapter(activity, viewModel.getFormatsArrayList(), this);
-            list.setLayoutManager(new GridLayoutManager(activity, 2));
-            list.setAdapter(adapter);
-            button.setVisibility(View.VISIBLE);
+        activity.runOnUiThread(() -> {
+            unLockAnalysis();
+            if (isMultipleFile) {
+                adapter = new DownloadableAdapter(activity, viewModel.getFormatsArrayList(), this);
+                list.setLayoutManager(new GridLayoutManager(activity, 2));
+                list.setAdapter(adapter);
+                button.setVisibility(View.VISIBLE);
 
-        } else {
-            SelectResolution();
-        }
+            } else {
+                SelectResolution();
+            }
+        });
     }
-
-
 
 
     @Override
@@ -218,7 +230,7 @@ public class VideoFragment extends Fragment implements
     }
 
 
-    void actionForSOLOFile(){
+    void actionForSOLOFile() {
         final DownloadDetails details = new DownloadDetails();
 
         final Formats formats;
@@ -250,14 +262,18 @@ public class VideoFragment extends Fragment implements
                 try {
                     details.mimeVideo = formats.videoMime.get(position);
                     details.mimeAudio = formats.audioMime.get(position);
+                    details.chunkUrl = formats.chunkUrlList.get(position);
+                    details.chunkCount = formats.manifest.get(position).size();
                 } catch (IndexOutOfBoundsException e) {
                     e.printStackTrace();
                 }
+
+
                 details.videoSize = formats.videoSizes.get(position);
-                try{
+                try {
                     details.audioURL = formats.audioURLs.get(0);
-                }catch (IndexOutOfBoundsException e){
-                    details.audioURL=null;
+                } catch (IndexOutOfBoundsException e) {
+                    details.audioURL = null;
                 }
                 try {
                     details.videoURL = formats.videoURLs.get(position);
@@ -270,19 +286,20 @@ public class VideoFragment extends Fragment implements
                 formats.title = removeStuffFromName(formats.title);
 
                 if (quality.equals("--")) quality = "";
-                details.pathUri=directory;
+                details.pathUri = directory;
 
-                details.fileType=".mp4";
+                details.fileType = ".mp4";
 
-                details.fileName =formats.title + "_" + quality + "_";
+                details.fileName = formats.title + "_" + quality + "_";
 
                 details.src = formats.src;
 
 
-                qualityFragment.setName(details.fileName +details.fileType);
+                qualityFragment.setName(details.fileName + details.fileType);
 
             }
         });
+
         details.thumbNail = formats.thumbNailsBitMap.get(0);
 
 //
@@ -301,7 +318,7 @@ public class VideoFragment extends Fragment implements
     public void onPause() {
         super.onPause();
         isPaused = true;
-        if(dialogFragment!=null)
+        if (dialogFragment != null)
             dialogFragment.dismiss();
     }
 
