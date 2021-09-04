@@ -16,11 +16,11 @@
     <b><u>Analytics:</u></b>\n
     We use Google Analytics to analyze our users\' experience. Crash also a part of Analytics. We don\'t collect any other details other than the crash log.\n
 
-        <b><u>License:</u></b>\n
-    This app\'s source code is licensed under GNU GPL v3. Goto 3 line(≡) icon-> About (ⓘ) for more details
+        <b><u>Ads:</u></b>\n
+    Ads are a huge support for developers. Revenue from ads encourages us. Don\'t vex we won\'t spam ads via notification. For every download, there will be a skippable ad(usually an image or short video). Small Ads at bottom.\n
     </string>
 
-    <string name="about_us">Thanks for your interest to visit about section of this app. Created by me and tested by/with my friends . Contact us via <b>Social Contact</b>
+    <string name="about_us">Thanks for your interest to visit about section of this app.We are small group of student. Contact us via <b>Social Contact</b>
 </string>
 
     <string name="navigation_drawer_open">Open navigation drawer</string>
@@ -33,7 +33,7 @@
     <string name="key_facebook">fbCookies</string>
     <string name="key_clear_history_cache">cacheHistory</string>
     <string name="key_media_link">shareLinkOnCrash</string>
-    <string name="key_terms_con">454513512.c</string>
+    <string name="key_terms_con">454513512.b</string>
     <string name="key_force_clear">clearAllData0</string>
 
     <!-- Messages Preferences -->

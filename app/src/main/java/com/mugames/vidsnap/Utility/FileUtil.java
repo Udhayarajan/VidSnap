@@ -1,37 +1,4 @@
-/*
- *  This file is part of VidSnap.
- *
- *  VidSnap is free software: you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation, either version 3 of the License, or
- *  any later version.
- *  VidSnap is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
- *  You should have received a copy of the GNU General Public License
- *  along with VidSnap.  If not, see <https://www.gnu.org/licenses/>.
- *
- */
-
-/*
- *  This file is part of VidSnap.
- *
- *  VidSnap is free software: you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation, either version 3 of the License, or
- *  any later version.
- *
- *  VidSnap is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with VidSnap.  If not, see <https://www.gnu.org/licenses/>.
- */
-
-package com.mugames.vidsnap.Storage;
+package com.mugames.vidsnap.Utility;
 
 import android.app.Activity;
 import android.content.Context;
@@ -41,17 +8,18 @@ import android.os.Environment;
 import android.os.storage.StorageManager;
 import android.os.storage.StorageVolume;
 import android.provider.DocumentsContract;
-import android.util.Log;
 
 import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
 import androidx.core.content.ContextCompat;
 
 import java.io.BufferedInputStream;
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
+import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
@@ -59,9 +27,9 @@ import java.io.OutputStream;
 import java.lang.reflect.Array;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.nio.channels.FileChannel;
 import java.util.List;
-import java.util.Objects;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
@@ -69,11 +37,11 @@ public final class FileUtil {
     static String PRIMARY_VOLUME = "primary";
     static String PRIMARY_TREE = "/tree/primary";
 
-    public static String uriToPath(Context context, @Nullable final Uri uri) {
+    public static String uriToPath(Activity activity, @Nullable final Uri uri) {
 
-        if (uri == null) return null;
-        String volumeID = getIDFromUri(uri, context);
-        String volumePath = getVolumePath(volumeID, context);
+        if(uri==null) return null;
+        String volumeID = getIDFromUri(uri, activity);
+        String volumePath = getVolumePath(volumeID, activity);
 
         if (volumePath == null) return File.separator;
 
@@ -81,7 +49,7 @@ public final class FileUtil {
             volumePath = volumePath.substring(0, volumePath.length() - 1);
 
         String documentPath = docPathFromUri(uri);
-        String documentName = getFilePath(uri, context, documentPath);
+        String documentName = getFilePath(uri, activity, documentPath);
 
         if (documentPath.endsWith(File.separator))
             documentPath = documentPath.substring(0, volumePath.length() - 1);
@@ -103,17 +71,17 @@ public final class FileUtil {
         } else return volumePath;
     }
 
-    private static String getFilePath(Uri uri, Context context, String documentPath) {
+    private static String getFilePath(Uri uri, Activity activity, String documentPath) {
         try {
             String[] split;
-            if (DocumentsContract.isDocumentUri(context, uri)) {
+            if (DocumentsContract.isDocumentUri(activity, uri)) {
                 String id = DocumentsContract.getDocumentId(uri);
                 split = id.split(":");
             } else {
                 split = uri.getPath().split(":");
             }
 
-            if (split.length > 1) return split[1].replace(documentPath, "");
+            if (split.length > 1) return split[1].replace(documentPath,"");
         } catch (IllegalArgumentException e) {
             e.printStackTrace();
         }
@@ -121,10 +89,10 @@ public final class FileUtil {
     }
 
 
-    private static String getIDFromUri(Uri uri, Context context) {
+    private static String getIDFromUri(Uri uri, Activity activity) {
         try {
             String[] split;
-            if (DocumentsContract.isDocumentUri(context, uri)) {
+            if (DocumentsContract.isDocumentUri(activity, uri)) {
                 String id = DocumentsContract.getDocumentId(uri);
                 split = id.split(":");
             } else {
@@ -138,17 +106,17 @@ public final class FileUtil {
         return null;
     }
 
-    private static String getVolumePath(String volumeID, Context context) {
+    private static String getVolumePath(String volumeID, Activity activity) {
         if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.Q)
-            return getVolumePreR(volumeID, context);
+            return getVolumePreR(volumeID, activity);
         else
-            return getVolumePostR(volumeID, context);//Includes R and above
+            return getVolumePostR(volumeID, activity);//Includes R and above
     }
 
 
-    private static String getVolumePreR(String volumeID, Context context) {
+    private static String getVolumePreR(String volumeID, Activity activity) {
         try {
-            StorageManager manager = (StorageManager) context.getSystemService(Context.STORAGE_SERVICE);
+            StorageManager manager = (StorageManager) activity.getSystemService(Context.STORAGE_SERVICE);
             Class<?> storageVolumeClass = Class.forName("android.os.storage.StorageVolume");
 
             Method getVolumeList = manager.getClass().getMethod("getVolumeList");
@@ -182,8 +150,8 @@ public final class FileUtil {
     }
 
     @RequiresApi(api = Build.VERSION_CODES.R)
-    private static String getVolumePostR(String volumeID, Context context) {
-        StorageManager manager = (StorageManager) context.getSystemService(Context.STORAGE_SERVICE);
+    private static String getVolumePostR(String volumeID, Activity activity) {
+        StorageManager manager = (StorageManager) activity.getSystemService(Context.STORAGE_SERVICE);
 
         List<StorageVolume> volumes = manager.getStorageVolumes();
 
@@ -231,57 +199,52 @@ public final class FileUtil {
         else return File.separator;
     }
 
+    public static boolean isInternalPath(Context context, String path) {
+        return path.contains(String.valueOf(ContextCompat.getExternalFilesDirs(context, null)[0]));
+    }
+
 
     public static String displayFormatPath(Activity activity, Uri uri) {
-        if (uri == null) return "Not set";
-        String path = uriToPath(activity, uri);
-        path = path.equals(File.separator) ? uri.getPath() : path;
-
-        String internal = getExternalStoragePublicDirectory(activity, "");
+        if(uri==null) return "Not set";
+        String path = uriToPath(activity,uri);
+        path = path.equals(File.separator)?uri.getPath():path;
+        String internal = getExternalStoragePublicDirectory(activity,"");
 
         String external = isSDPresent(activity) ? String.valueOf(ContextCompat.getExternalFilesDirs(activity, null)[1]) : null;
 
-        if (external != null)
-            external = external.replaceAll("Android/data/com.mugames.vidsnap/files", "");
+        if(external!=null)
+            external = external.replaceAll("Android/data/com.mugames.vidsnap/files","");
 
         if (path.contains(internal))
             path = path.replaceAll(internal, "Internal Storage/");
-        else if (external != null && path.contains(external))
+        if (external != null && path.contains(external))
             path = path.replaceAll(external, "External Storage/");
-        else {
-            return "Not set";
-        }
         return path.replaceAll(File.separator, ">");
     }
 
     public static boolean isSDPresent(Context context) {
-        File[] media = ContextCompat.getExternalFilesDirs(context, null);
-        try {
-            return media[1] != null;
-        } catch (ArrayIndexOutOfBoundsException e) {
-            return false;
-        }
+        return ContextCompat.getExternalFilesDirs(context, null).length >= 2;
     }
 
     public static String removeStuffFromName(String name) {
 
         name = name.replaceAll("https:.*", "");
-        name = name.replaceAll("[@#~\\n\\t]", "");
+        name = name.replaceAll("[@#~].*", "");
         if (name.length() > 45) {
             int i = 45;
             while (unicode(name, i)) i++;
-            name = name.substring(0, i);
+            name = name.substring(0,i);
         }
         return name;
     }
 
     private static boolean unicode(String s, int i) {
-        s = s.substring(0, i);
-        char c = s.charAt(i - 1);
+        s=s.substring(0,i);
+        char c = s.charAt(i-1);
         return Character.UnicodeBlock.of(c) != Character.UnicodeBlock.BASIC_LATIN;
     }
 
-    public static String getValidFile(String path, String name, String extention) {
+    public static String GetValidFile(String path, String name, String extention) {
         int num = 1;
 
         if (path == null) {
@@ -298,42 +261,21 @@ public final class FileUtil {
         return path;
     }
 
-
-    public static boolean isFileExists(String fileDirectory) {
-        return new File(fileDirectory).exists();
-    }
-
-    /*-----------------------------------NOTE-------------------------------------------------*
-     * Below functions are heavy tasks. it might delay to perform so it is recommended to call*
-     * below functions from separate thread to prevent UI lock                                *
-     * If you intend to run task on UI thread, no need to create new thread                   *
-     * in such case pass null for FileStreamCallback.                                         *
-     * In some case if you think no need of callback on operation completion but you still    *
-     * need to use as separate thread, just pass null to callback. Callbacks aren't mandatory. *
-     *---------------------------------------------------------------------------------------*/
-
-    public static void deleteFile(String path, FileStreamCallback callback) {
+    public static boolean deleteFile(String path) {
         File file = new File(path);
-        if (file.isDirectory()) {
-            deleteFolder(file.getAbsolutePath());
-        }
         if (file.exists()) {
-            if (file.delete()) {
-                if (callback != null)
-                    callback.onFileOperationDone();
-                return;
-            }
+            if (file.delete())
+                return true;
             try {
-                file.getCanonicalFile().delete();
+                return file.getCanonicalFile().delete();
             } catch (IOException e) {
-                Log.e("TAG", "deleteFile: ", e);
+                e.printStackTrace();
             }
-            if (callback != null) callback.onFileOperationDone();
         }
+        return true;
     }
 
-
-    public static void saveFile(String path, Object value, FileStreamCallback callback) {
+    public static void saveFile(String path, Object value) {
         File file = new File(path);
         try {
             if (value instanceof String) {
@@ -348,24 +290,47 @@ public final class FileUtil {
         } catch (IOException e) {
             e.printStackTrace();
         }
-        if (callback != null) callback.onFileOperationDone();
     }
 
-    public static byte[] loadImage(String path) {
+    public static Object loadFile(String path, Class<?> type) {
         File file = new File(path);
-        try {
-            InputStream inputStream = new FileInputStream(file);
-            long fileSize = file.length();
-            byte[] allBytes = new byte[(int) fileSize];
-            inputStream.read(allBytes);
-            return allBytes;
-        } catch (IOException e) {
-            e.printStackTrace();
+        if (type == String.class) {
+            StringBuilder result = new StringBuilder();
+            try {
+                BufferedReader reader = new BufferedReader(new FileReader(file));
+                while (true) {
+                    String line = reader.readLine();
+                    if (line == null || line.isEmpty()) break;
+                    line = line.substring(1, line.length() - 1);
+                    if (line.contains("]")) throw new Exception("] is there");
+                    result.append(line);
+                }
+                reader.close();
+                return result.toString();
+            } catch (Exception e) {
+                e.printStackTrace();
+                return null;
+            }
+
+        } else {
+            try {
+                InputStream inputStream = new FileInputStream(file);
+                long fileSize = file.length();
+                byte[] allBytes = new byte[(int) fileSize];
+                inputStream.read(allBytes);
+                return allBytes;
+            } catch (IOException e) {
+                e.printStackTrace();
+                return null;
+            }
         }
-        return null;
     }
 
-    public static void unzip(File zipFile, File targetDirectory, FileStreamCallback fileStreamCallback) throws IOException {
+    public static boolean isFileExists(String fileDirectory){
+        return new File(fileDirectory).exists();
+    }
+
+    public static void unzip(File zipFile, File targetDirectory) throws IOException {
         ZipInputStream zis = new ZipInputStream(
                 new BufferedInputStream(new FileInputStream(zipFile)));
         try {
@@ -396,64 +361,7 @@ public final class FileUtil {
         } finally {
             zis.close();
         }
-        if (fileStreamCallback != null)
-            fileStreamCallback.onFileOperationDone();
     }
 
 
-    private static void deleteFolder(String path) {
-        File directory = new File(path);
-        if (directory.isDirectory()) {
-            for (File file : Objects.requireNonNull(directory.listFiles())) {
-                deleteFile(file.getAbsolutePath(), null);
-            }
-            directory.delete();
-        }
-    }
-
-    public static void moveCache(String newValue, Context context, FileStreamCallback fileStreamCallback) {
-        File src;
-        File dest;
-        if (newValue.equals("external")) {
-            src = context.getExternalFilesDirs("")[0];
-            dest = context.getExternalFilesDirs("")[1];
-        } else {
-            src = context.getExternalFilesDirs("")[1];
-            dest = context.getExternalFilesDirs("")[0];
-        }
-        copyFile(src, dest, null);
-        if (fileStreamCallback != null) fileStreamCallback.onFileOperationDone();
-    }
-
-    static void copyFolder(File src, File dest) {
-        for (File child : Objects.requireNonNull(src.listFiles())) {
-            if (!child.getName().equals(".essential"))
-                copyFile(child, new File(dest, child.getName()), null);
-        }
-    }
-
-    public static void copyFile(File src, File dest, FileStreamCallback fileStreamCallback) {
-        if (src.isDirectory()) {
-            copyFolder(src, dest);
-            return;
-        }
-
-        if (src.getName().endsWith(".muout") || src.getName().endsWith(".muvideo") || src.getName().endsWith(".muaudio"))
-            return;
-        Log.e("TAG", "src copyFile: " + src);
-        Log.e("TAG", "dest copyFile: " + dest);
-
-        try {
-            FileChannel inChannel = new FileInputStream(src).getChannel();
-            FileChannel outChannel = new FileOutputStream(dest).getChannel();
-            inChannel.transferTo(0, inChannel.size(), outChannel);
-            inChannel.close();
-            outChannel.close();
-            deleteFile(src.getAbsolutePath(), null);
-        } catch (IOException e) {
-            e.printStackTrace();
-
-        }
-        if (fileStreamCallback != null) fileStreamCallback.onFileOperationDone();
-    }
 }

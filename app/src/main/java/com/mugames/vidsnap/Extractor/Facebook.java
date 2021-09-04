@@ -1,33 +1,26 @@
-/*
- *  This file is part of VidSnap.
- *
- *  VidSnap is free software: you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation, either version 3 of the License, or
- *  any later version.
- *
- *  VidSnap is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with VidSnap.  If not, see <https://www.gnu.org/licenses/>.
- */
-
 package com.mugames.vidsnap.Extractor;
 
+import android.graphics.Bitmap;
+import android.util.Log;
+
 import com.mugames.vidsnap.Utility.UtilityClass;
+import com.mugames.vidsnap.ui.main.Activities.MainActivity;
+import com.mugames.vidsnap.R;
 import com.mugames.vidsnap.Threads.HttpRequest;
+import com.mugames.vidsnap.Threads.MiniExecute;
+import com.mugames.vidsnap.Utility.Extractor;
 import com.mugames.vidsnap.Utility.Formats;
 import com.mugames.vidsnap.Utility.MIMEType;
 import com.mugames.vidsnap.Utility.Statics;
+import com.mugames.vidsnap.Utility.UtilityInterface;
+import com.mugames.vidsnap.Utility.UtilityInterface.AnalyzeCallback;
 
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.json.XML;
 
+import java.text.DecimalFormat;
 import java.util.Hashtable;
 import java.util.Objects;
 import java.util.regex.Matcher;
@@ -38,13 +31,21 @@ import static com.mugames.vidsnap.Utility.UtilityClass.JSONGetter.getArray_or_Nu
 import static com.mugames.vidsnap.Utility.UtilityClass.JSONGetter.getObj_or_Null;
 import static com.mugames.vidsnap.Utility.UtilityClass.JSONGetter.getString_or_Null;
 
-
+/**
+ * This is new feature currently under-development
+ * still it is not functional
+ * opened only for alpha testing
+ */
 public class Facebook extends Extractor {
     static final int SUCCESS=-1;//Null if fails
     String TAG= Statics.TAG+":Facebook";
+    MainActivity activity;
 
     String ID;
     String url;
+
+    Formats formats;
+    String user_cookies;
 
 
     boolean tried_with_cookies;
@@ -59,13 +60,13 @@ public class Facebook extends Extractor {
 
     Hashtable<String,String> headers;
 
+    AnalyzeCallback analyzeCallback;
 
-    public Facebook() {
-        super("FaceBook");
+    public Facebook(MainActivity activity) {
+        this.activity = activity;
     }
 
-
-    String getId(String url){
+    String GetId(String url){
         Pattern pattern=Pattern.compile("(?:https?://(?:[\\w-]+\\.)?(?:facebook\\.com|facebookcorewwwi\\.onion)/(?:[^#]*?#!/)?(?:(?:video/video\\.php|photo\\.php|video\\.php|video/embed|story\\.php|watch(?:/live)?/?)\\?(?:.*?)(?:v|video_id|story_fbid)=|[^/]+/videos/(?:[^/]+/)?|[^/]+/posts/|groups/[^/]+/permalink/|watchparty/)|facebook:)([0-9]+)");
         Matcher matcher=pattern.matcher(url);
         if (matcher.find()) return matcher.group(1);
@@ -73,43 +74,47 @@ public class Facebook extends Extractor {
     }
 
     @Override
-    public void analyze(String url) {
-        ID= getId(url);
+    public void Analyze(String url, AnalyzeCallback analyzeCallback) {
+        ID=GetId(url);
         formats=new Formats();
         headers=new Hashtable<>();
-
         headers.put("Accept","text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9");
-        headers.put("User-Agent",userAgent);
-
-        if(url.startsWith("facebook:")) url=String.format("https://www.facebook.com/video/video.php?v=%s",ID);
+        user_cookies = activity.getStringValue(R.string.key_facebook,null);
+        if(url.startsWith("facebook:")){
+            url=String.format("https://www.facebook.com/video/video.php?v=%s",ID);
+        }
         this.url=url;
-        getDialogueInterface().show("Accessing Server...");
+        activity.dialog.show("Accessing Server...");
+        this.analyzeCallback = analyzeCallback;
         ExtractInfo();
     }
 
     private void ExtractInfo() {
         url = url.replaceAll("://m.facebook\\.com/","://www.facebook.com/");
-        HttpRequest request = new HttpRequest(url,getDialogueInterface(),this::scratchWebPage);
-        request.setType(HttpRequest.GET);
-        request.setHeaders(headers);
-        request.start();
+        new HttpRequest(activity, url, null,
+                headers, null, null, userAgent, new UtilityInterface.ResponseCallBack() {
+            @Override
+            public void onReceive(String response) {
+                ScratchWebPage(response);
+            }
+        }).start();
     }
 
     void extractForceEng(){
         url = url.replaceAll("://m.facebook\\.com/","://www.facebook.com/");
         url = url.replaceAll("://www.facebook\\.com/","://en-gb.facebook.com/");
-        HttpRequest request = new HttpRequest(url,getDialogueInterface(),response -> {
-            tried_with_forceEng = true;
-            scratchWebPage(response);
-        });
-        request.setType(HttpRequest.GET);
-        request.setHeaders(headers);
-        request.start();
-
+        new HttpRequest(activity, url, null,
+                headers, null, null, userAgent, new UtilityInterface.ResponseCallBack() {
+            @Override
+            public void onReceive(String response) {
+                tried_with_forceEng=true;
+                ScratchWebPage(response);
+            }
+        }).start();
     }
 
-    private void scratchWebPage(String webPage) {
-        getDialogueInterface().show("Analyzing..");
+    private void ScratchWebPage(String webPage) {
+        activity.dialog.show("Analyzing..");
         try {
             String server_js_data = null;
             Matcher matcher = Pattern.compile("handleServerJS\\((\\{.+\\})(?:\\);|,\")").matcher(webPage);
@@ -143,7 +148,7 @@ public class Facebook extends Extractor {
             if(video_data == null){
                 matcher=Pattern.compile("class=\"[^\"]*uiInterstitialContent[^\"]*\"><div>(.*?)</div>").matcher(webPage);
                 if(matcher.find()){
-                    getDialogueInterface().error("This video unavailable. FB says : "+matcher.group(1),null);
+                    activity.error("This video unavailable. FB says : "+matcher.group(1),null);
                     return;
                 }
                 if(webPage.contains("You must log in to continue"))
@@ -156,18 +161,18 @@ public class Facebook extends Extractor {
             if(video_data==null){
                 if(!tried_with_forceEng)
                     extractForceEng();
-                else getDialogueInterface().error("This video can't be Downloaded",null);
+                else activity.error("This video can't be Downloaded",null);
             }
 
 
             else {
                 Matcher m;
-                if(formats.thumbNailsURL.isEmpty()){
+                if(formats.thumbNailURL==null){
                     m=Pattern.compile("\"thumbnailImage\":\\{\"uri\":\"(.*?)\"\\}").matcher(webPage);
-                    if(m.find()) formats.thumbNailsURL.add(m.group(1));
+                    if(m.find()) formats.thumbNailURL=m.group(1);
                     else {
                         m=Pattern.compile("\"thumbnailUrl\":\"(.*?)\"").matcher(webPage);
-                        if(m.find()) formats.thumbNailsURL.add(m.group(1));
+                        if(m.find()) formats.thumbNailURL=m.group(1);
                     }
                 }
                 if(formats.title==null || formats.title.equals("null")){
@@ -236,36 +241,75 @@ public class Facebook extends Extractor {
 //            }
         }catch (JSONException e) {
             e.printStackTrace();
-            getDialogueInterface().error("Something went wrong",e);
+            activity.error("Something went wrong",e);
         }
     }
 
     int got;
 
     private void UpdateUI() {
-        fetchDataFromURLs();
+        if(got<formats.videoURLs.size()){
+            new MiniExecute(activity, formats.videoURLs.get(got), true, 0,new UtilityInterface.MiniExecutorCallBack() {
+
+                @Override
+                public void onBitmapReceive(Bitmap image) {
+
+                }
+
+                @Override
+                public void onSizeReceived(int size,int isLast) {
+                    got++;
+                    Log.d(TAG, "video onSizeReceived: got size"+size);
+                    formats.raw_quality_size.add(String.valueOf(size));
+                    DecimalFormat decimalFormat=new DecimalFormat("#.##");
+                    formats.quality_size.add(decimalFormat.format(size/Math.pow(10,6)));
+                    UpdateUI();
+                }
+            }).start();
+            return;
+        }
+        new MiniExecute(activity, formats.thumbNailURL, false, 0,
+                new UtilityInterface.MiniExecutorCallBack() {
+            @Override
+            public void onBitmapReceive(Bitmap image) {
+                formats.thumbNailBit=image;
+                formats.src = "FaceBook";
+                analyzeCallback.onAnalyzeCompleted(formats,true);
+
+            }
+
+            @Override
+            public void onSizeReceived(int size, int position) {}
+        }).start();
     }
 
 
     void tryWithCookies(){
-        if(getUserCookies() ==null) {
-            trySignIn("Facebook requested you to sign-in. Without sign-in video can't be downloaded",
-                    "https://www.facebook.com/login/",
+        if(this.user_cookies ==null) {
+            activity.dialog.dismiss();
+            activity.signInNeeded("Facebook requested you to sign-in. Without sign-in video can't be downloaded", "https://www.facebook.com/login/",
                     new String[]{"https://m.facebook.com/login/save-device/?login_source=login#_=_", "https://m.facebook.com/?_rdr",
                             "https://m.facebook.com/home.php?_rdr", "https://m.facebook.com/home.php"},
-                    cookies -> {
-                        tryWithCookies();
+                    new UtilityInterface.LoginIdentifier() {
+                        @Override
+                        public void loggedIn(String cookies) {
+                            Facebook.this.user_cookies = cookies;
+                            activity.setStringValue(R.string.key_facebook, cookies);
+                            tryWithCookies();
+                        }
                     });
             return;
         }
 
         tried_with_cookies=true;
-        getDialogueInterface().show("Adding cookies...");
-        HttpRequest request = new HttpRequest(url,getDialogueInterface(), this::scratchWebPage);
-        request.setCookies(getUserCookies());
-        request.setType(HttpRequest.GET);
-        request.setHeaders(headers);
-        request.start();
+        activity.dialog.show("Adding cookies...");
+        new HttpRequest(activity, url, user_cookies,
+                headers, null, null, userAgent, new UtilityInterface.ResponseCallBack() {
+            @Override
+            public void onReceive(String response) {
+                ScratchWebPage(response);
+            }
+        }).start();
     }
 
     Object grab_relay_prefetched_data_search_url(String webpage){
@@ -386,7 +430,7 @@ public class Facebook extends Extractor {
     void parse_graphql_video(JSONObject media){
         try {
             String res = null;
-            formats.thumbNailsURL.add(media.getJSONObject("thumbnailImage").getString("uri"));
+            formats.thumbNailURL = media.getJSONObject("thumbnailImage").getString("uri");
 
             String title= getString_or_Null(media,"name");
             if(title==null) title= getString_or_Null(UtilityClass.JSONGetter.getObj_or_Null(media,"savable_description"),"text");
@@ -402,9 +446,9 @@ public class Facebook extends Extractor {
                 if (playable_url == null) continue;
 
                 formats.videoURLs.add(playable_url);
-                formats.videoMime.add(MIMEType.VIDEO_MP4);
+                formats.mimeTypes_video.add(MIMEType.AUDIO_MP4);
                 formats.audioURLs.add(null);
-                formats.audioMime.add(null);
+                formats.mimeTypes_audio.add(null);
 
                 if (suffix.equals(""))
                     formats.qualities.add(res + "(" + "SD" + ")");
@@ -423,8 +467,8 @@ public class Facebook extends Extractor {
             JSONArray videos = AdaptionSet.getJSONObject(0).getJSONArray("Representation");
             JSONObject audios = AdaptionSet.getJSONObject(1);
 
-            String audio_url;
-            String audio_mime;
+            String audio_url = null;
+            String audio_mime = null;
             String res=null;
             String pre="";
             JSONObject audio_rep;
@@ -450,11 +494,11 @@ public class Facebook extends Extractor {
                 }
                 String video_mime=video.getString(pre+"mimeType");
 
-                formats.videoMime.add(video_mime);
+                formats.mimeTypes_video.add(video_mime);
                 formats.videoURLs.add(video_url);
                 formats.qualities.add(res);
                 formats.audioURLs.add(audio_url);
-                formats.audioMime.add(audio_mime);
+                formats.mimeTypes_audio.add(audio_mime);
             }
         } catch (JSONException e) {
             e.printStackTrace();
@@ -492,9 +536,9 @@ public class Facebook extends Extractor {
                                 videoData.getString("original_height")+"("+
                                 s.toUpperCase()+")"
                         );
-                        formats.videoMime.add(MIMEType.AUDIO_MP4);
+                        formats.mimeTypes_video.add(MIMEType.AUDIO_MP4);
                         formats.audioURLs.add(null);
-                        formats.audioMime.add(null);
+                        formats.mimeTypes_audio.add(null);
 
                     }
 

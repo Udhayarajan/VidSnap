@@ -1,20 +1,3 @@
-/*
- *  This file is part of VidSnap.
- *
- *  VidSnap is free software: you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation, either version 3 of the License, or
- *  any later version.
- *
- *  VidSnap is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with VidSnap.  If not, see <https://www.gnu.org/licenses/>.
- */
-
 package com.mugames.vidsnap.Utility;
 
 import android.content.Context;
@@ -26,35 +9,25 @@ import android.os.Environment;
 import androidx.preference.PreferenceManager;
 
 import com.mugames.vidsnap.R;
-import com.mugames.vidsnap.Storage.FileUtil;
+import com.mugames.vidsnap.ui.main.Activities.MainActivity;
 
 import java.io.File;
 
 public class AppPref {
-
-    private static volatile AppPref instance;
-
     SharedPreferences sharedPreferences;
     Context context;
 
     String TAG = Statics.TAG+":AppPref";
 
+    public AppPref(Context context, SharedPreferences sharedPreferences) {
+        this.sharedPreferences = sharedPreferences;
+        this.context = context;
+    }
 
-    private AppPref(Context context) {
+    public AppPref(Context context) {
         this.context = context;
         sharedPreferences = PreferenceManager.getDefaultSharedPreferences(context);
     }
-
-    public static AppPref getInstance(Context context) {
-        if (instance==null ){
-            synchronized (AppPref.class){
-                if(instance==null)
-                    instance = new AppPref(context.getApplicationContext());
-            }
-        }
-        return instance;
-    }
-
 
     public void setStringValue(int key, String value) {
         SharedPreferences.Editor editor = sharedPreferences.edit();
@@ -79,15 +52,14 @@ public class AppPref {
     /**
      * save path got from DOCUMENT_TREE
      * @param intent intent that we got from document tree
-     *  displayable string eg: External Storage>folder> etc..
+     * @return displayable string eg: External Storage>folder> etc..
      * */
 
     public void setSavePath(Intent intent){
         String path;
         Uri uri;
         if (intent != null) {
-            int takeFlags = intent.getFlags();
-            takeFlags &= (Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
+            final int takeFlags = intent.getFlags() & (Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
 
             uri = intent.getData();
             context.getContentResolver().takePersistableUriPermission(uri,takeFlags);

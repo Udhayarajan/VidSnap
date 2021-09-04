@@ -1,20 +1,3 @@
-/*
- *  This file is part of VidSnap.
- *
- *  VidSnap is free software: you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation, either version 3 of the License, or
- *  any later version.
- *
- *  VidSnap is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with VidSnap.  If not, see <https://www.gnu.org/licenses/>.
- */
-
 package com.mugames.vidsnap.DataBase;
 
 import android.graphics.Bitmap;
@@ -24,14 +7,14 @@ import androidx.room.Entity;
 import androidx.room.PrimaryKey;
 
 import com.mugames.vidsnap.Utility.Bundles.DownloadDetails;
-import com.mugames.vidsnap.Storage.FileUtil;
+import com.mugames.vidsnap.Utility.FileUtil;
 import com.mugames.vidsnap.Utility.UtilityClass;
 
 @Entity(tableName = "HISTORY")
 public class History {
 
     @PrimaryKey(autoGenerate = true)
-    public int id;
+    int id;
     public String fileName;
     public String fileType;
     public String source;
@@ -49,11 +32,9 @@ public class History {
         this.fileType = details.fileType;
         this.source = details.src;
         this.date = date;
-        this.size = String.valueOf(details.videoSize);
+        this.size = String.valueOf(details.fileSize);
         this.uriString = uri.toString();
-        new Thread(()->{
-            this.thumbnail = (byte[]) FileUtil.loadImage(details.thumbNailPath);
-        }).start();
+        this.thumbnail = (byte[]) FileUtil.loadFile(details.thumbNailPath,byte.class);
         this.imageWidth = details.thumbWidth;
         this.imageHeight = details.thumbHeight;
     }

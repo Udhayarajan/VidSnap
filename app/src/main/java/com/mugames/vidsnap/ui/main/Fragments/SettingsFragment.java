@@ -1,20 +1,3 @@
-/*
- *  This file is part of VidSnap.
- *
- *  VidSnap is free software: you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation, either version 3 of the License, or
- *  any later version.
- *
- *  VidSnap is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with VidSnap.  If not, see <https://www.gnu.org/licenses/>.
- */
-
 package com.mugames.vidsnap.ui.main.Fragments;
 
 import android.app.Activity;
@@ -23,17 +6,14 @@ import android.content.SharedPreferences;
 import android.net.Uri;
 import android.os.Bundle;
 import android.util.Log;
-import android.view.View;
 import android.widget.Toast;
 
 import androidx.activity.result.ActivityResult;
 import androidx.activity.result.ActivityResultCallback;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
-import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatDelegate;
-import androidx.lifecycle.Observer;
 import androidx.preference.DropDownPreference;
 import androidx.preference.ListPreference;
 import androidx.preference.Preference;
@@ -41,14 +21,18 @@ import androidx.preference.PreferenceFragmentCompat;
 import androidx.preference.PreferenceManager;
 import androidx.preference.SwitchPreferenceCompat;
 
-import com.mugames.vidsnap.DataBase.HistoryRepository;
 import com.mugames.vidsnap.Utility.AppPref;
 import com.mugames.vidsnap.ui.main.Activities.MainActivity;
 import com.mugames.vidsnap.R;
-import com.mugames.vidsnap.Storage.StorageSwitcher;
-import com.mugames.vidsnap.Storage.FileUtil;
+import com.mugames.vidsnap.StorageSwitcher;
+import com.mugames.vidsnap.Utility.FileUtil;
 import com.mugames.vidsnap.Utility.Statics;
 import com.mugames.vidsnap.Utility.UtilityInterface;
+
+import java.io.File;
+
+import static com.mugames.vidsnap.ViewModels.MainActivityViewModel.STATIC_CACHE;
+import static com.mugames.vidsnap.ViewModels.MainActivityViewModel.db_name;
 
 
 public class SettingsFragment extends PreferenceFragmentCompat implements Preference.OnPreferenceClickListener {
@@ -64,14 +48,11 @@ public class SettingsFragment extends PreferenceFragmentCompat implements Prefer
     Preference fb;
     Preference cacheHistory;
 
-    HistoryRepository repository;
-
     AppPref pref;
 
     SwitchPreferenceCompat sendLinkSwitch;
 
     DropDownPreference dbPath;
-    String hisCache;
 
     String TAG = Statics.TAG + ":Settings";
 
@@ -83,7 +64,7 @@ public class SettingsFragment extends PreferenceFragmentCompat implements Prefer
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
 
-        pref = AppPref.getInstance(getActivity());
+        pref = new AppPref(getActivity());
 
         super.onCreate(savedInstanceState);
         storageSwitcher = new StorageSwitcher(getActivity());
@@ -102,18 +83,6 @@ public class SettingsFragment extends PreferenceFragmentCompat implements Prefer
         );
     }
 
-    @Override
-    public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
-        super.onViewCreated(view, savedInstanceState);
-        repository = new HistoryRepository(getActivity().getApplication());
-        repository.isDataAvailable().observe(getViewLifecycleOwner(), new Observer<Boolean>() {
-            @Override
-            public void onChanged(Boolean isDataAvailable) {
-                hisCache = isDataAvailable?"devalue":null;
-                refreshCookiesLayout();
-            }
-        });
-    }
 
     @Override
     public void onCreatePreferences(Bundle savedInstanceState, String rootKey) {
@@ -138,14 +107,8 @@ public class SettingsFragment extends PreferenceFragmentCompat implements Prefer
 
         if(!FileUtil.isSDPresent(getActivity())){
             setString(R.string.key_cache_path,null);
-            dbPath.setValueIndex(0);
             dbPath.setEnabled(false);
         }
-
-        dbPath.setOnPreferenceChangeListener((preference, newValue) -> {
-            new Thread(()->FileUtil.moveCache((String) newValue,getActivity(),null)).start();
-            return true;
-        });
 
         sendLinkSwitch.setOnPreferenceChangeListener(new Preference.OnPreferenceChangeListener() {
             @Override
@@ -189,8 +152,6 @@ public class SettingsFragment extends PreferenceFragmentCompat implements Prefer
         }
     }
 
-
-
     private void setPath(Intent data) {
         pref.setSavePath(data);
 
@@ -199,6 +160,10 @@ public class SettingsFragment extends PreferenceFragmentCompat implements Prefer
         Log.d(TAG, "setPathDisp: "+disPath);
 
         download.setSummary(disPath);
+    }
+
+    public String getValue(int id,String def){
+        return  pref.getStringValue(id,def);
     }
 
     public String getValue(int id){
@@ -212,7 +177,7 @@ public class SettingsFragment extends PreferenceFragmentCompat implements Prefer
     void refreshCookiesLayout(){
         String instaCookie= getValue(R.string.key_instagram);
         String faceBookCookie= getValue(R.string.key_facebook);
-
+        String hisCache= FileUtil.isFileExists(pref.getCachePath(STATIC_CACHE))?"devalue":null;
 
 
         if(instaCookie!=null){
@@ -249,18 +214,18 @@ public class SettingsFragment extends PreferenceFragmentCompat implements Prefer
     @Override
     public boolean onPreferenceClick(Preference preference) {
         if(preference==insta){
-            ((MainActivity)getActivity()).logOutInsta(new UtilityInterface.ConfigurationCallback() {
+            ((MainActivity)getActivity()).logOutInsta(new UtilityInterface.LogoutCallBacks() {
                 @Override
-                public void onProcessDone() {
+                public void onLoggedOut() {
                     setString(R.string.key_instagram,null);
                     refreshCookiesLayout();
                 }
             });
 
         }else if(preference==fb){
-            ((MainActivity)getActivity()).logOutFB(new UtilityInterface.ConfigurationCallback() {
+            ((MainActivity)getActivity()).logOutFB(new UtilityInterface.LogoutCallBacks() {
                 @Override
-                public void onProcessDone() {
+                public void onLoggedOut() {
                     setString(R.string.key_facebook,null);
                     refreshCookiesLayout();
                 }
@@ -268,9 +233,9 @@ public class SettingsFragment extends PreferenceFragmentCompat implements Prefer
 
 
         }else if(preference== cacheHistory){
-            ((MainActivity)getActivity()).clearHistory(new UtilityInterface.ConfigurationCallback() {
+            ((MainActivity)getActivity()).clearHistory(new UtilityInterface.LogoutCallBacks() {
                 @Override
-                public void onProcessDone() {
+                public void onLoggedOut() {
                     Toast.makeText(getActivity(),"Cleared caches",Toast.LENGTH_SHORT).show();
                     refreshCookiesLayout();
                 }

@@ -1,5 +1,4 @@
 <?xml version="1.0" encoding="utf-8"?>
-
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:paddingHorizontal="10dp"
@@ -53,16 +52,10 @@
                 android:layout_height="wrap_content"/>
             <ImageButton
                 android:layout_weight="1"
-                android:id="@+id/button_insta"
+                android:id="@+id/button"
                 android:src="@drawable/ic_insta"
                 android:layout_width="0dp"
-                android:layout_height="50dp"/>
-            <ImageButton
-                android:layout_weight="1"
-                android:id="@+id/button_linkedin"
-                android:src="@drawable/ic_linkedin"
-                android:layout_width="0dp"
-                android:layout_height="50dp"/>
+                android:layout_height="wrap_content"/>
         </LinearLayout>
         <TextView
             android:id="@+id/textView1"
@@ -78,13 +71,7 @@
             style="@style/TextAppearance.AppCompat.Body1"
             android:text="\n\n\t\t\t\t\t\t\t\t\t\tIt can be used to download
 your favorite video or image(under development) from Social Media.\n\n\t\t
-Supported social media : \n\t\t\t\t\t\tYouTube\n\t\t\t\t\t\tInstagram\n\t\t\t\t\t\tFaceBook\n\t\t\t\t\t\tTwitter\n
-This app is made with two important library Fetch and FFmpeg-kit."/>
-        <TextView
-            android:id="@+id/code_base_url"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            style="@style/TextAppearance.AppCompat.Body1"/>
+Supported social media : \n\t\t\t\t\t\tInstagram\n\t\t\t\t\t\tFaceBook\n\t\t\t\t\t\tTwitter"/>
         <TextView
             android:id="@+id/textView2"
             android:layout_width="match_parent"

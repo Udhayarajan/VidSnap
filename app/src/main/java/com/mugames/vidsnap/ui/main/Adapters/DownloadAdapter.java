@@ -1,20 +1,3 @@
-/*
- *  This file is part of VidSnap.
- *
- *  VidSnap is free software: you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation, either version 3 of the License, or
- *  any later version.
- *
- *  VidSnap is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with VidSnap.  If not, see <https://www.gnu.org/licenses/>.
- */
-
 package com.mugames.vidsnap.ui.main.Adapters;
 
 import android.graphics.Bitmap;
@@ -35,13 +18,15 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.mugames.vidsnap.R;
 import com.mugames.vidsnap.Utility.Bundles.DownloadDetails;
 import com.mugames.vidsnap.Utility.DownloadReceiver;
-import com.mugames.vidsnap.Storage.FileUtil;
+import com.mugames.vidsnap.Utility.FileUtil;
 import com.mugames.vidsnap.Utility.Statics;
 import com.mugames.vidsnap.Utility.UtilityClass;
 import com.mugames.vidsnap.ViewModels.DownloadViewModel;
 import com.mugames.vidsnap.ViewModels.MainActivityViewModel;
 
 import org.jetbrains.annotations.NotNull;
+
+import java.util.ArrayList;
 
 public class DownloadAdapter extends ListAdapter<DownloadDetails, DownloadAdapter.DownloadViewHolder> {
 
@@ -95,10 +80,9 @@ public class DownloadAdapter extends ListAdapter<DownloadDetails, DownloadAdapte
     public void onBindViewHolder(@NonNull DownloadViewHolder holder, int position) {
         DownloadDetails details = getItem(position);
         holder.downloadText.setText(details.fileName + details.fileType);
-        byte[] img = (byte[]) FileUtil.loadImage(details.thumbNailPath);
+        byte[] img = (byte[]) FileUtil.loadFile(details.thumbNailPath, byte[].class);
         Bitmap thumbnail = UtilityClass.bytesToBitmap(img, details.thumbWidth, details.thumbHeight);
         holder.thumbNailView.setImageBitmap(thumbnail);
-
         ((DownloadReceiver) details.receiver).getResultBundle().observe(lifecycleOwner, new Observer<Bundle>() {
             @Override
             public void onChanged(Bundle bundle) {

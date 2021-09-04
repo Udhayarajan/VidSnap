@@ -1,64 +1,49 @@
-/*
- *  This file is part of VidSnap.
- *
- *  VidSnap is free software: you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation, either version 3 of the License, or
- *  any later version.
- *
- *  VidSnap is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with VidSnap.  If not, see <https://www.gnu.org/licenses/>.
- */
-
 package com.mugames.vidsnap.ViewModels;
 
-import static com.mugames.vidsnap.Firebase.FirebaseCallBacks.ShareLinkCallback;
-import static com.mugames.vidsnap.Firebase.FirebaseCallBacks.UpdateCallbacks;
-
 import android.app.Application;
-import android.app.DownloadManager;
-import android.content.BroadcastReceiver;
-import android.content.Context;
+import android.app.PendingIntent;
 import android.content.Intent;
-import android.content.IntentFilter;
-import android.database.Cursor;
 import android.net.Uri;
+import android.text.format.DateFormat;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
+import androidx.core.app.NotificationCompat;
+import androidx.core.app.NotificationManagerCompat;
 import androidx.lifecycle.AndroidViewModel;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 
+import com.mugames.vidsnap.DataBase.History;
+import com.mugames.vidsnap.DataBase.HistoryDatabase;
 import com.mugames.vidsnap.Firebase.FirebaseManager;
+import com.mugames.vidsnap.NotificationChannelCreator;
 import com.mugames.vidsnap.R;
 import com.mugames.vidsnap.Utility.AppPref;
 import com.mugames.vidsnap.Utility.Bundles.DownloadDetails;
-import com.mugames.vidsnap.Utility.DownloadReceiver;
+import com.mugames.vidsnap.Utility.FileUtil;
+import com.mugames.vidsnap.Utility.MIMEType;
 import com.mugames.vidsnap.Utility.Statics;
 import com.mugames.vidsnap.Utility.UtilityInterface;
+import com.mugames.vidsnap.ui.main.Activities.MainActivity;
 
 import org.jetbrains.annotations.NotNull;
 
-import java.io.File;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.Random;
+
+import static com.mugames.vidsnap.Firebase.FirebaseCallBacks.ShareCallback;
+import static com.mugames.vidsnap.Firebase.FirebaseCallBacks.UpdateCallbacks;
 
 public class MainActivityViewModel extends AndroidViewModel implements UtilityInterface.DownloadCallback {
 
     String TAG = Statics.TAG + "MainActivityViewModel";
 
-
     public static boolean service_in_use = false;
 
-    public static final String STATIC_CACHE = ".historyDB";
+    public static final String STATIC_CACHE = "cache";
     public static final String DYNAMIC_CACHE = ".essential";
-    public static final String LIBRARY_PATH = "libs";
 
     public static final String db_name = "historyCache";
 
@@ -68,23 +53,18 @@ public class MainActivityViewModel extends AndroidViewModel implements UtilityIn
 
     MutableLiveData<Integer> activeDownload = new MutableLiveData<>();
 
-    MutableLiveData<Integer> downloadProgressLiveData = new MutableLiveData<>();
-    MutableLiveData<String> downloadStatusLiveData = new MutableLiveData<>();
 
-
-    public static final ArrayList<DownloadDetails> downloadDetailsList = new ArrayList<>();
+    ArrayList<DownloadDetails> downloadDetailsList = new ArrayList<>();
     MutableLiveData<ArrayList<DownloadDetails>> downloadDetailsMutableLiveData = new MutableLiveData<>();
 
 
-
-    Random random = new Random();
+    public AppPref pref;
 
     public MainActivityViewModel(@NonNull @NotNull Application application) {
         super(application);
-        firebaseManager = FirebaseManager.getInstance(application);
-        for (DownloadDetails details :downloadDetailsList) {
-            ((DownloadReceiver)details.receiver).setCallback(this);
-        }
+
+        pref = new AppPref(application);
+        firebaseManager = new FirebaseManager(application);
     }
 
     public void checkUpdate(UpdateCallbacks updateCallbacks) {
@@ -111,6 +91,10 @@ public class MainActivityViewModel extends AndroidViewModel implements UtilityIn
         }
     }
 
+    public void shareLink(ShareCallback shareCallback) {
+        firebaseManager.getShareLink(shareCallback);
+    }
+
     public void addDownloadDetails(DownloadDetails details) {
         downloadDetailsList.add(details);
         activeDownload.setValue(downloadDetailsList.size());
@@ -118,9 +102,11 @@ public class MainActivityViewModel extends AndroidViewModel implements UtilityIn
     }
 
 
-    void removeDownloadDetails() {
-        downloadDetailsMutableLiveData.postValue(downloadDetailsList);
-        activeDownload.postValue(downloadDetailsList.size());
+
+    public void removeDownloadDetails(DownloadDetails details) {
+        downloadDetailsList.remove(details);
+        downloadDetailsMutableLiveData.setValue(downloadDetailsList);
+        activeDownload.setValue(downloadDetailsList.size());
     }
 
 
@@ -129,120 +115,66 @@ public class MainActivityViewModel extends AndroidViewModel implements UtilityIn
     }
 
     public boolean isAgree() {
-        return AppPref.getInstance(getApplication()).getBooleanValue(R.string.key_terms_con, false);
+        return pref.getBooleanValue(R.string.key_terms_con, false);
     }
 
     public ArrayList<DownloadDetails> getDownloadDetailsList() {
         return downloadDetailsList;
     }
 
-    public int getUniqueDownloadId(){
-        int ran = random.nextInt();
-        for (DownloadDetails details : tempDetails) {
-            while (ran==details.id) ran =random.nextInt();
-        }
-        return ran;
+
+    @Override
+    public void onDownloadCompleted(int index, Uri uri) {
+        History history = new History(downloadDetailsList.get(index), uri, (String) DateFormat.format("yyyy-MM-dd", new Date()));
+        Log.d(TAG, "onScanCompleted: Completed" + uri);
+
+
+        new Thread(() -> addItemToDB(history)).start();
+
+
+        NotificationCompat.Builder builder = new NotificationCompat.Builder(getApplication(), NotificationChannelCreator.NOTIFY_DOWNLOADED);
+        NotificationManagerCompat managerCompat = NotificationManagerCompat.from(getApplication());
+
+
+        Intent play_Intent = new Intent(Intent.ACTION_VIEW);
+        play_Intent.setDataAndType(uri, MIMEType.VIDEO_MP4);
+        PendingIntent pendingIntent = PendingIntent.getActivity(getApplication(), 10, play_Intent, 0);
+        builder.setPriority(NotificationCompat.PRIORITY_HIGH)
+                .setContentTitle("Download Completed")
+                .setContentText(downloadDetailsList.get(index).fileName + downloadDetailsList.get(index).fileType)
+                .setSmallIcon(R.drawable.ic_notification_icon)
+                .setAutoCancel(true)
+                .setContentIntent(pendingIntent);
+        managerCompat.notify(new Random().nextInt(), builder.build());
+        FileUtil.deleteFile(downloadDetailsList.get(index).thumbNailPath);
+//        downloadDetailsList.remove(index);
+        removeDownloadDetails(downloadDetailsList.get(index));
+
     }
 
     @Override
-    public void onDownloadCompleted() {
-        removeDownloadDetails();
+    public void onFailedDownload(int index) {
+
+        Intent play_Intent = new Intent(getApplication(), MainActivity.class);
+
+        NotificationCompat.Builder builder = new NotificationCompat.Builder(getApplication(), NotificationChannelCreator.NOTIFY_DOWNLOADED);
+        NotificationManagerCompat managerCompat = NotificationManagerCompat.from(getApplication());
+
+        PendingIntent pendingIntent = PendingIntent.getActivity(getApplication(), 10, play_Intent, 0);
+        builder.setPriority(NotificationCompat.PRIORITY_HIGH)
+                .setContentTitle("Download Failed")
+                .setContentText(downloadDetailsList.get(index).fileName + downloadDetailsList.get(index).fileType)
+                .setSmallIcon(R.drawable.ic_notification_icon)
+                .setAutoCancel(true)
+                .setContentIntent(pendingIntent);
+        managerCompat.notify(new Random().nextInt(), builder.build());
+
+        removeDownloadDetails(downloadDetailsList.get(index));
     }
 
-
-    DownloadManager downloadManager;
-    long downloadId;
-    boolean downloading = true;
-
-    UtilityInterface.ModuleDownloadCallback moduleDownloadCallback;
-
-    public void downloadSO(String url, UtilityInterface.ModuleDownloadCallback callback) {
-        moduleDownloadCallback = callback;
-        downloadManager = (DownloadManager) getApplication().getSystemService(Context.DOWNLOAD_SERVICE);
-        getApplication().registerReceiver(onComplete, new IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE));
-        getApplication().registerReceiver(onNotificationClicked, new IntentFilter(DownloadManager.ACTION_NOTIFICATION_CLICKED));
-
-        Uri uri = Uri.parse(url);
-        DownloadManager.Request request = new DownloadManager.Request(uri);
-//        request.setDestinationInExternalFilesDir(getApplication(), LIBRARY_PATH, "lib.zip");
-        request.setDestinationUri(Uri.fromFile(new File(AppPref.getInstance(getApplication()).getCachePath(LIBRARY_PATH)+"lib.zip")));
-        downloadId = downloadManager.enqueue(request);
-
-        downloadValues();
+    void addItemToDB(History history) {
+        HistoryDatabase.getInstance(getApplication()).historyDao().insertItem(history);
+        AppPref pref = new AppPref(getApplication());
+        pref.setStringValue(R.string.key_clear_history_cache, "Cache is there");
     }
-
-
-    private void downloadValues() {
-        new Thread(() -> {
-            while (downloading) {
-                try {
-                    Thread.sleep(250);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
-
-                Cursor cursor = downloadManager.query(new DownloadManager.Query().setFilterById(downloadId));
-                cursor.moveToFirst();
-                int downloadedBytes = cursor.getColumnIndex(DownloadManager.COLUMN_BYTES_DOWNLOADED_SO_FAR);
-                int totalSizeByte = cursor.getColumnIndex(DownloadManager.COLUMN_TOTAL_SIZE_BYTES);
-                int columnStatus = cursor.getColumnIndex(DownloadManager.COLUMN_STATUS);
-                int bytesDownloaded = cursor.getInt(downloadedBytes);
-                int bytesTotal = cursor.getInt(totalSizeByte);
-                int status = cursor.getInt(columnStatus);
-
-
-                downloadStatusLiveData.postValue(statusMessage(status));
-
-                if (status == DownloadManager.STATUS_SUCCESSFUL) downloading = false;
-
-                int downloadProgress = (int) ((bytesDownloaded * 100L) / bytesTotal);
-
-                downloadProgressLiveData.postValue(downloadProgress);
-
-            }
-        }).start();
-    }
-
-    String statusMessage(int status) {
-
-        switch (status) {
-            case DownloadManager.STATUS_FAILED:
-                return "Download failed!";
-            case DownloadManager.STATUS_PAUSED:
-                return "Download paused!";
-            case DownloadManager.STATUS_PENDING:
-                return "Download pending!";
-            case DownloadManager.STATUS_RUNNING:
-                return "Download in progress!";
-            case DownloadManager.STATUS_SUCCESSFUL:
-                return "Download complete!";
-            default:
-                return "Download is nowhere in sight";
-        }
-    }
-
-    public LiveData<Integer> getDownloadProgressLiveData() {
-        return downloadProgressLiveData;
-    }
-
-    public LiveData<String> getDownloadStatusLiveData() {
-        return downloadStatusLiveData;
-    }
-
-    BroadcastReceiver onNotificationClicked = new BroadcastReceiver() {
-        @Override
-        public void onReceive(Context context, Intent intent) {
-
-        }
-    };
-
-    BroadcastReceiver onComplete = new BroadcastReceiver() {
-        @Override
-        public void onReceive(Context context, Intent intent) {
-            Log.e(TAG, "onReceive: Download completed" );
-            downloadProgressLiveData.postValue(100);
-            downloading = false;
-            moduleDownloadCallback.onDownloadEnded();
-        }
-    };
 }

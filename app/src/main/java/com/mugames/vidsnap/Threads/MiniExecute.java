@@ -1,25 +1,7 @@
-/*
- *  This file is part of VidSnap.
- *
- *  VidSnap is free software: you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation, either version 3 of the License, or
- *  any later version.
- *
- *  VidSnap is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with VidSnap.  If not, see <https://www.gnu.org/licenses/>.
- */
-
 package com.mugames.vidsnap.Threads;
 
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
-import android.os.Bundle;
 import android.util.Log;
 
 import com.mugames.vidsnap.ui.main.Activities.MainActivity;
@@ -32,89 +14,78 @@ import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLConnection;
-import java.util.concurrent.CountDownLatch;
 
 
-public class MiniExecute {
-    String TAG = Statics.TAG + ":MiniExecute";
 
-    Bundle bundle;
-
-    CountDownLatch countDownLatch;
-    Bitmap bitmap;
-
-    long size;
-
-    public MiniExecute(Bundle bundle, CountDownLatch countDownLatch) {
-        this(bundle);
-        this.countDownLatch = countDownLatch;
-    }
-
-    public MiniExecute(Bundle bundle) {
-        this.bundle = bundle;
-    }
-
-
-    public void getSize(String url, UtilityInterface.SizeCallback sizeCallback) {
-        url = url.replaceAll("\\\\", "");
-        String finalUrl = url;
-        new Thread(() -> {
-            sizeCallback.onReceiveSize(calculateSize(finalUrl), bundle);
-        }).start();
-    }
-
-    public void getSize(String url){
-        new Thread(() ->{
-            size = calculateSize(url);
-            countDownLatch.countDown();
-        }).start() ;
-    }
-
-    public long getSize() {
-        return size;
-    }
-
-    public Bundle getBundle() {
-        return bundle;
-    }
-
-    private long calculateSize(String url) {
-
-        HttpURLConnection conn = null;
-
+public class MiniExecute extends Thread {
+    String TAG= Statics.TAG+":MiniExecute";
+    MainActivity activity;
+    URL url;
+    boolean isSize;
+    int position;
+    UtilityInterface.MiniExecutorCallBack callBack;
+    public MiniExecute(MainActivity activity, String url, boolean size, int position, UtilityInterface.MiniExecutorCallBack callBack){
+        Log.d(TAG, "video : MiniExecute: created"+size+" url : "+url);
+        this.activity = activity;
+        this.callBack=callBack;
+        this.position=position;
+        url=url.replaceAll("\\\\","");
+        isSize=size;
         try {
-            URL url1 = new URL(url);
-            conn = (HttpURLConnection) url1.openConnection();
-            conn.setRequestMethod("HEAD");
-            return conn.getContentLength();
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        } finally {
-            if (conn != null) {
-                conn.disconnect();
-            }
+            this.url=new URL(url);
+        } catch (MalformedURLException e) {
+            Log.e(TAG, "MiniExecute: "+url,e);
         }
     }
 
-
-    public void getThumbnail(String url) {
-        url = url.replaceAll("\\\\", "");
-        String finalUrl = url;
-        new Thread(() -> {
-            try {
-                URL url1 = new URL(finalUrl);
-
-                URLConnection urlConnection = url1.openConnection();
-                InputStream inputStream = urlConnection.getInputStream();
-                bitmap = BitmapFactory.decodeStream(inputStream);
-                countDownLatch.countDown();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }).start();
+    @Override
+    public void run() {
+        if(isSize)
+            getFileSize();
+        else FetchThumbnail();
     }
 
-    public Bitmap getBitmap() {
-        return bitmap;
+    private void FetchThumbnail() {
+        try {
+            Log.e(TAG, "FetchThumbnail: "+url.toString());
+            URLConnection urlConnection=url.openConnection();
+            InputStream inputStream=urlConnection.getInputStream();
+            Bitmap bitmap= BitmapFactory.decodeStream(inputStream);
+            activity.runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    callBack.onBitmapReceive(bitmap);
+                }
+            });
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+    }
+
+    int tries=3;
+
+    public void getFileSize() {
+        URLConnection conn = null;
+        try {
+            conn = url.openConnection();
+            if(conn instanceof HttpURLConnection) {
+                ((HttpURLConnection)conn).setRequestMethod("HEAD");
+            }
+            conn.setDoOutput(false);
+            int size = conn.getContentLength();
+            activity.runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    callBack.onBitmapReceive(null);
+                    callBack.onSizeReceived(size,position);
+                }
+            });
+        } catch (IOException e) {
+//            tries--;
+//            if(tries<0)
+            throw new RuntimeException(e);
+ //           getFileSize();
+        }
     }
 }
