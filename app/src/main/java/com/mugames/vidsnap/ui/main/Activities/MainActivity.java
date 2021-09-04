@@ -543,7 +543,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         dialogBuilder.setCancelable(false);
         //TODO Support for Android 12
         if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.R) {
-            dialogBuilder.setMessage("No path chosen to download. Default path will be\n\nInternal Storage\\Download");
+            dialogBuilder.setMessage("No path chosen to download. Default path will be\n(Later you can change it from settings)\n\nInternal Storage\\Download");
             dialogBuilder.setPositiveButton("Change", positiveListener);
             dialogBuilder.setNegativeButton("Default", new DialogInterface.OnClickListener() {
                 @Override
