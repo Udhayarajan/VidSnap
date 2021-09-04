@@ -1,0 +1,60 @@
+<PreferenceScreen
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <PreferenceCategory
+        app:icon="@drawable/ic_theme"
+        app:title="Theme">
+
+        <ListPreference
+            app:entries="@array/theme_entries"
+            app:entryValues="@array/theme_values"
+            app:defaultValue="def"
+            app:key="@string/key_Theme"
+            app:title="Change Theme"
+            app:useSimpleSummaryProvider="true" />
+
+
+    </PreferenceCategory>
+
+    <PreferenceCategory app:title="Storage"
+        app:icon="@drawable/ic_storage">
+        <Preference
+            app:key="@string/key_download"
+            app:title="Download Location"
+            app:enabled="true"
+            app:summary="Internal/VidSnap/Downloads/"/>
+        <DropDownPreference
+            app:key="@string/key_cache_path"
+            app:title="Cache Location"
+            app:entries="@array/cache_entries"
+            app:entryValues="@array/cache_values"
+            app:defaultValue="internal"
+            app:useSimpleSummaryProvider="true"/>
+    </PreferenceCategory>
+    <PreferenceCategory app:title="Privacy"
+        app:icon="@drawable/ic_security">
+        <SwitchPreferenceCompat
+            app:title="Share link on crash"
+            app:key="@string/key_media_link"
+            app:summaryOff="Sharing link turned off"
+            app:summaryOn="Media link will be shared to developers" />
+    <PreferenceCategory app:title="Cookies &amp; Cache"
+        app:icon="@drawable/ic_cookie">
+        <Preference
+            app:key="@string/key_instagram"
+            app:title="Instagram"
+            app:summary="Not logged in"/>
+        <Preference
+            app:key="@string/key_facebook"
+            app:title="FaceBook"
+            app:summary="Not logged in" />
+        <Preference
+            app:key="@string/key_clear_history_cache"
+            app:title="Cache"
+            app:summary="Great, No cache Found!!"/>
+    </PreferenceCategory>
+
+
+    </PreferenceCategory>
+
+</PreferenceScreen>

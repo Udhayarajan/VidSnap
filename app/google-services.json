@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "109181471398",
+    "project_id": "vidsnap-f95c3",
+    "storage_bucket": "vidsnap-f95c3.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:109181471398:android:509f4dcd58f0052541c267",
+        "android_client_info": {
+          "package_name": "com.mugames.vidsnap"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "109181471398-smejashu92eebhdb3u03d6pb4cparr28.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAzTG11aEZjILdYtIpbekRltm28UMcxasM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "109181471398-smejashu92eebhdb3u03d6pb4cparr28.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

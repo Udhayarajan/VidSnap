@@ -1,0 +1,2 @@
+include ':app',':ffmpeg-kit-android-lib'// remove :ffmpeg-kit-android-lib on statically built
+rootProject.name = "VidSnap"

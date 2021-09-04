@@ -1,0 +1,45 @@
+<resources>
+    <string name="app_name">VidSnap</string>
+    <string name="title_activity_main2">MainActivity2</string>
+    <string name="tab_text_1">Finder</string>
+    <string name="tab_text_2">Downloads</string>
+    <string name="policy">
+        <b><u>Important Notice:</u></b>\n
+    Content downloaded from this app is purely for entertainment, educational purposes and personal use only. Content should not be used for professional use. We are not responsible any legal action from Intellectual Property holder\n
+        <b><u>Crash Log:</u></b>\n
+    If an app crashes we collect details of the crash. There won\'t be any personal pieces of information are collected.\nBut we collect link that you tried to download(you can turn it off from settings).\n
+
+        <b><u>Sign-in:</u></b>\n
+    Some feature like Instagram private video download option requires sign-in. We won\'t collect user credentials rather we collect cookies and stored them in your device. In any case, we won\'t collect them. They are encrypted and store so they are secure.\n
+
+
+    <b><u>Analytics:</u></b>\n
+    We use Google Analytics to analyze our users\' experience. Crash also a part of Analytics. We don\'t collect any other details other than the crash log.\n
+
+        <b><u>License:</u></b>\n
+    This app\'s source code is licensed under GNU GPL v3. Goto 3 line(≡) icon-> About (ⓘ) for more details
+    </string>
+
+    <string name="about_us">Thanks for your interest to visit about section of this app. Created by me and tested by/with my friends . Contact us via <b>Social Contact</b>
+</string>
+
+    <string name="navigation_drawer_open">Open navigation drawer</string>
+    <string name="navigation_drawer_close">Close navigation drawer</string>
+
+    <string name="key_Theme">ThemeChange</string>
+    <string name="key_download">DownloadPath2.1.1</string>
+    <string name="key_cache_path">cachePath</string>
+    <string name="key_instagram">instaCookies</string>
+    <string name="key_facebook">fbCookies</string>
+    <string name="key_clear_history_cache">cacheHistory</string>
+    <string name="key_media_link">shareLinkOnCrash</string>
+    <string name="key_terms_con">454513512.c</string>
+    <string name="key_force_clear">clearAllData0</string>
+
+    <!-- Messages Preferences -->
+    <string name="signature_title">Your signature</string>
+    <string name="reply_title">Default reply action</string>
+    <string name="hello_blank_fragment">Hello blank fragment</string>
+
+
+</resources>
