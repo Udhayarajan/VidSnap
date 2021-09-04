@@ -5,6 +5,22 @@
  *  it under the terms of the GNU General Public License as published by
  *  the Free Software Foundation, either version 3 of the License, or
  *  any later version.
+ *  VidSnap is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *  You should have received a copy of the GNU General Public License
+ *  along with VidSnap.  If not, see <https://www.gnu.org/licenses/>.
+ *
+ */
+
+/*
+ *  This file is part of VidSnap.
+ *
+ *  VidSnap is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  any later version.
  *
  *  VidSnap is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,33 +31,18 @@
  *  along with VidSnap.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.mugames.vidsnap;
+package com.mugames.vidsnap.Storage;
 
 import android.app.Activity;
-import android.content.DialogInterface;
 import android.content.Intent;
-import android.net.Uri;
-import android.os.Environment;
-import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 
-import androidx.activity.ComponentActivity;
-import androidx.activity.result.ActivityResult;
-import androidx.activity.result.ActivityResultCallback;
 import androidx.activity.result.ActivityResultLauncher;
-import androidx.activity.result.contract.ActivityResultContract;
-import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AlertDialog;
 
-import com.mugames.vidsnap.Utility.FileUtil;
+import com.mugames.vidsnap.R;
 import com.mugames.vidsnap.Utility.Statics;
-import com.mugames.vidsnap.Utility.UtilityClass;
-
-import java.io.File;
-
-import static androidx.activity.result.contract.ActivityResultContracts.*;
-import static com.mugames.vidsnap.Utility.Statics.PACKAGE_NAME;
 
 public class StorageSwitcher {
     Activity activity;

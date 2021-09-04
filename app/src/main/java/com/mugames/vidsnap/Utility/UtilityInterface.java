@@ -22,6 +22,7 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.view.MotionEvent;
 
+import com.mugames.vidsnap.Utility.Bundles.DownloadDetails;
 import com.mugames.vidsnap.ui.main.Fragments.QualityFragment;
 
 
@@ -61,9 +62,7 @@ public interface UtilityInterface {
     }
 
     interface DownloadCallback {
-        void onDownloadCompleted(int index, Uri fileUri);
-
-        void onFailedDownload(int index);
+        void onDownloadCompleted();
     }
 
     interface AnalyzeCallback {
@@ -84,8 +83,8 @@ public interface UtilityInterface {
         void onDispatchTouch(MotionEvent event);
     }
 
-    interface LogoutCallBacks {
-        void onLoggedOut();
+    interface ConfigurationCallback {
+        void onProcessDone();
     }
 
     interface ModuleDownloadCallback {
@@ -108,6 +107,6 @@ public interface UtilityInterface {
 
     interface LoginHelper{
         void signInNeeded(String reason, String loginURL, String[] loginDoneUrl, int cookiesKey, UtilityInterface.LoginIdentifier identifier);
-        void getCookies(int cookiesKey);
+        String getCookies(int cookiesKey);
     }
 }

@@ -17,25 +17,17 @@
 
 package com.mugames.vidsnap.Extractor;
 
-import android.graphics.Bitmap;
-import android.util.Log;
-
 import com.mugames.vidsnap.Utility.UtilityClass;
 import com.mugames.vidsnap.Threads.HttpRequest;
-import com.mugames.vidsnap.Threads.MiniExecute;
-import com.mugames.vidsnap.Utility.Extractor;
 import com.mugames.vidsnap.Utility.Formats;
 import com.mugames.vidsnap.Utility.MIMEType;
 import com.mugames.vidsnap.Utility.Statics;
-import com.mugames.vidsnap.Utility.UtilityInterface;
-import com.mugames.vidsnap.Utility.UtilityInterface.AnalyzeCallback;
 
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.json.XML;
 
-import java.text.DecimalFormat;
 import java.util.Hashtable;
 import java.util.Objects;
 import java.util.regex.Matcher;
@@ -46,15 +38,10 @@ import static com.mugames.vidsnap.Utility.UtilityClass.JSONGetter.getArray_or_Nu
 import static com.mugames.vidsnap.Utility.UtilityClass.JSONGetter.getObj_or_Null;
 import static com.mugames.vidsnap.Utility.UtilityClass.JSONGetter.getString_or_Null;
 
-/**
- * This is new feature currently under-development
- * still it is not functional
- * opened only for alpha testing
- */
+
 public class Facebook extends Extractor {
     static final int SUCCESS=-1;//Null if fails
     String TAG= Statics.TAG+":Facebook";
-
 
     String ID;
     String url;
@@ -93,8 +80,6 @@ public class Facebook extends Extractor {
 
         headers.put("Accept","text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9");
         headers.put("User-Agent",userAgent);
-//TODO:        user_cookies = activity.getStringValue(R.string.key_facebook,null);
-        //Note still cookies logic is not yet fixed
 
         if(url.startsWith("facebook:")) url=String.format("https://www.facebook.com/video/video.php?v=%s",ID);
         this.url=url;
@@ -264,15 +249,11 @@ public class Facebook extends Extractor {
 
     void tryWithCookies(){
         if(getUserCookies() ==null) {
-//            activity.dialog.dismiss();
-
             trySignIn("Facebook requested you to sign-in. Without sign-in video can't be downloaded",
                     "https://www.facebook.com/login/",
                     new String[]{"https://m.facebook.com/login/save-device/?login_source=login#_=_", "https://m.facebook.com/?_rdr",
                             "https://m.facebook.com/home.php?_rdr", "https://m.facebook.com/home.php"},
                     cookies -> {
-                        setUserCookies(cookies);
-//                            activity.setStringValue(R.string.key_facebook, cookies);
                         tryWithCookies();
                     });
             return;

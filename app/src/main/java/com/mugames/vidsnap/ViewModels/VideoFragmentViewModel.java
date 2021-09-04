@@ -10,7 +10,7 @@ import com.mugames.vidsnap.Extractor.Instagram;
 import com.mugames.vidsnap.Extractor.Twitter;
 import com.mugames.vidsnap.Extractor.YouTube;
 import com.mugames.vidsnap.Utility.Bundles.DownloadDetails;
-import com.mugames.vidsnap.Utility.Extractor;
+import com.mugames.vidsnap.Extractor.Extractor;
 import com.mugames.vidsnap.Utility.Formats;
 import com.mugames.vidsnap.Utility.UtilityInterface;
 import com.mugames.vidsnap.ui.main.Activities.MainActivity;
@@ -19,7 +19,8 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
 
-import static com.mugames.vidsnap.Utility.FileUtil.removeStuffFromName;
+import static com.mugames.vidsnap.Storage.FileUtil.removeStuffFromName;
+import static com.mugames.vidsnap.ui.main.Fragments.VideoFragment.directory;
 
 public class VideoFragmentViewModel extends AndroidViewModel implements UtilityInterface.AnalyzeCallback {
 
@@ -48,6 +49,7 @@ public class VideoFragmentViewModel extends AndroidViewModel implements UtilityI
             activity.error("URL Seems to be wrong",null);
         }
         if(extractor!=null) {
+            extractor.setContext(getApplication());
             extractor.setLoginHelper(activity);
             extractor.setDialogueInterface(activity);
             extractor.setAnalyzeCallback(this);
@@ -107,6 +109,7 @@ public class VideoFragmentViewModel extends AndroidViewModel implements UtilityI
             details.fileType=".mp4";
             details.fileName = formats.title + "_(" + (i + 1) + ")_";
             details.src = formats.src;
+            details.pathUri = directory;
 
             downloadDetails.add(details);
         }

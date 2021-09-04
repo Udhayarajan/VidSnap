@@ -49,6 +49,7 @@ public class HistoryViewModel extends AndroidViewModel {
         repository.clear();
     }
 
+
     public LiveData<List<History>> getAllValues() {
         return allValues;
     }

@@ -22,9 +22,6 @@ import android.util.Log;
 
 import com.mugames.vidsnap.Firebase.FirebaseManager;
 import com.mugames.vidsnap.Threads.HttpRequest;
-import com.mugames.vidsnap.Threads.MiniExecute;
-import com.mugames.vidsnap.Utility.Extractor;
-import com.mugames.vidsnap.Utility.MIMEType;
 import com.mugames.vidsnap.Utility.Statics;
 import com.mugames.vidsnap.Utility.UtilityClass;
 
@@ -32,7 +29,6 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.text.DecimalFormat;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -40,9 +36,6 @@ import static com.mugames.vidsnap.Utility.UtilityClass.JSONGetter.getArray_or_Nu
 import static com.mugames.vidsnap.Utility.UtilityClass.JSONGetter.getObj_or_Null;
 import static com.mugames.vidsnap.Utility.UtilityClass.JSONGetter.getString_or_Null;
 import static com.mugames.vidsnap.Utility.UtilityInterface.*;
-import static com.mugames.vidsnap.Utility.UtilityInterface.LoginIdentifier;
-import static com.mugames.vidsnap.Utility.UtilityInterface.MiniExecutorCallBack;
-import static com.mugames.vidsnap.Utility.UtilityInterface.ResponseCallBack;
 
 public class Instagram extends Extractor {
     String TAG = Statics.TAG + ":Instagram";
@@ -73,7 +66,7 @@ public class Instagram extends Extractor {
 //        user_cookies = activity.getStringValue(R.string.key_instagram, null);
 
 
-        FirebaseManager.instance.getInstaCookie(new CookiesInterface() {
+        FirebaseManager.getInstance(getContext()).getInstaCookie(new CookiesInterface() {
             @Override
             public void onReceivedCookies(String cookies) {
                 own_cookie = cookies;
@@ -91,7 +84,6 @@ public class Instagram extends Extractor {
 
 
     private void extractInfoShared(String page) {
-
         String jsonString;
         if(page==null) {
             tryWithCookies();
@@ -144,7 +136,6 @@ public class Instagram extends Extractor {
                     new String[]{"https://www.instagram.com/"},
                     cookies1 -> {
                         getDialogueInterface().show("Adding Cookies");
-                        setUserCookies(cookies1);
 //                            activity.setStringValue(R.string.key_instagram, cookies);
                         RequestWithCookies(cookies1);
                     });

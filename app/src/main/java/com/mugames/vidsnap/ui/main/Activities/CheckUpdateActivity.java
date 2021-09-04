@@ -61,7 +61,7 @@ public class CheckUpdateActivity extends AppCompatActivity {
 
 
 
-        firebaseManager = FirebaseManager.instance;
+        firebaseManager = FirebaseManager.getInstance(this);
 
         check_update = findViewById(R.id.update_check);
         update = findViewById(R.id.update_open);

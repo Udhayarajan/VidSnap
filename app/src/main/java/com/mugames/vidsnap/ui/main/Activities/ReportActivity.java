@@ -17,25 +17,18 @@
 
 package com.mugames.vidsnap.ui.main.Activities;
 
-import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
-import androidx.constraintlayout.widget.ConstraintLayout;
-import androidx.core.content.ContextCompat;
 
-import android.graphics.drawable.ColorDrawable;
 import android.os.Bundle;
 import android.view.View;
-import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
-import android.widget.LinearLayout;
 import android.widget.Spinner;
 import android.widget.Toast;
 
-import com.google.firebase.database.core.Context;
 import com.mugames.vidsnap.Firebase.FirebaseCallBacks;
 import com.mugames.vidsnap.Firebase.FirebaseManager;
 import com.mugames.vidsnap.R;
@@ -63,7 +56,7 @@ public class ReportActivity extends AppCompatActivity implements AdapterView.OnI
         toolbar.setNavigationOnClickListener(v -> onBackPressed());
 
 
-        firebaseManager = FirebaseManager.instance;
+        firebaseManager = FirebaseManager.getInstance(this);
         firebaseManager.initReport();
 
         type_Spinner = findViewById(R.id.report_type);
@@ -87,31 +80,28 @@ public class ReportActivity extends AppCompatActivity implements AdapterView.OnI
         button.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                FirebaseManager.instance.checkUpdate(new FirebaseCallBacks.UpdateCallbacks() {
-                    @Override
-                    public void onReceiveData(boolean isUpdateAvailable, String v, boolean isForced, String changeLog, String url) {
-                        FirebaseManager.REPORT report;
-                        if (ty.equals("Bug"))
-                            report = FirebaseManager.REPORT.BUG;
-                        else if (ty.equals("Suggestions"))
-                            report = FirebaseManager.REPORT.SITE_REQUEST;
-                        else report = FirebaseManager.REPORT.OTHER;
+                FirebaseManager.getInstance(getApplicationContext()).checkUpdate((isUpdateAvailable, v1, isForced, changeLog, url) -> {
+                    FirebaseManager.REPORT report;
+                    if (ty.equals("Bug"))
+                        report = FirebaseManager.REPORT.BUG;
+                    else if (ty.equals("Suggestions"))
+                        report = FirebaseManager.REPORT.SITE_REQUEST;
+                    else report = FirebaseManager.REPORT.OTHER;
 
 
-                        String descrp = des.getText().toString();
-                        String mailID = mail.getText().toString();
-                        if (descrp.isEmpty()) {
-                            Toast.makeText(ReportActivity.this, "Description is mandatory", Toast.LENGTH_SHORT).show();
+                    String descrp = des.getText().toString();
+                    String mailID = mail.getText().toString();
+                    if (descrp.isEmpty()) {
+                        Toast.makeText(ReportActivity.this, "Description is mandatory", Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+                    else if(report == FirebaseManager.REPORT.BUG){
+                        if (isUpdateAvailable && isForced) {
+                            Toast.makeText(ReportActivity.this, "Kindly,update app to check problem is resolved :)", Toast.LENGTH_LONG).show();
                             return;
                         }
-                        else if(report == FirebaseManager.REPORT.BUG){
-                            if (isUpdateAvailable && isForced) {
-                                Toast.makeText(ReportActivity.this, "Kindly,update app to check problem is resolved :)", Toast.LENGTH_LONG).show();
-                                return;
-                            }
-                        }
-                        firebaseManager.saveReport(ReportActivity.this,report, ser, descrp, mailID);
                     }
+                    firebaseManager.saveReport(ReportActivity.this,report, ser, descrp, mailID);
                 });
             }
         });

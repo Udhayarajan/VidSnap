@@ -23,13 +23,15 @@ import android.os.Parcel;
 import android.os.Parcelable;
 import android.os.ResultReceiver;
 
+
 import com.mugames.vidsnap.Utility.DownloadReceiver;
 
-import java.util.ArrayList;
 
 
 
 public class DownloadDetails implements Parcelable {
+
+    public int id;
 
     public Uri pathUri;
     public String fileName;
@@ -43,8 +45,6 @@ public class DownloadDetails implements Parcelable {
     public String mimeVideo;
     public String mimeAudio;
 
-    public ArrayList<String> m3u8URL;//Chuncks will be stored if null get from saved path chuncks path
-    public String chunksPath;
     public String chunkUrl;
     public long chunkCount;
 
@@ -63,6 +63,8 @@ public class DownloadDetails implements Parcelable {
     public DownloadDetails() {}
 
     protected DownloadDetails(Parcel in) {
+        id = in.readInt();
+
         pathUri = Uri.parse(in.readString());
         fileName = in.readString();
         fileType = in.readString();
@@ -75,8 +77,6 @@ public class DownloadDetails implements Parcelable {
         mimeVideo = in.readString();
         mimeAudio = in.readString();
 
-        m3u8URL = in.createStringArrayList();
-        chunksPath = in.readString();
         chunkUrl = in.readString();
         chunkCount = in.readLong();
 
@@ -93,6 +93,8 @@ public class DownloadDetails implements Parcelable {
 
     @Override
     public void writeToParcel(Parcel dest, int flags) {
+        dest.writeInt(id);
+
         dest.writeString(pathUri.toString());
         dest.writeString(fileName);
         dest.writeString(fileType);
@@ -105,8 +107,6 @@ public class DownloadDetails implements Parcelable {
         dest.writeString(mimeVideo);
         dest.writeString(mimeAudio);
 
-        dest.writeStringList(m3u8URL);
-        dest.writeString(chunksPath);
         dest.writeString(chunkUrl);
         dest.writeLong(chunkCount);
 

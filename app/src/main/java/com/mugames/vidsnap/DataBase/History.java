@@ -24,7 +24,7 @@ import androidx.room.Entity;
 import androidx.room.PrimaryKey;
 
 import com.mugames.vidsnap.Utility.Bundles.DownloadDetails;
-import com.mugames.vidsnap.Utility.FileUtil;
+import com.mugames.vidsnap.Storage.FileUtil;
 import com.mugames.vidsnap.Utility.UtilityClass;
 
 @Entity(tableName = "HISTORY")
@@ -51,7 +51,9 @@ public class History {
         this.date = date;
         this.size = String.valueOf(details.videoSize);
         this.uriString = uri.toString();
-        this.thumbnail = (byte[]) FileUtil.loadFile(details.thumbNailPath,byte.class);
+        new Thread(()->{
+            this.thumbnail = (byte[]) FileUtil.loadImage(details.thumbNailPath);
+        }).start();
         this.imageWidth = details.thumbWidth;
         this.imageHeight = details.thumbHeight;
     }

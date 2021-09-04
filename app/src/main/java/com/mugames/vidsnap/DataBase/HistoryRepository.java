@@ -21,38 +21,44 @@ import android.app.Application;
 
 import androidx.lifecycle.LiveData;
 
-import java.util.ArrayList;
 import java.util.List;
 
 public class HistoryRepository {
     HistoryDao historyDao;
     LiveData<List<History>> allValues;
+    LiveData<Boolean> dataAvailable;
 
-    public HistoryRepository(Application application){
+    public HistoryRepository(Application application) {
         HistoryDatabase historyDatabase = HistoryDatabase.getInstance(application);
         historyDao = historyDatabase.historyDao();
         allValues = historyDao.getAllValues();
+        dataAvailable = historyDao.isEntryAvailable();
     }
 
-    public void insertItem(History history){
+    public void insertItem(History history) {
         new InsertHistoryAsync(historyDao).backgroundTask(history);
     }
 
-    public void clear(){
+    public void clear() {
         new DeleteAllHistoryAsync(historyDao).backgroundTask();
     }
-    public LiveData<List<History>> getAllValues(){
+
+    public LiveData<List<History>> getAllValues() {
         return allValues;
     }
 
-    private static class InsertHistoryAsync{
+    public LiveData<Boolean> isDataAvailable() {
+        return dataAvailable;
+    }
+
+    private static class InsertHistoryAsync {
         HistoryDao historyDao;
 
         public InsertHistoryAsync(HistoryDao historyDao) {
             this.historyDao = historyDao;
         }
 
-        public void backgroundTask(History history){
+        public void backgroundTask(History history) {
             Thread thread = new Thread(() -> {
                 historyDao.insertItem(history);
             });
@@ -60,14 +66,14 @@ public class HistoryRepository {
         }
     }
 
-    private static class DeleteAllHistoryAsync{
+    private static class DeleteAllHistoryAsync {
         HistoryDao historyDao;
 
         public DeleteAllHistoryAsync(HistoryDao historyDao) {
             this.historyDao = historyDao;
         }
 
-        public void backgroundTask(){
+        public void backgroundTask() {
             Thread thread = new Thread(() -> {
                 historyDao.deleteTable();
             });

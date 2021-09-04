@@ -1,3 +1,19 @@
+/*
+ *  This file is part of VidSnap.
+ *
+ *  VidSnap is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  any later version.
+ *  VidSnap is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *  You should have received a copy of the GNU General Public License
+ *  along with VidSnap.  If not, see <https://www.gnu.org/licenses/>.
+ *
+ */
+
 package com.mugames.vidsnap.Utility;
 
 public class Statics {
@@ -9,6 +25,7 @@ public class Statics {
     public static final String DOWNLOAD_SPEED = "dSpeed";
     public static final String ERROR_DOWNLOADING="ERROR";
     public static final String OUTFILE_URI="uriOpUri";
+    public static final String ACTIVE_DOWNLOAD = "Download on progress";
 
     public static final String RESULT_CODE = "com.mugames.vidsnap.resultCode";
 
@@ -18,20 +35,9 @@ public class Statics {
     public static final int PROGRESS_UPDATE_MERGING = 1678;
     public static final int PROGRESS_UPDATE_AUDIO = 1456;
     public static final int PROGRESS_UPDATE_VIDEO = 7896;
-//    public static final int PROGRESS_UPDATE_CHUNCK = 7996;
-    public static final int PATH_CHOOSER = 9999;
     public static final int REQUEST_WRITE = 1248;
 
-    public static final String SHARED_PREFS = "myPrefs";
     public static final String COMMUNICATOR = "communicator";
-    public static final String BANNER_ID = "ca-app-pub-5704943635302630/9596577786";
-    public static final String INTERSTITIAL_ID = "ca-app-pub-5704943635302630/4671554167";
-    public static final String INTERSTITIAL_ID_TEST = "ca-app-pub-3940256099942544/1033173712";
-    public static final String ACTIVE_DOWNLOAD = "bjkdfgsbjkldfskln;";
-
-    public static final String LIST_HISTORY = "j,sdfbj,abdknasdk";
-    public static final String LIST_DOWNLOAD = "ahsvdhasvd";
-    public static final String LIST_DOWNLOAD_RECEIVER = "eqr7qerg";
 
 
 }

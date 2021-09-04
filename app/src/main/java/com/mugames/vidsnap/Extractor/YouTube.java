@@ -20,8 +20,6 @@ package com.mugames.vidsnap.Extractor;
 import android.util.Log;
 
 import com.mugames.vidsnap.Threads.HttpRequest;
-import com.mugames.vidsnap.Utility.Extractor;
-import com.mugames.vidsnap.Utility.Formats;
 import com.mugames.vidsnap.Utility.JSInterpreter;
 import com.mugames.vidsnap.Utility.MIMEType;
 import com.mugames.vidsnap.Utility.Statics;

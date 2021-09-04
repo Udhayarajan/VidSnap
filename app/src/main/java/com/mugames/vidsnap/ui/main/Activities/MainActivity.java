@@ -61,20 +61,23 @@ import androidx.lifecycle.ViewModelProvider;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.navigation.NavigationView;
 import com.google.firebase.crashlytics.FirebaseCrashlytics;
+import com.mugames.vidsnap.DataBase.HistoryDatabase;
 import com.mugames.vidsnap.Firebase.FirebaseCallBacks;
+import com.mugames.vidsnap.Firebase.FirebaseManager;
 import com.mugames.vidsnap.PopUpDialog;
 import com.mugames.vidsnap.R;
-import com.mugames.vidsnap.StorageSwitcher;
+import com.mugames.vidsnap.Storage.StorageSwitcher;
 import com.mugames.vidsnap.Terms;
 import com.mugames.vidsnap.Threads.Downloader;
 import com.mugames.vidsnap.Threads.MiniExecute;
+import com.mugames.vidsnap.Utility.AppPref;
 import com.mugames.vidsnap.Utility.Bundles.DownloadDetails;
 import com.mugames.vidsnap.Utility.DownloadReceiver;
-import com.mugames.vidsnap.Utility.FileUtil;
+import com.mugames.vidsnap.Storage.FileUtil;
 import com.mugames.vidsnap.Utility.Statics;
 import com.mugames.vidsnap.Utility.UtilityClass;
 import com.mugames.vidsnap.Utility.UtilityInterface;
-import com.mugames.vidsnap.Utility.UtilityInterface.LogoutCallBacks;
+import com.mugames.vidsnap.Utility.UtilityInterface.ConfigurationCallback;
 import com.mugames.vidsnap.Utility.UtilityInterface.TouchCallback;
 import com.mugames.vidsnap.ViewModels.MainActivityViewModel;
 import com.mugames.vidsnap.ui.main.Fragments.DownloadFragment;
@@ -94,11 +97,12 @@ import java.util.HashMap;
 import java.util.Objects;
 import java.util.Random;
 
-import static com.mugames.vidsnap.Utility.FileUtil.getValidFile;
+import static com.mugames.vidsnap.Storage.FileUtil.getValidFile;
+import static com.mugames.vidsnap.Utility.Statics.ACTIVE_DOWNLOAD;
 import static com.mugames.vidsnap.Utility.Statics.COMMUNICATOR;
 import static com.mugames.vidsnap.Utility.Statics.REQUEST_WRITE;
 import static com.mugames.vidsnap.ViewModels.MainActivityViewModel.DYNAMIC_CACHE;
-import static com.mugames.vidsnap.ViewModels.MainActivityViewModel.STATIC_CACHE;
+import static com.mugames.vidsnap.ViewModels.MainActivityViewModel.LIBRARY_PATH;
 import static com.mugames.vidsnap.ViewModels.MainActivityViewModel.service_in_use;
 import static com.mugames.vidsnap.ViewModels.VideoFragmentViewModel.URL_KEY;
 
@@ -153,6 +157,11 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
 
         storageSwitcher = new StorageSwitcher(this);
+
+
+        for (DownloadDetails details :activityViewModel.getDownloadDetailsList()) {
+            ((DownloadReceiver)details.receiver).setDialogInterface(this);
+        }
 
         locationResultLauncher = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(),
                 new ActivityResultCallback<ActivityResult>() {
@@ -212,6 +221,13 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             gotIntent(getIntent());
         }
 
+        activityViewModel.getActiveDownload().observe(this, new Observer<Integer>() {
+            @Override
+            public void onChanged(Integer integer) {
+                setupBadge(integer);
+            }
+        });
+
     }
 
 
@@ -224,7 +240,6 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             return;
         }
         gotIntent(intent);
-
     }
 
     void gotIntent(Intent intent) {
@@ -234,6 +249,10 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
         if (content != null)
             replaceFragment(VideoFragment.newInstance(content), VideoFragment.class.getName());
+
+        else if(intent.getBooleanExtra(ACTIVE_DOWNLOAD,false)){
+            replaceFragment(DownloadFragment.newInstance(), DownloadFragment.class.getName());
+        }
     }
 
 
@@ -284,14 +303,11 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
     private void share() {
         Intent intent = new Intent(Intent.ACTION_SEND);
-        activityViewModel.shareLink(new FirebaseCallBacks.ShareCallback() {
-            @Override
-            public void onShareLinkGot(String link) {
-                intent.putExtra(Intent.EXTRA_TEXT, "Hey! checkout new Social Media video downloader from " + link);
-                intent.setType("text/plain");
-                startActivity(Intent.createChooser(intent, "Share via..."));
-            }
-        });
+        FirebaseManager.getInstance(this).getShareLink(link -> FirebaseManager.getInstance(this).getShareText(msg -> {
+            intent.putExtra(Intent.EXTRA_TEXT, msg + " " + link);
+            intent.setType("text/plain");
+            startActivity(Intent.createChooser(intent, "Share via..."));
+        }));
     }
 
     private void openBug() {
@@ -471,7 +487,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             Log.e(TAG, "error: ", e);
 
             if (e != null) {
-                if (activityViewModel.pref.getBooleanValue(R.string.key_media_link, true)) {
+                if (AppPref.getInstance(this).getBooleanValue(R.string.key_media_link, true)) {
                     dialogBuilder.setNegativeButton("Go,Back", (dialog, which) -> {
                         FirebaseCrashlytics.getInstance().recordException(e);
                     });
@@ -538,7 +554,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             });
 
         } else {
-            dialogBuilder.setMessage("No path chosen to download. Choose path to proceed downloading.");
+            dialogBuilder.setMessage("No path chosen to download. Choose path to proceed downloading.\n(Later you can change it from settings)");
             dialogBuilder.setPositiveButton("Choose", positiveListener);
         }
         dialogBuilder.create().show();
@@ -547,14 +563,14 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
 
     public void agreedTerms() {
-        activityViewModel.pref.setBooleanValue(R.string.key_terms_con, true);
+        AppPref.getInstance(this).setBooleanValue(R.string.key_terms_con, true);
         if (intent != null) gotIntent(intent);
     }
 
 
     private void setPath(Intent data) {
 
-        activityViewModel.pref.setSavePath(data);
+        AppPref.getInstance(this).setSavePath(data);
 
         for (int i = 0; i < activityViewModel.tempDetails.size(); i++) {
             activityViewModel.tempDetails.get(i).pathUri = getPath();
@@ -566,18 +582,18 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     }
 
 
-    public Uri getPath() {
-        return activityViewModel.pref.getSavePath();
+    private Uri getPath() {
+        return AppPref.getInstance(this).getSavePath();
     }
 
 
 
-    public String getStringValue(int id, String def) {
-        return activityViewModel.pref.getStringValue(id, def);
+    private String getStringValue(int id, String def) {
+        return AppPref.getInstance(this).getStringValue(id, def);
     }
 
-    public void setStringValue(int key, String value) {
-        activityViewModel.pref.setStringValue(key, value);
+    private void setStringValue(int key, String value) {
+        AppPref.getInstance(this).setStringValue(key, value);
     }
 
     public void download(ArrayList<DownloadDetails> details) {
@@ -597,8 +613,9 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             openDirectoryChooser();
             return;
         }
+        // Skip this for loop if you use static module loading of FFmpeg-kit
         for(DownloadDetails d:activityViewModel.tempDetails)
-            if((d.audioURL != null || d.chunkUrl != null) && !FileUtil.isFileExists(getExternalFilesDir("libs")+File.separator+"lib.zip")){
+            if((d.audioURL != null || d.chunkUrl != null) && !FileUtil.isFileExists(AppPref.getInstance(this).getCachePath(LIBRARY_PATH)+"lib.zip")){
                 fetchSOFiles();
                 return;
             }
@@ -609,8 +626,6 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     private void fetchSOFiles() {
         final String abi = Build.SUPPORTED_ABIS[0];
         dialog.show("Preparing download");
-
-        Toast.makeText(MainActivity.this,abi,Toast.LENGTH_SHORT).show();
 
         HashMap<String,String> abiHashMap = new HashMap<>();
         abiHashMap.put("armeabi-v7a","https://raw.githubusercontent.com/Udhayarajan/SOserver/master/armeabi-v7a.zip");
@@ -690,20 +705,6 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
     private void realDownload() {
         dialog.dismiss();
-        activityViewModel.getActiveDownload().observe(this, new Observer<Integer>() {
-            @Override
-            public void onChanged(Integer integer) {
-                setupBadge(integer);
-            }
-        });
-//
-//        FetchConfiguration fetchConfiguration = new FetchConfiguration
-//                .Builder(this)
-//                .enableRetryOnNetworkGain(true)
-//                .setDownloadConcurrentLimit(3)
-//                .setHttpDownloader(new HttpUrlConnectionDownloader(FileDownloaderType.PARALLEL))
-//                .build();
-//
 
         for (int i = 0; i < activityViewModel.tempDetails.size(); i++) {
             Intent download = detailsToIntent(i);
@@ -724,23 +725,19 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
         Intent downloadIntent = new Intent(this, Downloader.class);
 
+        int id = activityViewModel.getUniqueDownloadId();
 
-        activityViewModel.tempDetails.get(index).thumbNailPath = getValidFile(activityViewModel.pref.getCachePath(DYNAMIC_CACHE), String.valueOf(new Random().nextInt()), ".muim");
+        activityViewModel.tempDetails.get(index).id = id;
+
+        activityViewModel.tempDetails.get(index).thumbNailPath = getValidFile(AppPref.getInstance(this).getCachePath(DYNAMIC_CACHE), String.valueOf(new Random().nextInt()), ".muim");
         activityViewModel.tempDetails.get(index).thumbWidth = activityViewModel.tempDetails.get(index).thumbNail.getWidth();
         activityViewModel.tempDetails.get(index).thumbHeight = activityViewModel.tempDetails.get(index).thumbNail.getHeight();
-        FileUtil.saveFile(activityViewModel.tempDetails.get(index).thumbNailPath, UtilityClass.bitmapToBytes(activityViewModel.tempDetails.get(index).thumbNail));
+        FileUtil.saveFile(activityViewModel.tempDetails.get(index).thumbNailPath, UtilityClass.bitmapToBytes(activityViewModel.tempDetails.get(index).thumbNail),null);
 
 
-
-
-        if (activityViewModel.tempDetails.get(index).videoURL == null){
-            activityViewModel.tempDetails.get(index).chunksPath = getValidFile(activityViewModel.pref.getCachePath(DYNAMIC_CACHE), String.valueOf(new Random().nextInt()), ".much");
-            FileUtil.saveFile(activityViewModel.tempDetails.get(index).chunksPath, String.valueOf(activityViewModel.tempDetails.get(index).m3u8URL));
-        }
-
-
-        activityViewModel.tempDetails.get(index).receiver = new DownloadReceiver(new Handler(Looper.getMainLooper()), this,
-                activityViewModel.getDownloadDetailsList().size(), activityViewModel);
+        activityViewModel.tempDetails.get(index).receiver = new DownloadReceiver(new Handler(Looper.getMainLooper()),
+                this,this,
+                id, activityViewModel);
 
 
         downloadIntent.putExtra(COMMUNICATOR, activityViewModel.tempDetails.get(index));
@@ -758,6 +755,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     public void signInNeeded(String reason, String loginURL, String[] loginDoneUrl, int cookiesKey, UtilityInterface.LoginIdentifier identifier) {
 
         runOnUiThread(()->{
+            dialog.dismiss();
             MaterialAlertDialogBuilder dialog = new MaterialAlertDialogBuilder(this)
                     .setTitle("Seems to be Private Video!")
                     .setCancelable(false)
@@ -785,8 +783,8 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     }
 
     @Override
-    public void getCookies(int cookiesKey) {
-        getStringValue(cookiesKey,null);
+    public String getCookies(int cookiesKey) {
+        return getStringValue(cookiesKey,null);
     }
 
     void openWebPage(String url, String[] loginDoneUrls, String cookies, UtilityInterface.CookiesInterface cookiesInterface) {
@@ -817,7 +815,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         this.touchCallback = touchCallback;
     }
 
-    public void clearHistory(LogoutCallBacks logoutCallBacks) {
+    public void clearHistory(ConfigurationCallback configurationCallback) {
         MaterialAlertDialogBuilder builder = new MaterialAlertDialogBuilder(this);
         builder.setTitle("Warning")
                 .setMessage("Downloads list will be cleared by clearing cache.")
@@ -825,9 +823,9 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
                         setStringValue(R.string.key_clear_history_cache, null);
-//                        new Thread(() -> HistoryDatabase.getInstance(getApplication()).historyDao().deleteTable()).start();
-                        FileUtil.deleteFile(activityViewModel.pref.getCachePath(STATIC_CACHE));
-                        logoutCallBacks.onLoggedOut();
+                        new Thread(() -> HistoryDatabase.getInstance(getApplication()).historyDao().deleteTable()).start();
+//                        FileUtil.deleteFile(activityViewModel.pref.getCachePath(STATIC_CACHE));
+                        configurationCallback.onProcessDone();
                     }
                 })
                 .setNegativeButton("Go,Back", null)
@@ -837,17 +835,17 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
 
 
-    public void logOutInsta(LogoutCallBacks logoutCallBacks) {
+    public void logOutInsta(ConfigurationCallback configurationCallback) {
         openWebPage("https://instagram.com/accounts/logout/", new String[]{"https://www.instagram.com/"}, getStringValue(R.string.key_instagram, null), new UtilityInterface.CookiesInterface() {
             @Override
             public void onReceivedCookies(String cookies) {
                 Toast.makeText(MainActivity.this, "Logout Successful", Toast.LENGTH_SHORT).show();
-                logoutCallBacks.onLoggedOut();
+                configurationCallback.onProcessDone();
             }
         });
     }
 
-    public void logOutFB(LogoutCallBacks logoutCallBacks) {
+    public void logOutFB(ConfigurationCallback configurationCallback) {
         //TODO FB logout
         openWebPage("https://www.facebook.com/help/contact/logout?id=260749603972907",
                 new String[]{"https://www.facebook.com/help/contact/260749603972907", "https://m.facebook.com/help/contact/260749603972907"}, getStringValue(R.string.key_facebook, null),
@@ -855,7 +853,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                     @Override
                     public void onReceivedCookies(String cookies) {
                         Toast.makeText(MainActivity.this, "Logout Successful", Toast.LENGTH_SHORT).show();
-                        logoutCallBacks.onLoggedOut();
+                        configurationCallback.onProcessDone();
                     }
                 });
     }

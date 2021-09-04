@@ -17,6 +17,7 @@
 
 package com.mugames.vidsnap.Threads;
 
+import static com.mugames.vidsnap.Utility.Statics.ACTIVE_DOWNLOAD;
 import static com.mugames.vidsnap.Utility.Statics.COMMUNICATOR;
 import static com.mugames.vidsnap.Utility.Statics.DOWNLOADED;
 import static com.mugames.vidsnap.Utility.Statics.DOWNLOAD_SPEED;
@@ -54,8 +55,9 @@ import com.mugames.vidsnap.PostProcessor.FFMPEG;
 import com.mugames.vidsnap.PostProcessor.FFMPEGInfo;
 import com.mugames.vidsnap.PostProcessor.ReflectionInterfaces;
 import com.mugames.vidsnap.R;
+import com.mugames.vidsnap.Utility.AppPref;
 import com.mugames.vidsnap.Utility.Bundles.DownloadDetails;
-import com.mugames.vidsnap.Utility.FileUtil;
+import com.mugames.vidsnap.Storage.FileUtil;
 import com.mugames.vidsnap.Utility.MIMEType;
 import com.mugames.vidsnap.Utility.Statics;
 import com.mugames.vidsnap.ViewModels.MainActivityViewModel;
@@ -76,8 +78,6 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.channels.FileChannel;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Random;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -85,7 +85,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public class Downloader extends Service {
     String TAG = Statics.TAG + ":Downloader";
-    int activeDownload;
+    volatile int activeDownload;
+
 
     @Override
     public void onCreate() {
@@ -95,8 +96,10 @@ public class Downloader extends Service {
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         try {
-            activeDownload += 1;
-            RealDownloader downloader = new RealDownloader(getApplicationContext(), intent, startId);
+            synchronized (Downloader.class) {
+                activeDownload += 1;
+                RealDownloader downloader = new RealDownloader(getApplicationContext(), intent, startId);
+            }
         } catch (Exception e) {
             Log.e(TAG, "onStartCommand: ", e);
             Toast.makeText(getApplicationContext(), "Download failed", Toast.LENGTH_LONG).show();
@@ -161,7 +164,6 @@ public class Downloader extends Service {
 
         Context context;
         Intent intent;
-        ArrayList<String> chunkURLs = null;
 
         public RealDownloader(Context context, Intent intent, int startId) {
             this.context = context;
@@ -174,7 +176,7 @@ public class Downloader extends Service {
             manager = NotificationManagerCompat.from(context);
             ran = new Random().nextInt();
 
-            path = context.getExternalFilesDir("").getPath() + File.separator;
+            path = AppPref.getInstance(context).getCachePath("");
 
             TEMP_VIDEO_NAME = FileUtil.getValidFile(path, ran + "Video", ".muvideo");
             TEMP_AUDIO_NAME = FileUtil.getValidFile(path, ran + "Audio", ".muaudio");
@@ -182,23 +184,12 @@ public class Downloader extends Service {
 
             details = intent.getParcelableExtra(COMMUNICATOR);
 
-
-            if (details.chunksPath != null) {
-                String line = (String) FileUtil.loadFile(details.chunksPath, String.class);
-                if (line != null) {
-                    String[] links = line.split(",");
-                    chunkURLs = new ArrayList<>(Arrays.asList(links));
-                }
-            }
-
-
             DocumentFile directory;
             try {
                 directory = DocumentFile.fromTreeUri(context, details.pathUri);
                 DocumentFile file = directory.createFile(MIMEType.VIDEO_MP4, details.fileName);
-                if (file != null)
-                    outputUri = file.getUri();
-            } catch (IllegalArgumentException e) {
+                outputUri = file.getUri();
+            } catch (IllegalArgumentException|NullPointerException e) {
                 outputUri = Uri.fromFile(new File(FileUtil.getValidFile(details.pathUri.getPath() + File.separator, details.fileName, details.fileType)));
             }
 
@@ -207,7 +198,9 @@ public class Downloader extends Service {
             file_size = details.videoSize;
             PROCESS = PROGRESS_UPDATE;
 
-            PendingIntent downloading_PendingIntent = PendingIntent.getActivity(getBaseContext(), 10, new Intent(context, MainActivity.class), 0);
+            Intent intent = new Intent(context, MainActivity.class);
+            intent.putExtra(ACTIVE_DOWNLOAD,true);
+            PendingIntent downloading_PendingIntent = PendingIntent.getActivity(getBaseContext(), 10, intent, 0);
 
             builder = new NotificationCompat.Builder(context, NOTIFY_DOWNLOADING);
             builder.setPriority(NotificationCompat.PRIORITY_LOW)
@@ -218,7 +211,6 @@ public class Downloader extends Service {
 
             startForeground(ran, builder.build());
 
-            ArrayList<String> finalChunkURLs = chunkURLs;
 
             if (details.audioURL != null) MainActivityViewModel.service_in_use = true;
 
@@ -278,12 +270,17 @@ public class Downloader extends Service {
                     PROCESS = PROGRESS_UPDATE_AUDIO;
                     download(audio_url, TEMP_AUDIO_NAME, PROGRESS_UPDATE_AUDIO);
                 }
-            } else if (currentCode == PROGRESS_UPDATE_AUDIO)
+            } else if (currentCode == PROGRESS_UPDATE_AUDIO) {
                 initFFMPEG(mergeSOCallback);
+            }
 
         }
 
-        private void initFFMPEG(ReflectionInterfaces.SOLoadCallbacks soLoadCallbacks) {
+        /**
+         * @param soLoadCallbacks interface to call when FFmpeg-kit library is loaded(when using dynamic loading); null on static loading
+         * @return null on dynamic library loading and FFMPEG instance on static library loading
+         */
+        private FFMPEG initFFMPEG(ReflectionInterfaces.SOLoadCallbacks soLoadCallbacks) {
             FFMPEGInfo info = new FFMPEGInfo();
             info.videoPath = TEMP_VIDEO_NAME;
             info.audioPath = TEMP_AUDIO_NAME;
@@ -291,8 +288,10 @@ public class Downloader extends Service {
             info.hlsURL = details.chunkUrl;
             info.mime_video = details.mimeVideo;
             info.mime_audio = details.mimeAudio;
-
+            if (soLoadCallbacks == null)
+                return new FFMPEG(info, context, null);
             FFMPEG.newFFMPEGInstance(info, context, soLoadCallbacks);
+            return null;
         }
 
         private void onDownloadFailed(Bundle data) {
@@ -303,7 +302,7 @@ public class Downloader extends Service {
                 stopForeground(true);
         }
 
-        void onDoneDownload(String finalPath) {
+        synchronized void onDoneDownload(String finalPath) {
             if (finalPath == null) finalPath = TEMP_VIDEO_NAME;
             copyVideoToDestination(finalPath);
             Bundle bundle = new Bundle();
@@ -361,10 +360,11 @@ public class Downloader extends Service {
 
             } catch (IOException e) {
                 Log.e(TAG, "copyVideoToDestination: ", e);
+                sendErrorBundle(e.toString());
             }
-            FileUtil.deleteFile(finalFile);
-            FileUtil.deleteFile(TEMP_AUDIO_NAME);
-            FileUtil.deleteFile(TEMP_VIDEO_NAME);
+            new Thread(()-> FileUtil.deleteFile(finalFile,null)).start();
+            new Thread(()-> FileUtil.deleteFile(TEMP_AUDIO_NAME,null)).start();
+            new Thread(()-> FileUtil.deleteFile(TEMP_VIDEO_NAME,null)).start();
         }
 
         ReflectionInterfaces.SOLoadCallbacks mergeSOCallback = new ReflectionInterfaces.SOLoadCallbacks() {
@@ -413,13 +413,15 @@ public class Downloader extends Service {
 
 
             fetch.attachFetchObserversForDownload(request.getId(), this).enqueue(request, result -> {
-            }, error -> {
-                Bundle bundle = new Bundle();
-                bundle.putString(ERROR_DOWNLOADING, String.valueOf(error));
-                Log.e(TAG, "run: " + error);
-                onDownloadFailed(bundle);
-            });
+            }, error -> sendErrorBundle(String.valueOf(error)));
 
+        }
+
+        void sendErrorBundle(String error) {
+            Bundle bundle = new Bundle();
+            bundle.putString(ERROR_DOWNLOADING, error);
+            Log.e(TAG, "run: " + error);
+            onDownloadFailed(bundle);
         }
 
 
@@ -482,7 +484,7 @@ public class Downloader extends Service {
                     builder.setContentText(notificationVal + " %");
                     manager.notify(ran, builder.build());
                 }
-            }, 0, 3000);
+            }, 0, 2000);
             return timer;
         }
 
@@ -503,6 +505,10 @@ public class Downloader extends Service {
                 Log.e(TAG, "onChanged: " + speed);
                 speed /= 1024;
                 uiSpeed();
+            }
+            if (reason == Reason.DOWNLOAD_ERROR) {
+                sendErrorBundle(String.valueOf(download.getError()));
+                Log.e(TAG, "onChanged: " + download.getError());
             }
         }
     }

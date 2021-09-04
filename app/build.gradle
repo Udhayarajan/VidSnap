@@ -12,8 +12,8 @@ android {
         applicationId "com.mugames.vidsnap"
         minSdkVersion 21
         targetSdkVersion 31
-        versionCode 4
-        versionName "2.1.5(beta)"
+        versionCode 5
+        versionName "3.0.0"
         multiDexEnabled true
 
 
@@ -71,7 +71,6 @@ dependencies {
 
     implementation files('libs/java-json.jar')
 
-
     implementation 'androidx.preference:preference:1.1.1'
     implementation 'com.google.firebase:firebase-config:21.0.1'
     implementation 'com.google.firebase:firebase-database:20.0.1'
@@ -79,7 +78,9 @@ dependencies {
     implementation "androidx.tonyodev.fetch2okhttp:xfetch2okhttp:3.1.6"
     implementation "androidx.tonyodev.fetch2:xfetch2:3.1.6"
 
-
+    //FFmpeg-kit
+    implementation project(path: ':ffmpeg-kit-android-lib') //Comment this line on static built library
+//    implementation 'com.arthenica:ffmpeg-kit-full:4.4.LTS' // Uncomment this line on static built library
 
 
     testImplementation 'junit:junit:4.13.2'

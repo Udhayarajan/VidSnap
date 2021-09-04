@@ -5,6 +5,22 @@
  *  it under the terms of the GNU General Public License as published by
  *  the Free Software Foundation, either version 3 of the License, or
  *  any later version.
+ *  VidSnap is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *  You should have received a copy of the GNU General Public License
+ *  along with VidSnap.  If not, see <https://www.gnu.org/licenses/>.
+ *
+ */
+
+/*
+ *  This file is part of VidSnap.
+ *
+ *  VidSnap is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  any later version.
  *
  *  VidSnap is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,15 +31,21 @@
  *  along with VidSnap.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.mugames.vidsnap.Utility;
+package com.mugames.vidsnap.Extractor;
 
+import android.content.Context;
 import android.graphics.Bitmap;
 //import android.os.Bundle;
 import android.os.Bundle;
 import android.util.Log;
 
+import androidx.annotation.Nullable;
+
 import com.mugames.vidsnap.R;
 import com.mugames.vidsnap.Threads.MiniExecute;
+import com.mugames.vidsnap.Utility.Formats;
+import com.mugames.vidsnap.Utility.Statics;
+import com.mugames.vidsnap.Utility.UtilityInterface;
 import com.mugames.vidsnap.Utility.UtilityInterface.AnalyzeCallback;
 import com.mugames.vidsnap.Utility.UtilityInterface.DialogueInterface;
 import com.mugames.vidsnap.Utility.UtilityInterface.LoginHelper;
@@ -34,9 +56,11 @@ import java.util.concurrent.CountDownLatch;
 
 public abstract class Extractor {
 
+
+    Context applicationContext;
     static String TAG = Statics.TAG + ":Extractor";
-    static final String EXTRA_isVideo = "com.mugames.vidsnap.Utility.Extractor.isVideo";
-    static final String EXTRA_INDEX = "com.mugames.vidsnap.Utility.Extractor.indexOfQualities";
+    static final String EXTRA_isVideo = "com.mugames.vidsnap.Extractor.Extractor.isVideo";
+    static final String EXTRA_INDEX = "com.mugames.vidsnap.Extractor.Extractor.indexOfQualities";
 
     public Formats formats;
 
@@ -51,9 +75,6 @@ public abstract class Extractor {
     DialogueInterface dialogueInterface;
 
     LoginHelper loginHelper;
-
-    String userCookies;
-
 
 
 
@@ -83,12 +104,7 @@ public abstract class Extractor {
     public abstract void analyze(String url);
 
     public String getUserCookies() {
-        return userCookies;
-    }
-
-    //TODO:Cookies logic needed to be fixed
-    public void setUserCookies(String userCookies) {
-        this.userCookies = userCookies;
+        return loginHelper.getCookies(getCookiesKey());
     }
 
     public void fetchDataFromURLs() {
@@ -260,7 +276,10 @@ public abstract class Extractor {
     }
 
     public void trySignIn(String notificationTxt, String url, String[] validDoneURLS, UtilityInterface.LoginIdentifier loginIdentifier) {
-        loginHelper.signInNeeded(notificationTxt, url, validDoneURLS, getCookiesKey(), loginIdentifier);
+        String cookies = loginHelper.getCookies(getCookiesKey());
+        if(cookies==null)
+            loginHelper.signInNeeded(notificationTxt, url, validDoneURLS, getCookiesKey(), loginIdentifier);
+        else loginIdentifier.loggedIn(cookies);
     }
 
 
@@ -272,11 +291,19 @@ public abstract class Extractor {
         if(isManifestReady&&isThumbnailReady) analyzeCallback.onAnalyzeCompleted(formats, true);
 
 
-
     }
 
     private void checkForCompletion() {
         if (isThumbnailReady && isAudioSizeReady && isVideoSizeReady)
             analyzeCallback.onAnalyzeCompleted(formats, true);
+    }
+
+    @Nullable
+    public Context getContext() {
+        return applicationContext;
+    }
+
+    public void setContext(Context context) {
+        this.applicationContext = context.getApplicationContext();
     }
 }

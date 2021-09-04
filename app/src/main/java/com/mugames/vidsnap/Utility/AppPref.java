@@ -26,25 +26,35 @@ import android.os.Environment;
 import androidx.preference.PreferenceManager;
 
 import com.mugames.vidsnap.R;
-import com.mugames.vidsnap.ui.main.Activities.MainActivity;
+import com.mugames.vidsnap.Storage.FileUtil;
 
 import java.io.File;
 
 public class AppPref {
+
+    private static volatile AppPref instance;
+
     SharedPreferences sharedPreferences;
     Context context;
 
     String TAG = Statics.TAG+":AppPref";
 
-    public AppPref(Context context, SharedPreferences sharedPreferences) {
-        this.sharedPreferences = sharedPreferences;
-        this.context = context;
-    }
 
-    public AppPref(Context context) {
+    private AppPref(Context context) {
         this.context = context;
         sharedPreferences = PreferenceManager.getDefaultSharedPreferences(context);
     }
+
+    public static AppPref getInstance(Context context) {
+        if (instance==null ){
+            synchronized (AppPref.class){
+                if(instance==null)
+                    instance = new AppPref(context.getApplicationContext());
+            }
+        }
+        return instance;
+    }
+
 
     public void setStringValue(int key, String value) {
         SharedPreferences.Editor editor = sharedPreferences.edit();

@@ -17,9 +17,6 @@
 
 package com.mugames.vidsnap.Extractor;
 
-import com.mugames.vidsnap.Utility.Extractor;
-import com.mugames.vidsnap.Utility.UtilityInterface;
-import com.mugames.vidsnap.ui.main.Activities.MainActivity;
 import com.mugames.vidsnap.Threads.HttpRequest;
 import com.mugames.vidsnap.m3u8;
 
@@ -29,10 +26,6 @@ import org.json.JSONObject;
 import java.util.ArrayList;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
-import static com.mugames.vidsnap.Utility.UtilityInterface.*;
-import static com.mugames.vidsnap.Utility.UtilityInterface.AnalyzeCallback;
-import static com.mugames.vidsnap.Utility.UtilityInterface.ResponseCallBack;
 
 /**
  * @see Twitter it is only class access this class

@@ -18,7 +18,7 @@
 package com.mugames.vidsnap;
 
 import com.mugames.vidsnap.Threads.HttpRequest;
-import com.mugames.vidsnap.Utility.Extractor;
+import com.mugames.vidsnap.Extractor.Extractor;
 import com.mugames.vidsnap.Utility.Statics;
 
 import org.json.JSONException;

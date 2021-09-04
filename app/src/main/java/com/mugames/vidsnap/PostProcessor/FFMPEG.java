@@ -19,6 +19,7 @@ package com.mugames.vidsnap.PostProcessor;
 
 
 import android.content.Context;
+import android.os.Handler;
 import android.util.Log;
 
 import com.arthenica.ffmpegkit.ExecuteCallback;
@@ -28,31 +29,25 @@ import com.arthenica.ffmpegkit.LogCallback;
 import com.arthenica.ffmpegkit.NativeLoader;
 import com.arthenica.ffmpegkit.Session;
 import com.arthenica.ffmpegkit.StatisticsCallback;
-import com.mugames.vidsnap.Utility.FileUtil;
+import com.mugames.vidsnap.Storage.FileStreamCallback;
+import com.mugames.vidsnap.Utility.AppPref;
+import com.mugames.vidsnap.Storage.FileUtil;
 import com.mugames.vidsnap.Utility.MIMEType;
 
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
-import java.lang.reflect.InvocationHandler;
-import java.lang.reflect.Method;
-import java.lang.reflect.Proxy;
 import java.nio.channels.FileChannel;
-import java.util.Arrays;
-import java.util.List;
-
-import dalvik.system.DexClassLoader;
 
 import static com.mugames.vidsnap.Utility.Statics.TAG;
+import static com.mugames.vidsnap.ViewModels.MainActivityViewModel.LIBRARY_PATH;
 
 public class FFMPEG {
 //    static DexClassLoader loader;
     public static String jniPath;
     public static String filesDir;
-    private static int INSTANCE_COUNT;
+    private static volatile int INSTANCE_COUNT;
 //    public static String dexPath;
 //    public static String tempLibsPath;
 
@@ -64,7 +59,7 @@ public class FFMPEG {
     String opFilePath;
 
 
-    public static void newFFMPEGInstance(FFMPEGInfo ffmpegInfo, Context context, ReflectionInterfaces.SOLoadCallbacks soLoadCallbacks){
+    public static synchronized void newFFMPEGInstance(FFMPEGInfo ffmpegInfo, Context context, ReflectionInterfaces.SOLoadCallbacks soLoadCallbacks){
         INSTANCE_COUNT++;
         new FFMPEG(ffmpegInfo,context,soLoadCallbacks);
     }
@@ -80,31 +75,46 @@ public class FFMPEG {
 
     public FFMPEG(FFMPEGInfo ffmpegInfo, Context context, ReflectionInterfaces.SOLoadCallbacks soLoadCallbacks) {
         this.info = ffmpegInfo;
-        String libsPath = context.getExternalFilesDir("libs").getAbsolutePath();
+
+        if(soLoadCallbacks==null) return;// No need to perform anything because library is loaded statically
+
+        String libsPath = AppPref.getInstance(context).getCachePath(LIBRARY_PATH);
         if(jniPath==null) jniPath = libsPath + File.separator + "jni" + File.separator;
 
         if(!FileUtil.isFileExists(jniPath)) {
-            try {
-                FileUtil.unzip(new File(libsPath, "lib.zip"), new File(libsPath));
-            } catch (IOException e) {
-                Log.e(TAG, "onReceive: ", e);
-                e.printStackTrace();
-            }
+            new Thread(()->{
+                try {
+                    FileUtil.unzip(new File(libsPath, "lib.zip"), new File(libsPath), () -> {
+                        new Handler(context.getMainLooper()).post(()->{
+                            if(filesDir==null) filesDir = context.getFilesDir().getAbsolutePath() + File.separator;
+                            loadSOFiles(jniPath,soLoadCallbacks);
+                        });
+                    });
+                } catch (IOException e) {
+                    Log.e(TAG, "onReceive: ", e);
+                    e.printStackTrace();
+                }
+            }).start();
+        }else {
+            if(filesDir==null) filesDir = context.getFilesDir().getAbsolutePath() + File.separator;
+            loadSOFiles(jniPath,soLoadCallbacks);
         }
-        if(filesDir==null) filesDir = context.getFilesDir().getAbsolutePath() + File.separator;
-        loadSOFiles(jniPath,soLoadCallbacks);
+
     }
+
 
     public void setExecuteCallback(ExecuteCallback executeCallback) {
         this.executeCallback = executeCallback;
     }
 
 
-    static void deleteLibs(){
+    static synchronized void deleteLibs(){
         INSTANCE_COUNT--;
         Log.e(TAG, "deleteLibs: "+INSTANCE_COUNT);
         if(INSTANCE_COUNT==0)
-            FileUtil.deleteFolder(jniPath);
+            new Thread(()->{
+                FileUtil.deleteFile(jniPath,null);
+            }).start();
     }
 
     //    static DexClassLoader getLoader() throws IOException {

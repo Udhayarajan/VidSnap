@@ -21,13 +21,10 @@ import android.graphics.Bitmap;
 import android.util.Log;
 
 import com.mugames.vidsnap.Threads.HttpRequest;
-import com.mugames.vidsnap.Utility.Extractor;
 import com.mugames.vidsnap.Utility.Formats;
 import com.mugames.vidsnap.Utility.MIMEType;
 import com.mugames.vidsnap.Utility.Statics;
 import com.mugames.vidsnap.Utility.UtilityClass;
-import com.mugames.vidsnap.Utility.UtilityInterface;
-import com.mugames.vidsnap.Utility.UtilityInterface.AnalyzeCallback;
 import com.mugames.vidsnap.m3u8;
 
 import org.json.JSONArray;

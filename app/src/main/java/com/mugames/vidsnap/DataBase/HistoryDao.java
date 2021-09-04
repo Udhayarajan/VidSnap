@@ -35,4 +35,7 @@ public interface HistoryDao {
 
     @Query("SELECT * FROM HISTORY")
     LiveData<List<History>> getAllValues();
+
+    @Query("SELECT COUNT(1) FROM HISTORY")
+    LiveData<Boolean> isEntryAvailable();
 }

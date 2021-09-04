@@ -36,6 +36,7 @@ import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.google.firebase.crashlytics.FirebaseCrashlytics;
+import com.mugames.vidsnap.Utility.AppPref;
 import com.mugames.vidsnap.Utility.UtilityClass;
 import com.mugames.vidsnap.ViewModels.VideoFragmentViewModel;
 import com.mugames.vidsnap.ui.main.Activities.MainActivity;
@@ -48,7 +49,7 @@ import com.mugames.vidsnap.ui.main.Adapters.DownloadableAdapter;
 import java.util.ArrayList;
 
 import static android.content.Context.INPUT_METHOD_SERVICE;
-import static com.mugames.vidsnap.Utility.FileUtil.removeStuffFromName;
+import static com.mugames.vidsnap.Storage.FileUtil.removeStuffFromName;
 import static com.mugames.vidsnap.Utility.UtilityInterface.*;
 import static com.mugames.vidsnap.ViewModels.VideoFragmentViewModel.URL_KEY;
 
@@ -75,11 +76,8 @@ public class VideoFragment extends Fragment implements
     long size;
 
 
-    String src;
-
 
     private boolean isPaused;
-    private boolean isPopupPresent;
 
     VideoFragmentViewModel viewModel;
 
@@ -103,7 +101,7 @@ public class VideoFragment extends Fragment implements
         View view = inflater.inflate(R.layout.fragment_video, container, false);
         activity = (MainActivity) getActivity();
         activity.setTouchCallback(this);
-        directory = activity.getPath();
+        directory = AppPref.getInstance(getContext()).getSavePath();
 
         viewModel = new ViewModelProvider(this).get(VideoFragmentViewModel.class);
 
@@ -125,6 +123,7 @@ public class VideoFragment extends Fragment implements
 
 
         analysis.setOnClickListener(v -> {
+            if(adapter !=null) resetMultiVideoList();
             analysis.setEnabled(false);
             hideKeyboard(null);
             startProcess(urlBox.getText().toString());
@@ -223,10 +222,15 @@ public class VideoFragment extends Fragment implements
             dialogFragment = null;
             urlBox.setText("");
             activity.download(viewModel.actionForMOREFile());
-            button.setVisibility(View.GONE);
-            adapter.clear();
+            resetMultiVideoList();
         }
         viewModel.getFormatsArrayList().clear();
+    }
+
+    void resetMultiVideoList(){
+        button.setVisibility(View.GONE);
+        adapter.clear();
+        adapter = null;
     }
 
 
