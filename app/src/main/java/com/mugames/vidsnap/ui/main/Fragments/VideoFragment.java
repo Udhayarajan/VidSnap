@@ -1,3 +1,20 @@
+/*
+ *  This file is part of VidSnap.
+ *
+ *  VidSnap is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  any later version.
+ *
+ *  VidSnap is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with VidSnap.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 package com.mugames.vidsnap.ui.main.Fragments;
 
 import android.graphics.Rect;
@@ -19,7 +36,7 @@ import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.google.firebase.crashlytics.FirebaseCrashlytics;
-import com.mugames.vidsnap.Utility.Extractor;
+import com.mugames.vidsnap.Utility.AppPref;
 import com.mugames.vidsnap.Utility.UtilityClass;
 import com.mugames.vidsnap.ViewModels.VideoFragmentViewModel;
 import com.mugames.vidsnap.ui.main.Activities.MainActivity;
@@ -32,7 +49,7 @@ import com.mugames.vidsnap.ui.main.Adapters.DownloadableAdapter;
 import java.util.ArrayList;
 
 import static android.content.Context.INPUT_METHOD_SERVICE;
-import static com.mugames.vidsnap.Utility.FileUtil.removeStuffFromName;
+import static com.mugames.vidsnap.Storage.FileUtil.removeStuffFromName;
 import static com.mugames.vidsnap.Utility.UtilityInterface.*;
 import static com.mugames.vidsnap.ViewModels.VideoFragmentViewModel.URL_KEY;
 
@@ -52,21 +69,15 @@ public class VideoFragment extends Fragment implements
     Button button;
 
 
-
-
     RecyclerView list;
     DownloadableAdapter adapter;
-
 
 
     long size;
 
 
-    String src;
-
 
     private boolean isPaused;
-    private boolean isPopupPresent;
 
     VideoFragmentViewModel viewModel;
 
@@ -75,11 +86,10 @@ public class VideoFragment extends Fragment implements
     public static VideoFragment newInstance(String link) {
         VideoFragment fragment = new VideoFragment();
         Bundle bundle = new Bundle();
-        bundle.putString(URL_KEY,link);
+        bundle.putString(URL_KEY, link);
         fragment.setArguments(bundle);
         return fragment;
     }
-
 
 
     @Override
@@ -91,7 +101,7 @@ public class VideoFragment extends Fragment implements
         View view = inflater.inflate(R.layout.fragment_video, container, false);
         activity = (MainActivity) getActivity();
         activity.setTouchCallback(this);
-        directory = activity.getPath();
+        directory = AppPref.getInstance(getContext()).getSavePath();
 
         viewModel = new ViewModelProvider(this).get(VideoFragmentViewModel.class);
 
@@ -112,13 +122,11 @@ public class VideoFragment extends Fragment implements
         String link = getArguments() != null ? getArguments().getString(URL_KEY) : null;
 
 
-        analysis.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                analysis.setEnabled(false);
-                hideKeyboard(null);
-                startProcess(urlBox.getText().toString());
-            }
+        analysis.setOnClickListener(v -> {
+            if(adapter !=null) resetMultiVideoList();
+            analysis.setEnabled(false);
+            hideKeyboard(null);
+            startProcess(urlBox.getText().toString());
         });
 
         urlBox.setOnFocusChangeListener((v, hasFocus) -> {
@@ -131,10 +139,12 @@ public class VideoFragment extends Fragment implements
 
     }
 
-    private void startProcess(String link) {
+    public void startProcess(String link) {
         urlBox.setText(link);
+        if (dialogFragment != null) dialogFragment.dismiss();
+        dialogFragment = null;
         viewModel.setAnalyzeUICallback(this);
-        if(viewModel.onClickAnalysis(urlBox.getText().toString(), (MainActivity) getActivity())==null)
+        if (viewModel.onClickAnalysis(urlBox.getText().toString(), (MainActivity) getActivity()) == null)
             unLockAnalysis();
         else linkFor(link);
     }
@@ -153,7 +163,7 @@ public class VideoFragment extends Fragment implements
 
     void linkFor(String link) {
         size = 0;
-        if(dialogFragment != null && dialogFragment.isVisible())dialogFragment.dismiss();
+        if (dialogFragment != null && dialogFragment.isVisible()) dialogFragment.dismiss();
 
         Fragment fragment = activity.getSupportFragmentManager().findFragmentByTag("TAG");
         if (fragment != null)
@@ -174,26 +184,26 @@ public class VideoFragment extends Fragment implements
 
     @Override
     public void onAnalyzeCompleted(boolean isMultipleFile) {
-        unLockAnalysis();
         activity.dialog.dismiss();
-        if (isMultipleFile) {
-            adapter = new DownloadableAdapter(activity, viewModel.getFormatsArrayList(), this);
-            list.setLayoutManager(new GridLayoutManager(activity, 2));
-            list.setAdapter(adapter);
-            button.setVisibility(View.VISIBLE);
+        activity.runOnUiThread(() -> {
+            unLockAnalysis();
+            if (isMultipleFile) {
+                adapter = new DownloadableAdapter(activity, viewModel.getFormatsArrayList(), this);
+                list.setLayoutManager(new GridLayoutManager(activity, 2));
+                list.setAdapter(adapter);
+                button.setVisibility(View.VISIBLE);
 
-        } else {
-            SelectResolution();
-        }
+            } else {
+                SelectResolution();
+            }
+        });
     }
-
-
 
 
     @Override
     public void onCardSelected(int index) {
         viewModel.getSelected().add(index);
-        size += Long.parseLong(viewModel.getFormatsArrayList().get(index).raw_quality_size.get(0));
+        size += viewModel.getFormatsArrayList().get(index).videoSizes.get(0);
         button.setText("DOWNLOAD(" + UtilityClass.formatFileSize(size, false) + ")");
     }
 
@@ -201,7 +211,7 @@ public class VideoFragment extends Fragment implements
     public void onCardDeSelected(int index) {
         Log.e(TAG, "onCardDeSelected: " + index);
         viewModel.getSelected().remove((Object) index);
-        size -= Long.parseLong(viewModel.getFormatsArrayList().get(index).raw_quality_size.get(0));
+        size -= viewModel.getFormatsArrayList().get(index).videoSizes.get(0);
         button.setText("DOWNLOAD(" + UtilityClass.formatFileSize(size, false) + ")");
     }
 
@@ -212,20 +222,25 @@ public class VideoFragment extends Fragment implements
             dialogFragment = null;
             urlBox.setText("");
             activity.download(viewModel.actionForMOREFile());
-            button.setVisibility(View.GONE);
-            adapter.clear();
+            resetMultiVideoList();
         }
         viewModel.getFormatsArrayList().clear();
     }
 
+    void resetMultiVideoList(){
+        button.setVisibility(View.GONE);
+        adapter.clear();
+        adapter = null;
+    }
 
-    void actionForSOLOFile(){
+
+    void actionForSOLOFile() {
         final DownloadDetails details = new DownloadDetails();
 
         final Formats formats;
         formats = viewModel.getFormatsArrayList().get(0);
 
-        dialogFragment = QualityFragment.newInstance(formats.qualities, formats.quality_size);
+        dialogFragment = QualityFragment.newInstance(formats.qualities, formats.videoSizeInString);
 
         dialogFragment.setRequired(new DownloadButtonCallBack() {
             @Override
@@ -249,13 +264,21 @@ public class VideoFragment extends Fragment implements
             public void onSelectedItem(int position, QualityFragment qualityFragment) {
                 Log.d(TAG, "onSelectedItem: " + position);
                 try {
-                    details.mimeVideo = formats.mimeTypes_video.get(position);
+                    details.mimeVideo = formats.videoMime.get(position);
+                    details.mimeAudio = formats.audioMime.get(position);
+                    details.chunkUrl = formats.chunkUrlList.get(position);
+                    details.chunkCount = formats.manifest.get(position).size();
                 } catch (IndexOutOfBoundsException e) {
                     e.printStackTrace();
                 }
-                details.mimeAudio = formats.mimeType_audio;
-                details.fileSize = Long.parseLong(formats.raw_quality_size.get(position));
-                details.audioURL = formats.audioURL;
+
+
+                details.videoSize = formats.videoSizes.get(position);
+                try {
+                    details.audioURL = formats.audioURLs.get(0);
+                } catch (IndexOutOfBoundsException e) {
+                    details.audioURL = null;
+                }
                 try {
                     details.videoURL = formats.videoURLs.get(position);
                 } catch (IndexOutOfBoundsException e) {
@@ -267,24 +290,27 @@ public class VideoFragment extends Fragment implements
                 formats.title = removeStuffFromName(formats.title);
 
                 if (quality.equals("--")) quality = "";
-                details.pathUri=directory;
+                details.pathUri = directory;
 
-                details.fileType=".mp4";
+                details.fileType = ".mp4";
 
-                details.fileName =formats.title + "_" + quality + "_";
+                details.fileName = formats.title + "_" + quality + "_";
 
                 details.src = formats.src;
 
 
-                qualityFragment.setName(details.fileName +details.fileType);
+                qualityFragment.setName(details.fileName + details.fileType);
 
             }
         });
-        details.thumbNail = formats.thumbNailBit;
-        if (details.thumbNail == null) {
-            //only in instagram case
-            details.thumbNail = formats.thumbNailsBitMap.get(0);
-        }
+
+        details.thumbNail = formats.thumbNailsBitMap.get(0);
+
+//
+//        if (formats.thumbNail == null) {
+//            //only in instagram case
+//            details.thumbNail = formats.thumbNailsBitMap.get(0);
+//        }
 
         dialogFragment.setThumbNail(details.thumbNail);
 
@@ -296,7 +322,7 @@ public class VideoFragment extends Fragment implements
     public void onPause() {
         super.onPause();
         isPaused = true;
-        if(dialogFragment!=null)
+        if (dialogFragment != null)
             dialogFragment.dismiss();
     }
 

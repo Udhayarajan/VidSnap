@@ -1,3 +1,20 @@
+/*
+ *  This file is part of VidSnap.
+ *
+ *  VidSnap is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  any later version.
+ *
+ *  VidSnap is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with VidSnap.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 package com.mugames.vidsnap.Utility.Bundles;
 
 import android.graphics.Bitmap;
@@ -6,13 +23,15 @@ import android.os.Parcel;
 import android.os.Parcelable;
 import android.os.ResultReceiver;
 
+
 import com.mugames.vidsnap.Utility.DownloadReceiver;
 
-import java.util.ArrayList;
 
 
 
 public class DownloadDetails implements Parcelable {
+
+    public int id;
 
     public Uri pathUri;
     public String fileName;
@@ -26,10 +45,13 @@ public class DownloadDetails implements Parcelable {
     public String mimeVideo;
     public String mimeAudio;
 
-    public ArrayList<String> m3u8URL;//Chuncks will be stored if null get from saved path chuncks path
-    public String chuncksPath;
+    public String chunkUrl;
+    public long chunkCount;
 
-    public long fileSize;
+    public long videoSize;
+    public long audioSize;
+
+
     public Bitmap thumbNail;
     public String thumbNailPath;
     public int thumbWidth;
@@ -41,6 +63,8 @@ public class DownloadDetails implements Parcelable {
     public DownloadDetails() {}
 
     protected DownloadDetails(Parcel in) {
+        id = in.readInt();
+
         pathUri = Uri.parse(in.readString());
         fileName = in.readString();
         fileType = in.readString();
@@ -53,10 +77,12 @@ public class DownloadDetails implements Parcelable {
         mimeVideo = in.readString();
         mimeAudio = in.readString();
 
-        m3u8URL = in.createStringArrayList();
-        chuncksPath = in.readString();
+        chunkUrl = in.readString();
+        chunkCount = in.readLong();
 
-        fileSize = in.readLong();
+        videoSize = in.readLong();
+        audioSize = in.readLong();
+
         thumbNail = in.readParcelable(Bitmap.class.getClassLoader());
         thumbNailPath = in.readString();
         thumbWidth = in.readInt();
@@ -67,6 +93,8 @@ public class DownloadDetails implements Parcelable {
 
     @Override
     public void writeToParcel(Parcel dest, int flags) {
+        dest.writeInt(id);
+
         dest.writeString(pathUri.toString());
         dest.writeString(fileName);
         dest.writeString(fileType);
@@ -79,10 +107,12 @@ public class DownloadDetails implements Parcelable {
         dest.writeString(mimeVideo);
         dest.writeString(mimeAudio);
 
-        dest.writeStringList(m3u8URL);
-        dest.writeString(chuncksPath);
+        dest.writeString(chunkUrl);
+        dest.writeLong(chunkCount);
 
-        dest.writeLong(fileSize);
+        dest.writeLong(videoSize);
+        dest.writeLong(audioSize);
+
         dest.writeParcelable(thumbNail, flags);
         dest.writeString(thumbNailPath);
         dest.writeInt(thumbWidth);

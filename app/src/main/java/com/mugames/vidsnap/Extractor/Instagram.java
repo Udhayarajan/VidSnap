@@ -1,16 +1,27 @@
+/*
+ *  This file is part of VidSnap.
+ *
+ *  VidSnap is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  any later version.
+ *
+ *  VidSnap is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with VidSnap.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 package com.mugames.vidsnap.Extractor;
 
 import android.graphics.Bitmap;
 import android.util.Log;
 
 import com.mugames.vidsnap.Firebase.FirebaseManager;
-import com.mugames.vidsnap.ui.main.Activities.MainActivity;
-import com.mugames.vidsnap.R;
 import com.mugames.vidsnap.Threads.HttpRequest;
-import com.mugames.vidsnap.Threads.MiniExecute;
-import com.mugames.vidsnap.Utility.Extractor;
-import com.mugames.vidsnap.Utility.Formats;
-import com.mugames.vidsnap.Utility.MIMEType;
 import com.mugames.vidsnap.Utility.Statics;
 import com.mugames.vidsnap.Utility.UtilityClass;
 
@@ -18,7 +29,6 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.text.DecimalFormat;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -26,14 +36,11 @@ import static com.mugames.vidsnap.Utility.UtilityClass.JSONGetter.getArray_or_Nu
 import static com.mugames.vidsnap.Utility.UtilityClass.JSONGetter.getObj_or_Null;
 import static com.mugames.vidsnap.Utility.UtilityClass.JSONGetter.getString_or_Null;
 import static com.mugames.vidsnap.Utility.UtilityInterface.*;
-import static com.mugames.vidsnap.Utility.UtilityInterface.LoginIdentifier;
-import static com.mugames.vidsnap.Utility.UtilityInterface.MiniExecutorCallBack;
-import static com.mugames.vidsnap.Utility.UtilityInterface.ResponseCallBack;
 
 public class Instagram extends Extractor {
     String TAG = Statics.TAG + ":Instagram";
 
-    MainActivity activity;
+
 
     String cacheFileName;
     String fileURL;
@@ -46,36 +53,29 @@ public class Instagram extends Extractor {
 
     boolean own_used;
 
-    Formats formats;
 
 
-    AnalyzeCallback analyzeCallback;
-
-    public Instagram(MainActivity activity) {
-        this.activity = activity;
+    public Instagram() {
+        super("Instagram");
     }
 
     @Override
-    public void Analyze(String url, AnalyzeCallback callback) {
+    public void analyze(String url) {
         httpURL = url;
-        formats = new Formats();
-        activity.dialog.show("Downloading Info");
-        user_cookies = activity.getStringValue(R.string.key_instagram, null);
+        getDialogueInterface().show("Downloading Info");
+//        user_cookies = activity.getStringValue(R.string.key_instagram, null);
 
-        this.analyzeCallback = callback;
 
-        FirebaseManager.instance.getInstaCookie(new CookiesInterface() {
+        FirebaseManager.getInstance(getContext()).getInstaCookie(new CookiesInterface() {
             @Override
             public void onReceivedCookies(String cookies) {
                 own_cookie = cookies;
-                new HttpRequest(activity, url, null, null, null, null, null, new ResponseCallBack() {
-                    @Override
-                    public void onReceive(String response) {
-                        activity.dialog.show("Analysing");
-                        ExtractInfoShared(response);
-
-                    }
-                }).start();
+                HttpRequest request = new HttpRequest(url,getDialogueInterface(),response -> {
+                    getDialogueInterface().show("Analysing");
+                    extractInfoShared(response);
+                });
+                request.setType(HttpRequest.GET);
+                request.start();
             }
         });
 
@@ -83,8 +83,7 @@ public class Instagram extends Extractor {
     }
 
 
-    private void ExtractInfoShared(String page) {
-
+    private void extractInfoShared(String page) {
         String jsonString;
         if(page==null) {
             tryWithCookies();
@@ -113,7 +112,7 @@ public class Instagram extends Extractor {
                     media = UtilityClass.JSONGetter.getObj_or_Null(graphql, "shortcode_media");
                 else media = UtilityClass.JSONGetter.getObj_or_Null(zero, "media");
                 if (media == null) {
-                    activity.dialog.show("Attempting different URL");
+                    getDialogueInterface().show("Attempting different URL");
                     ExtractInfoAdd(page);
                     return;
                 }
@@ -124,34 +123,28 @@ public class Instagram extends Extractor {
 
         } catch (JSONException e) {
             e.printStackTrace();
-            activity.error("Internal Error Occurred Please try again.",e);
+            getDialogueInterface().error("Internal Error Occurred Please try again.",e);
         }
 
     }
 
     void RequestWithCookies(String cookies) {
         if (cookies == null || cookies.isEmpty()) {
-            activity.dialog.dismiss();
-            activity.signInNeeded("Instagram.com says you to login. To download it you need to login Instagram.com",
+//            activity.dialog.dismiss();
+            trySignIn("Instagram.com says you to login. To download it you need to login Instagram.com",
                     "https://www.instagram.com/accounts/login/",
                     new String[]{"https://www.instagram.com/"},
-                    new LoginIdentifier() {
-                        @Override
-                        public void loggedIn(String cookies) {
-                            activity.dialog.show("Adding Cookies");
-                            Instagram.this.user_cookies = cookies;
-                            activity.setStringValue(R.string.key_instagram, cookies);
-                            RequestWithCookies(cookies);
-                        }
+                    cookies1 -> {
+                        getDialogueInterface().show("Adding Cookies");
+//                            activity.setStringValue(R.string.key_instagram, cookies);
+                        RequestWithCookies(cookies1);
                     });
             return;
         }
-        new HttpRequest(activity, httpURL, cookies, null, null, null, null, new ResponseCallBack() {
-            @Override
-            public void onReceive(String response) {
-                ExtractInfoShared(response);
-            }
-        }).start();
+        HttpRequest request = new HttpRequest(httpURL,getDialogueInterface(),this::extractInfoShared);
+        request.setCookies(cookies);
+        request.setType(HttpRequest.GET);
+        request.start();
     }
 
     void setInfo(JSONObject media) {
@@ -177,7 +170,7 @@ public class Instagram extends Extractor {
             if (fileURL == null) {
                 JSONArray edges = getArray_or_Null(UtilityClass.JSONGetter.getObj_or_Null(media, "edge_sidecar_to_children"), "edges");
                 if (edges == null) {
-                    activity.error("This media can't be downloaded",new Exception("IDK try it" + media));
+                    getDialogueInterface().error("This media can't be downloaded",new Exception("IDK try it" + media));
                     return;
                 }
                 for (int i = 0; i < edges.length(); i++) {
@@ -185,10 +178,12 @@ public class Instagram extends Extractor {
                     if (node.getBoolean("is_video")) {
                         formats.thumbNailsURL.add(nodeToThumb(node));
                         formats.videoURLs.add(nodeToVideo(node));
+                        formats.qualities.add("--");
                     }
                 }
             } else{
                 formats.videoURLs.add(fileURL);
+                formats.qualities.add("--");
                 formats.thumbNailsURL.add(media.getString("thumbnail_src"));
             }
             videoName = videoName.replaceAll("\n", "");
@@ -199,7 +194,7 @@ public class Instagram extends Extractor {
 
             updateVideoSize();
         } catch (JSONException e) {
-            activity.error("Internal Error Occurred",e);
+            getDialogueInterface().error("Internal Error Occurred",e);
             e.printStackTrace();
         }
 
@@ -220,58 +215,9 @@ public class Instagram extends Extractor {
 
     //short media code => edge_sidecar_to_children => edges[] => o->n {}
     void updateVideoSize() {
-        activity.dialog.show("Almost done!!");
-        if (formats.qualities.size() < formats.videoURLs.size()) {
-            new MiniExecute(activity, formats.videoURLs.get(got), true, 0, new MiniExecutorCallBack() {
-
-                @Override
-                public void onBitmapReceive(Bitmap image) {
-
-                }
-
-                @Override
-                public void onSizeReceived(int size, int isLast) {
-                    formats.raw_quality_size.add(String.valueOf(size));
-
-                    DecimalFormat decimalFormat = new DecimalFormat("#.##");
-
-                    formats.mimeTypes_video.add(MIMEType.VIDEO_MP4);
-                    formats.qualities.add("--");
-                    formats.quality_size.add(decimalFormat.format(size / Math.pow(10, 6)));
-                    got++;
-                    updateVideoSize();
-
-                }
-            }).start();
-            return;
-        }
-        got=0;
-        updateThumbNail();
-
-
+        getDialogueInterface().show("Almost done!!");
+        fetchDataFromURLs();
     }
-
-    void updateThumbNail(){
-        if(formats.thumbNailsBitMap.size()<formats.thumbNailsURL.size()){
-            new MiniExecute(activity, formats.thumbNailsURL.get(got), false, 0, new MiniExecutorCallBack() {
-                @Override
-                public void onBitmapReceive(Bitmap image) {
-                    got++;
-                    formats.thumbNailsBitMap.add(image);
-                    updateThumbNail();
-                }
-
-                @Override
-                public void onSizeReceived(int size, int isLast) {
-
-                }
-            }).start();
-            return;
-        }
-        formats.src="Instagram";
-        analyzeCallback.onAnalyzeCompleted(formats, true);
-    }
-
 
 
 
@@ -295,7 +241,7 @@ public class Instagram extends Extractor {
 
             media = UtilityClass.JSONGetter.getObj_or_Null(graphql, "shortcode_media");
             if (media == null) {
-                activity.error("Something went wrong",new Exception("doesn't find media"));
+                getDialogueInterface().error("Something went wrong",new Exception("doesn't find media"));
                 return;
             }
             setInfo(media);
@@ -310,7 +256,7 @@ public class Instagram extends Extractor {
             RequestWithCookies(own_cookie);
             own_used=true;
         }else {
-            RequestWithCookies(user_cookies);
+            RequestWithCookies(getUserCookies());
         }
     }
 

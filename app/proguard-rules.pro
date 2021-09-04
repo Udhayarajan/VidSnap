@@ -20,3 +20,16 @@
 # hide the original source file name.
 #-renamesourcefileattribute SourceFile
 -keep class org.json.* { *; }
+
+
+-keep class com.arthenica.ffmpegkit.FFmpegKitConfig {
+    native <methods>;
+    void log(long, int, byte[]);
+    void statistics(long, int, float, float, long , int, double, double);
+    void closeParcelFileDescriptor(int);
+}
+
+
+-keep class com.arthenica.ffmpegkit.AbiDetect {
+    native <methods>;
+}

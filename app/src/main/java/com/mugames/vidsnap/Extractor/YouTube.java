@@ -1,13 +1,25 @@
+/*
+ *  This file is part of VidSnap.
+ *
+ *  VidSnap is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  any later version.
+ *
+ *  VidSnap is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with VidSnap.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 package com.mugames.vidsnap.Extractor;
 
-import android.graphics.Bitmap;
 import android.util.Log;
 
-import com.mugames.vidsnap.ui.main.Activities.MainActivity;
 import com.mugames.vidsnap.Threads.HttpRequest;
-import com.mugames.vidsnap.Threads.MiniExecute;
-import com.mugames.vidsnap.Utility.Extractor;
-import com.mugames.vidsnap.Utility.Formats;
 import com.mugames.vidsnap.Utility.JSInterpreter;
 import com.mugames.vidsnap.Utility.MIMEType;
 import com.mugames.vidsnap.Utility.Statics;
@@ -17,10 +29,6 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.text.DecimalFormat;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -56,7 +64,7 @@ public class YouTube extends Extractor {
             "\\bc\\s*&&\\s*[a-zA-Z0-9]+\\.set\\([^,]+\\s*,\\s*\\([^)]*\\)\\s*\\(\\s*([a-zA-Z0-9$]+)\\("
     };
 
-    public String ID = "";
+    public String videoID;
 
 
     static final String _URL_REGEX = ".+((?<=\\/).+)$";
@@ -64,55 +72,40 @@ public class YouTube extends Extractor {
 
     String jsFunctionName;
     String jsCode;
-    MainActivity activity;
+
 
     int attempt = 0;
 
-
-    AnalyzeCallback analyzeCallback;
-    Bitmap thumbNail = null;
     final boolean[] gotMedia = new boolean[]{false, false};//0-audio ;1-video
 
+    boolean isVideoDecrypted;
+    boolean isAudioDecrypted;
 
-    Formats formats;
 
-    public YouTube(MainActivity activity) {
-        this.activity = activity;
+    public YouTube(){
+        super("YouTube");
     }
 
     @Override
-    public void Analyze(String url, AnalyzeCallback analyzeCallback) {
-        activity.dialog.show("Analysing URL");
-        this.analyzeCallback = analyzeCallback;
-        String videoID = GetId(url);
+    public void analyze(String url) {
+        getDialogueInterface().show("Analysing URL");
+        videoID = getId(url);
         if (videoID == null) {
-            activity.error("URL Seems to be wrong",null);
+            getDialogueInterface().error("URL Seems to be wrong", null);
             return;
         }
-        if (!videoID.equals(ID)) {
-            Reset();
-            new HttpRequest(activity, get_video_Info + videoID, null, null,
-                    null, null, null, new ResponseCallBack() {
-                @Override
-                public void onReceive(String response) {
-                    ID = videoID;
-                    Video_Info(UtilityClass.decodeHTML(response));
-                }
-            }).start();
-        }
+        HttpRequest request = new HttpRequest(get_video_Info + videoID, getDialogueInterface(), response -> videoInfo(UtilityClass.decodeHTML(response)));
+        request.setType(HttpRequest.GET);
+        request.start();
+
     }
 
-    void Reset() {
-        thumbNail = null;
-        formats = new Formats();
-    }
-
-    private String GetId(String url) {
+    private String getId(String url) {
         String id;
         Matcher m = Pattern.compile(_URL_REGEX).matcher(url);
         if (m.find()) {
             id = m.group(1);
-            if (id.contains("?")) {
+            if (id != null && id.contains("?")) {
                 m = Pattern.compile(_URL_SHORTS_REGEX).matcher(id);
                 if (m.find()) {
                     if (m.group(1) != null) return m.group(1);
@@ -133,75 +126,31 @@ public class YouTube extends Extractor {
 
     int got = 0;
 
-    void UpdateUI() {
+    void analyzeCompleted() {
         Log.d(TAG, "video updateVideoSize: ");
-        if (got < formats.videoURLs.size()) {
-            new MiniExecute(activity, formats.videoURLs.get(got), true, 0, new MiniExecutorCallBack() {
-
-                @Override
-                public void onBitmapReceive(Bitmap image) {
-
-                }
-
-                @Override
-                public void onSizeReceived(int size, int isLast) {
-                    got++;
-                    Log.d(TAG, "video onSizeReceived: got size" + size);
-                    formats.raw_quality_size.add(String.valueOf(size));
-                    DecimalFormat decimalFormat = new DecimalFormat("#.##");
-                    formats.quality_size.add(decimalFormat.format(size / Math.pow(10, 6)));
-                    UpdateUI();
-                }
-            }).start();
-            return;
-        }
-
-//        QualityFragment dialogFragment= QualityFragment.newInstance(formats.qualities.size(),formats.qualities,formats.quality_size);
-//        dialogFragment.setRequired(activity, new DownloadButtonCallBack() {
-//            @Override
-//            public void onDownloadButtonPressed(String fileName,String path) {
-//                Download(fileName,path);
-//            }
-//
-//            @Override
-//            public void onSelectedItem(int position, QualityFragment qualityFragment) {
-//                Log.d(TAG, "onSelectedItem: "+position);
-//
-//                videoURL =formats.videoURLs.get(position);
-//                video_mime=formats.mimeTypes_video.get(position);
-//
-//                fileSize=formats.raw_quality_size.get(position);
-//
-//                cacheFileName = UtilityClass.GetValidFile(directory+videoName+"_"+formats.qualities.get(position)+"_"+".mp4");
-//                qualityFragment.setName(cacheFileName.replaceAll(directory,""),directory);
-//            }
-//        });
-        attempt = 0;
-        Download();
-//        dialogFragment.setThumbNail(thumbNail);
-//        dialogFragment.show(activity.getSupportFragmentManager(),TAG);
+        fetchDataFromURLs();
     }
 
 
-    public void Download() {
-        formats.thumbNailBit = thumbNail;
-        formats.src = "YouTube";
-        analyzeCallback.onAnalyzeCompleted(formats, true);
-    }
+//    public void Download() {
+//        formats.thumbNailBit = thumbNail;
+//
+//        analyzeCallback.onAnalyzeCompleted(formats, true);
+//    }
 
 
-    public void Video_Info(String info) {
+    public void videoInfo(String info) {
         if (info == null) {
             fetchFromWebPage();
             return;
         }
 
-        activity.dialog.show("Downloading Player");
+        getDialogueInterface().show("Downloading Player");
         if (jsFunctionName == null || jsFunctionName.isEmpty())
             GetJSFile(new JSDownloaded() {
                 @Override
                 public void onDone() {
-                    activity.dialog.show("Analysing data");
+                    getDialogueInterface().show("Analysing data");
                     ExtractInfo(info);
                 }
             });
@@ -210,56 +159,49 @@ public class YouTube extends Extractor {
     }
 
     private void fetchFromWebPage() {
-        webScratch=true;
+        webScratch = true;
         String YT_INITIAL_BOUNDARY_RE = "(?:var\\s+meta|</script|\\n)";
         String YT_INITIAL_PLAYER_RESPONSE_RE = "ytInitialPlayerResponse\\s*=\\s*(\\{.+?\\})\\s*;";
-        new HttpRequest(activity, "https://www.youtube.com/watch?v=" + ID + "&bpctr=9999999999&has_verified=1",
-                null, null, null, null, null, new ResponseCallBack() {
-            @Override
-            public void onReceive(String response) {
-                Matcher matcher = Pattern.compile(String.format("%s\\s*%s", YT_INITIAL_PLAYER_RESPONSE_RE, YT_INITIAL_BOUNDARY_RE)).matcher(response);
-                if (matcher.find()) {
-                    Video_Info(matcher.group(1));
-                }
-            }
-        }).start();
+        HttpRequest request = new HttpRequest("https://www.youtube.com/watch?v=" + videoID + "&bpctr=9999999999&has_verified=1", getDialogueInterface(), response -> {
+            Matcher matcher = Pattern.compile(String.format("%s\\s*%s", YT_INITIAL_PLAYER_RESPONSE_RE, YT_INITIAL_BOUNDARY_RE)).matcher(response);
+            if (matcher.find()) videoInfo(matcher.group(1));
+        });
+        request.setType(HttpRequest.GET);
+        request.start();
     }
 
     void ExtractInfo(String decoded) {
 
         try {
-            if (formats.qualities.size() > 0) formats.qualities.clear();
+//            File file = new File(activity.getExternalFilesDir(null) + "/json" + attempt + ".json");
+//            FileWriter writer = new FileWriter(file);
+//            writer.write(UtilityClass.parseQueryString(decoded));
+//            writer.close();
 
-            File file = new File(activity.getExternalFilesDir(null) + "/json" + attempt + ".json");
-            FileWriter writer = new FileWriter(file);
-            writer.write(UtilityClass.parseQueryString(decoded));
-            writer.close();
             JSONObject jsonObject = new JSONObject(UtilityClass.parseQueryString(decoded));
             JSONObject player_response = getObj_or_Null(jsonObject, "player_response");
             if (!webScratch && player_response == null) {
                 OtherURLs(attempt++);
                 return;
-            }else player_response= new JSONObject(decoded);
+            } else player_response = new JSONObject(decoded);
 
             JSONObject streamingData = getObj_or_Null(player_response, "streamingData");
             if (streamingData == null || streamingData.toString().equals("{}")) {
-                JSONObject playabilityStatus =  getObj_or_Null(player_response,"playabilityStatus");
-                if(playabilityStatus!=null){
+                JSONObject playabilityStatus = getObj_or_Null(player_response, "playabilityStatus");
+                if (playabilityStatus != null) {
                     String status = playabilityStatus.getString("status");
-                    if(status.equals("LOGIN_REQUIRED")) {
+                    if (status.equals("LOGIN_REQUIRED")) {
                         //playabilityStatus.getString("reason")
-                        activity.error("Age restricted videos can't be downloaded",null);
+                        getDialogueInterface().error("Age restricted videos can't be downloaded", null);
                         return;
-                    }else if(status.equals("UNPLAYABLE")){
-                        activity.error("Movies can't be downloaded",null);
+                    } else if (status.equals("UNPLAYABLE")) {
+                        getDialogueInterface().error("Movies can't be downloaded", null);
                         return;
                     }
-                }
-                else OtherURLs(attempt++);
+                } else OtherURLs(attempt++);
                 return;
             }
             JSONArray formatsObj = getArray_or_Null(streamingData, "adaptiveFormats");//formats
-
 
 
             for (int i = 0; i < formatsObj.length(); i++) {
@@ -295,94 +237,61 @@ public class YouTube extends Extractor {
 
 
                     if (isWebmAudio) {
-                        if (formats.audioURL == null) {
+                        if (formats.audioURLs.size() == 0) {
                             formats.audioSP = sp;
-                            formats.audioURL = urlField;
+                            formats.audioURLs.add(urlField);
                             formats.audioSIG = s;
-                            formats.mimeType_audio = mime;
+                            formats.audioMime.add(mime);
                         }
                     } else {
                         formats.videoSPs.add(sp);
                         formats.videoURLs.add(urlField);
                         formats.videoSIGs.add(s);
-                        formats.mimeTypes_video.add(mime);
+                        formats.videoMime.add(mime);
                     }
 
                 } else if (isAudio) {
-                    if (isWebmAudio && (formats.audioURL == null || formats.audioURL.isEmpty())) {
-                        formats.audioURL = urlField;
-                        formats.mimeType_audio = mime;
+                    if (isWebmAudio && formats.audioURLs.isEmpty()) {
+                        formats.audioURLs.add(urlField);
+                        formats.audioMime.add(mime);
                     }
                 } else {
                     formats.videoURLs.add(urlField);
-                    formats.mimeTypes_video.add(mime);
+                    formats.videoMime.add(mime);
                 }
             }
 
-            if (thumbNail == null) {
-                JSONObject videoDetails = player_response.getJSONObject("videoDetails");
-                formats.title = videoDetails.getString("title").replaceAll("[\\\\/:*?\"<>|]+", "_");
-                JSONObject thumbnail = videoDetails.getJSONObject("thumbnail");
-                JSONArray thumbnails = thumbnail.getJSONArray("thumbnails");
-                JSONObject thumbIndex = getObj_or_Null(thumbnails,3);
-                if(thumbIndex == null) thumbIndex = getObj_or_Null(thumbnails,thumbnails.length()-1);
-                new MiniExecute(activity, thumbIndex.getString("url"), false, 0, new MiniExecutorCallBack() {
-                    @Override
-                    public void onBitmapReceive(Bitmap image) {
-                        thumbNail = image;
-                        if (gotMedia[0] && gotMedia[1]) {
-                            Log.d(TAG, "onDecrypted: Update calling got thumbnail");
-                            UpdateUI();
-                        }
-                    }
+            JSONObject videoDetails = player_response.getJSONObject("videoDetails");
+            formats.title = videoDetails.getString("title").replaceAll("[\\\\/:*?\"<>|]+", "_");
+            JSONObject thumbnail = videoDetails.getJSONObject("thumbnail");
+            JSONArray thumbnails = thumbnail.getJSONArray("thumbnails");
+            JSONObject thumbIndex = getObj_or_Null(thumbnails, 3);
+            if (thumbIndex == null)
+                thumbIndex = getObj_or_Null(thumbnails, thumbnails.length() - 1);
+            formats.thumbNailsURL.add(thumbIndex.getString("url"));
 
-                    @Override
-                    public void onSizeReceived(int size, int isLast) {
+            tryDecrypt();
 
-                    }
-                }).start();
-            }
-
-            activity.dialog.show("Almost Done!!");
-
-            tryDecrpytAndDownload();
-
-        } catch (IOException | JSONException e) {
+        } catch (JSONException e) {
             e.printStackTrace();
-            activity.error("Sorry this video can't be downloaded",e);
+            getDialogueInterface().error("Sorry this video can't be downloaded", e);
         }
     }
 
-    void tryDecrpytAndDownload() {
+    void tryDecrypt() {
         if (formats.audioSIG == null) {
-            if (thumbNail != null) {
-                Log.d(TAG, "onDecrypted: Update calling null sig");
-                UpdateUI();
-            } else {
-                gotMedia[0] = true;
-                gotMedia[1] = true;
-            }
+            analyzeCompleted();
             return;
         }
 
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-                DecryptSignature(formats.audioSIG, formats.audioURL, new SignNotifier() {
-                    @Override
-                    public void onDecrypted(String decryptedSign, String url) {
-                        if (formats.audioSP == null) url += ("&signature=" + decryptedSign);
-                        else url += ("&" + formats.audioSP + "=" + decryptedSign);
-                        Log.d(TAG, "Video_Info Au: \n" + url);
-                        formats.audioURL = url;
-                        if (gotMedia[1] && thumbNail != null) {
-                            Log.d(TAG, "onDecrypted: Update calling audio urls");
-                            UpdateUI();
-                        } else gotMedia[0] = true;
-                    }
-                });
-            }
-        }).start();
+        new Thread(() -> decryptSignature(0,formats.audioSIG, formats.audioURLs.get(0), (index, decryptedSign, url) -> {
+            if (formats.audioSP == null) url += ("&signature=" + decryptedSign);
+            else url += ("&" + formats.audioSP + "=" + decryptedSign);
+            Log.d(TAG, "Video_Info Au: \n" + url);
+            formats.audioURLs.set(0, url);
+            isAudioDecrypted = true;
+            checkCompletion();
+        })).start();
 
         for (int i = 0; i < formats.videoURLs.size(); i++) {
 
@@ -392,42 +301,34 @@ public class YouTube extends Extractor {
             String sp = formats.videoSPs.get(i);
 
 
-            new Thread(new Runnable() {
-                @Override
-                public void run() {
-                    DecryptSignature(s, urlRaw, new SignNotifier() {
-                        @Override
-                        public void onDecrypted(String decryptedSign, String url) {
-                            got++;
-
-                            int finalI = formats.videoURLs.indexOf(url);
-
-                            if (sp == null) url += ("&signature=" + decryptedSign);
-                            else url += ("&" + sp + "=" + decryptedSign);
-                            Log.d(TAG, "Video_Info: \n" + url);
+            int finalI = i;
+            new Thread(() -> decryptSignature(finalI,s, urlRaw, (index, decryptedSign, url) -> {
+                got++;
 
 
-                            formats.videoURLs.set(finalI, url);
+                if (sp == null) url += "&signature=" + decryptedSign;
+                else url += ("&" + sp + "=" + decryptedSign);
+                Log.d(TAG, "Video_Info: \n" + url);
 
-                            boolean isLast = got == formats.videoURLs.size();
 
-                            if (isLast) {
-                                got = 0;
-                                if (gotMedia[0] && thumbNail != null) {
-                                    Log.d(TAG, "onDecrypted: Update calling video urls");
-                                    UpdateUI();
-                                } else
-                                    gotMedia[1] = true;
-                            }
+                formats.videoURLs.set(index, url);
 
-                        }
-                    });
+                boolean isLast = got == formats.videoURLs.size();
 
+                if (isLast) {
+                    got = 0;
+                    isVideoDecrypted = true;
+                    checkCompletion();
                 }
-            }).start();
+
+            })).start();
         }
 
 
+    }
+
+    private void checkCompletion() {
+        if (isVideoDecrypted && isAudioDecrypted) analyzeCompleted();
     }
 
     String validUrlWithSign(String url, String sp, String decryptedSign) {
@@ -438,69 +339,64 @@ public class YouTube extends Extractor {
     }
 
     void OtherURLs(int attempts) {
-        webScratch=false;
-        String[] dataURL = new String[]{String.format("https://www.youtube.com/get_video_info?html5=1&video_id=%s&el=embedded&ps=default&eurl=", ID),
-                String.format("https://www.youtube.com/get_video_info?html5=1&video_id=%s&el=detailpage&ps=default&eurl=", ID),
-                String.format("https://www.youtube.com/get_video_info?html5=1&video_id=%s&el=vevo&ps=default&eurl=", ID)
+        webScratch = false;
+        String[] dataURL = new String[]{String.format("https://www.youtube.com/get_video_info?html5=1&video_id=%s&el=embedded&ps=default&eurl=", videoID),
+                String.format("https://www.youtube.com/get_video_info?html5=1&video_id=%s&el=detailpage&ps=default&eurl=", videoID),
+                String.format("https://www.youtube.com/get_video_info?html5=1&video_id=%s&el=vevo&ps=default&eurl=", videoID)
         };
         Log.d(TAG, "OtherURLs: " + (attempts));
-        activity.dialog.show("Attempt " + (attempts + 1));
+        getDialogueInterface().show("Attempt " + (attempts + 1));
         if (attempts >= 3) {
-            activity.error("URL Seems to be wrong",null);
+            getDialogueInterface().error("URL Seems to be wrong", null);
             return;
         }
-        new HttpRequest(activity, dataURL[attempts], null, null,
-                null, null, null, new ResponseCallBack() {
-            @Override
-            public void onReceive(String response) {
-                Video_Info(UtilityClass.decodeHTML(response));
-            }
-        }).start();
+        HttpRequest request = new HttpRequest(dataURL[attempts], getDialogueInterface(), response -> videoInfo(UtilityClass.decodeHTML(response)));
+        request.setType(HttpRequest.GET);
+        request.start();
     }
 
 
     void GetJSFile(JSDownloaded jsDownloaded) {
-        new HttpRequest(activity, embed_Info + ID, null,
-                null, null, null, null, new ResponseCallBack() {
-            @Override
-            public void onReceive(String embedResponse) {
+        ResponseCallBack responseCallBack = embedResponse -> {
+            for (String i : PLAYER_REGEXS) {
+                Pattern pattern = Pattern.compile(i);
+                Matcher matcher = pattern.matcher(embedResponse);
+                if (matcher.find()) {
+                    String player_url = matcher.group(1);
+                    player_url = player_url==null?"":player_url.replaceAll("\"", "");
+                    Log.d(TAG, "onReceive: \n" + YT_URL + player_url);
 
-                for (String i : PLAYER_REGEXS) {
-                    Pattern pattern = Pattern.compile(i);
-                    Matcher matcher = pattern.matcher(embedResponse);
-                    if (matcher.find()) {
-                        String player_url = matcher.group(1);
-                        Log.d(TAG, "onReceive: \n" + YT_URL + (player_url.replaceAll("\"", "")));
-                        new HttpRequest(activity, YT_URL + (player_url.replaceAll("\"", "")), null,
-                                null, null, null, null, new ResponseCallBack() {
-                            @Override
-                            public void onReceive(String response) {
-                                for (String j : FUNCTION_REGEX) {
-                                    Pattern funPattern = Pattern.compile(j);
-                                    Matcher funMatcher = funPattern.matcher(response);
-                                    if (funMatcher.find()) {
-                                        jsFunctionName = funMatcher.group(1);
-                                        jsCode = response;
-                                        jsDownloaded.onDone();
-                                        break;
-                                    }
-                                }
-
+                    HttpRequest request = new HttpRequest(YT_URL+player_url,getDialogueInterface(),response -> {
+                        for (String j : FUNCTION_REGEX) {
+                            Pattern funPattern = Pattern.compile(j);
+                            Matcher funMatcher = funPattern.matcher(response);
+                            if (funMatcher.find()) {
+                                jsFunctionName = funMatcher.group(1);
+                                jsCode = response;
+                                jsDownloaded.onDone();
+                                break;
                             }
-                        }).start();
-                        break;
-                    }
+                        }
+
+                    });
+                    request.setType(HttpRequest.GET);
+                    request.start();
+                    break;
                 }
             }
-        }).start();
+
+        };
+        HttpRequest request = new HttpRequest(embed_Info+videoID,getDialogueInterface(),responseCallBack);
+        request.setType(HttpRequest.GET);
+        request.start();
     }
 
-    void DecryptSignature(String signature, String url, SignNotifier notifier) {
+    void decryptSignature(int index, String signature, String url, SignNotifier notifier) {
         Log.d(TAG, "DecryptSignature: " + signature);
         JSInterpreter jsInterpreter = new JSInterpreter(jsCode, null);
         JSInterface jsInterface = jsInterpreter.Extract_Function(jsFunctionName);
         char[] o = (char[]) jsInterface.resf(new String[]{signature});
-        notifier.onDecrypted(UtilityClass.charArrayToSting(o), url);
+        notifier.onDecrypted(index, UtilityClass.charArrayToSting(o), url);
     }
 
     public interface JSDownloaded {

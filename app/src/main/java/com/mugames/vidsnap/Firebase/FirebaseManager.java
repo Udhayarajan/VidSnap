@@ -1,6 +1,22 @@
+/*
+ *  This file is part of VidSnap.
+ *
+ *  VidSnap is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  any later version.
+ *
+ *  VidSnap is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with VidSnap.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 package com.mugames.vidsnap.Firebase;
 
-import android.app.Activity;
 import android.content.Context;
 import android.content.pm.PackageManager;
 import android.widget.Toast;
@@ -22,7 +38,7 @@ import com.mugames.vidsnap.Utility.UtilityInterface;
 import com.mugames.vidsnap.ui.main.Activities.ReportActivity;
 
 public class FirebaseManager {
-    public static FirebaseManager instance;
+    private static volatile FirebaseManager instance;
 
     Context context;
     FirebaseRemoteConfig remoteConfig;
@@ -36,15 +52,43 @@ public class FirebaseManager {
     Long site_Index= (long) -1;
     Long other_Index= (long) -1;
 
+    private FirebaseManager(Context context){
+        this.context= context;
+        remoteConfig = FirebaseRemoteConfig.getInstance();
+        remoteConfig.setDefaultsAsync(R.xml.remote_config_defaults);
+        firebaseDatabase = FirebaseDatabase.getInstance();
+    }
 
 
-    public void getShareLink(FirebaseCallBacks.ShareCallback shareCallback) {
+    public static FirebaseManager getInstance(@NonNull Context context) {
+        if(instance==null){
+            synchronized (FirebaseManager.class){
+                if(instance == null)
+                    instance = new FirebaseManager(context.getApplicationContext());
+            }
+        }
+        return instance;
+    }
+
+    public void getShareLink(FirebaseCallBacks.ShareLinkCallback shareLinkCallback) {
         remoteConfig.fetchAndActivate()
                 .addOnCompleteListener( new OnCompleteListener<Boolean>() {
                     @Override
                     public void onComplete(@NonNull Task<Boolean> task) {
                         if(task.isSuccessful()){
-                            shareCallback.onShareLinkGot(remoteConfig.getString("share_link"));
+                            shareLinkCallback.onShareLinkGot(remoteConfig.getString("share_link"));
+                        }
+                    }
+                });
+    }
+
+    public void getShareText(FirebaseCallBacks.ShareTextCallback textCallback){
+        remoteConfig.fetchAndActivate()
+                .addOnCompleteListener( new OnCompleteListener<Boolean>() {
+                    @Override
+                    public void onComplete(@NonNull Task<Boolean> task) {
+                        if(task.isSuccessful()){
+                            textCallback.onShareTextGot(remoteConfig.getString("share_message"));
                         }
                     }
                 });
@@ -69,13 +113,6 @@ public class FirebaseManager {
     }
 
 
-    public FirebaseManager(Context context){
-        this.context= context;
-        remoteConfig = FirebaseRemoteConfig.getInstance();
-        remoteConfig.setDefaultsAsync(R.xml.remote_config_defaults);
-        firebaseDatabase = FirebaseDatabase.getInstance();
-        instance = this;
-    }
 
     public void initReport(){
         bugReference =firebaseDatabase.getReference("Bugs");
