@@ -35,7 +35,7 @@ import com.google.firebase.remoteconfig.FirebaseRemoteConfig;
 import com.mugames.vidsnap.Firebase.FirebaseCallBacks.UpdateCallbacks;
 import com.mugames.vidsnap.R;
 import com.mugames.vidsnap.Utility.UtilityInterface;
-import com.mugames.vidsnap.ui.main.Activities.ReportActivity;
+import com.mugames.vidsnap.ui.Activities.ReportActivity;
 
 public class FirebaseManager {
     private static volatile FirebaseManager instance;
@@ -114,6 +114,43 @@ public class FirebaseManager {
 
 
 
+    public void checkUpdate(UpdateCallbacks updateCallbacks) {
+        remoteConfig.fetchAndActivate()
+                .addOnCompleteListener(new OnCompleteListener<Boolean>() {
+                    @Override
+                    public void onComplete(@NonNull Task<Boolean> task) {
+                        if(task.isSuccessful()){
+                            boolean isUpdateAvailable =false;
+                            boolean isForced = false;
+                            String version = remoteConfig.getString("new_version");
+                            int code =0;
+                            try{
+                                code = Integer.parseInt(remoteConfig.getString("new_code"));
+                            }catch (NumberFormatException  e){}
+                            try {
+                                isForced = code>context.getPackageManager().getPackageInfo(context.getPackageName(),0).versionCode;
+                                isUpdateAvailable = versionToInt(version)>versionToInt(context.getPackageManager().getPackageInfo(context.getPackageName(),0).versionName);
+                            } catch (PackageManager.NameNotFoundException e) {
+                                e.printStackTrace();
+                            }
+                            updateCallbacks.onReceiveData(isUpdateAvailable,version,
+                                    isForced,
+                                    remoteConfig.getString("change_log"),
+                                    remoteConfig.getString("update_link"));
+                        }
+                    }
+                });
+    }
+
+    int versionToInt(String version){
+        StringBuilder builder = new StringBuilder();
+        for (int i = 0; i < version.length(); i++) {
+            char c = version.charAt(i);
+            if(Character.isDigit(c)) builder.append(c);
+        }
+        return Integer.parseInt(builder.toString());
+    }
+
     public void initReport(){
         bugReference =firebaseDatabase.getReference("Bugs");
         siteReference = firebaseDatabase.getReference("Features");
@@ -123,40 +160,6 @@ public class FirebaseManager {
         count_others();
     }
 
-    public void fetch(){
-        remoteConfig.fetchAndActivate()
-                .addOnCompleteListener(new OnCompleteListener<Boolean>() {
-                    @Override
-                    public void onComplete(@NonNull Task<Boolean> task) {
-                        if(task.isSuccessful()){
-                            Toast.makeText(context,remoteConfig.getString("Test"),Toast.LENGTH_SHORT).show();
-                        }
-                    }
-                });
-    }
-
-
-    public void checkUpdate(UpdateCallbacks updateCallbacks) {
-        remoteConfig.fetchAndActivate()
-                .addOnCompleteListener(new OnCompleteListener<Boolean>() {
-                    @Override
-                    public void onComplete(@NonNull Task<Boolean> task) {
-                        if(task.isSuccessful()){
-                            boolean isUpdateAvailable =false;
-                            String version = remoteConfig.getString("new_version");
-                            try {
-                                isUpdateAvailable= !version.equals(context.getPackageManager().getPackageInfo(context.getPackageName(),0).versionName);
-                            } catch (PackageManager.NameNotFoundException e) {
-                                e.printStackTrace();
-                            }
-                            updateCallbacks.onReceiveData(isUpdateAvailable,version,
-                                    remoteConfig.getBoolean("force_update"),
-                                    remoteConfig.getString("change_log"),
-                                    remoteConfig.getString("update_link"));
-                        }
-                    }
-                });
-    }
 
 
     public void saveReport(ReportActivity reportActivity, REPORT type, String service, String des, String mail){

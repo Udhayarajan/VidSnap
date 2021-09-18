@@ -30,8 +30,10 @@ import com.mugames.vidsnap.Storage.FileUtil;
 
 import java.io.File;
 
+/**
+ * Helper class to access shared preferences
+ */
 public class AppPref {
-
     private static volatile AppPref instance;
 
     SharedPreferences sharedPreferences;

@@ -15,9 +15,8 @@
  *  along with VidSnap.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.mugames.vidsnap.ViewModels;
+package com.mugames.vidsnap.ui.ViewModels;
 
-import static com.mugames.vidsnap.Firebase.FirebaseCallBacks.ShareLinkCallback;
 import static com.mugames.vidsnap.Firebase.FirebaseCallBacks.UpdateCallbacks;
 
 import android.app.Application;
@@ -54,7 +53,6 @@ public class MainActivityViewModel extends AndroidViewModel implements UtilityIn
     String TAG = Statics.TAG + "MainActivityViewModel";
 
 
-    public static boolean service_in_use = false;
 
     public static final String STATIC_CACHE = ".historyDB";
     public static final String DYNAMIC_CACHE = ".essential";
@@ -68,6 +66,7 @@ public class MainActivityViewModel extends AndroidViewModel implements UtilityIn
 
     MutableLiveData<Integer> activeDownload = new MutableLiveData<>();
 
+    //Shared Object downloading progress
     MutableLiveData<Integer> downloadProgressLiveData = new MutableLiveData<>();
     MutableLiveData<String> downloadStatusLiveData = new MutableLiveData<>();
 
@@ -85,6 +84,7 @@ public class MainActivityViewModel extends AndroidViewModel implements UtilityIn
         for (DownloadDetails details :downloadDetailsList) {
             ((DownloadReceiver)details.receiver).setCallback(this);
         }
+        activeDownload.setValue(downloadDetailsList.size());
     }
 
     public void checkUpdate(UpdateCallbacks updateCallbacks) {
@@ -118,9 +118,11 @@ public class MainActivityViewModel extends AndroidViewModel implements UtilityIn
     }
 
 
-    void removeDownloadDetails() {
+    synchronized void removeDownloadDetails(int id) {
+        downloadDetailsList.remove(DownloadDetails.findDetails(id));
         downloadDetailsMutableLiveData.postValue(downloadDetailsList);
         activeDownload.postValue(downloadDetailsList.size());
+
     }
 
 
@@ -145,8 +147,8 @@ public class MainActivityViewModel extends AndroidViewModel implements UtilityIn
     }
 
     @Override
-    public void onDownloadCompleted() {
-        removeDownloadDetails();
+    public void onDownloadCompleted(int id) {
+        removeDownloadDetails(id);
     }
 
 
@@ -160,7 +162,6 @@ public class MainActivityViewModel extends AndroidViewModel implements UtilityIn
         moduleDownloadCallback = callback;
         downloadManager = (DownloadManager) getApplication().getSystemService(Context.DOWNLOAD_SERVICE);
         getApplication().registerReceiver(onComplete, new IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE));
-        getApplication().registerReceiver(onNotificationClicked, new IntentFilter(DownloadManager.ACTION_NOTIFICATION_CLICKED));
 
         Uri uri = Uri.parse(url);
         DownloadManager.Request request = new DownloadManager.Request(uri);
@@ -229,12 +230,6 @@ public class MainActivityViewModel extends AndroidViewModel implements UtilityIn
         return downloadStatusLiveData;
     }
 
-    BroadcastReceiver onNotificationClicked = new BroadcastReceiver() {
-        @Override
-        public void onReceive(Context context, Intent intent) {
-
-        }
-    };
 
     BroadcastReceiver onComplete = new BroadcastReceiver() {
         @Override

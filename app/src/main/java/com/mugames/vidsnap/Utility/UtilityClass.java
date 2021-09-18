@@ -29,6 +29,7 @@ import android.os.Environment;
 import android.provider.DocumentsContract;
 import android.provider.MediaStore;
 import android.text.Html;
+import android.util.Base64;
 import android.util.Log;
 
 import androidx.core.text.HtmlCompat;
@@ -211,22 +212,23 @@ public class UtilityClass {
     }
 
 
-    public static String Escape(String s) {
-        for (String c : new String[]{"#", "$", "&", "(", ")", "*", "+", "-", ".", "?", "[", "\\", "]", "^", "{", "|", "}", "~"}) {
-            if (s.equals(c)) return "\\" + s;
-        }
-        return s;
+    public static String bitmapToString(Bitmap bitmap){
+        if(bitmap==null) return "";
+        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        bitmap.compress(Bitmap.CompressFormat.JPEG,100,outputStream);
+        return Base64.encodeToString(outputStream.toByteArray(),Base64.DEFAULT);
     }
 
     public static byte[] bitmapToBytes(Bitmap bmp) {
         ByteArrayOutputStream stream = new ByteArrayOutputStream();
-        bmp.compress(Bitmap.CompressFormat.PNG, 100, stream);
+        bmp.compress(Bitmap.CompressFormat.JPEG, 100, stream);
         return stream.toByteArray();
     }
 
 
 
     public static Bitmap bytesToBitmap(byte[] bitmapData, int imageWidth, int imageHeight) {
+        if(bitmapData==null) return null;
         Bitmap bitmap = BitmapFactory.decodeByteArray(bitmapData, 0, bitmapData.length);
         if (bitmap == null) {
             Bitmap bmp = Bitmap.createBitmap(imageWidth, imageHeight, Bitmap.Config.ARGB_8888);
@@ -312,8 +314,7 @@ public class UtilityClass {
             JSONArray value = null;
             try {
                 value = object.getJSONArray(name);
-            } catch (Exception e) {
-            }
+            } catch (Exception e) {}
             return value;
         }
 

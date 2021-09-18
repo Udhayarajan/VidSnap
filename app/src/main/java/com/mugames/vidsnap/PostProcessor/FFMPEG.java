@@ -29,7 +29,6 @@ import com.arthenica.ffmpegkit.LogCallback;
 import com.arthenica.ffmpegkit.NativeLoader;
 import com.arthenica.ffmpegkit.Session;
 import com.arthenica.ffmpegkit.StatisticsCallback;
-import com.mugames.vidsnap.Storage.FileStreamCallback;
 import com.mugames.vidsnap.Utility.AppPref;
 import com.mugames.vidsnap.Storage.FileUtil;
 import com.mugames.vidsnap.Utility.MIMEType;
@@ -41,22 +40,17 @@ import java.io.IOException;
 import java.nio.channels.FileChannel;
 
 import static com.mugames.vidsnap.Utility.Statics.TAG;
-import static com.mugames.vidsnap.ViewModels.MainActivityViewModel.LIBRARY_PATH;
+import static com.mugames.vidsnap.ui.ViewModels.MainActivityViewModel.LIBRARY_PATH;
 
 public class FFMPEG {
-//    static DexClassLoader loader;
     public static String jniPath;
     public static String filesDir;
     private static volatile int INSTANCE_COUNT;
-//    public static String dexPath;
-//    public static String tempLibsPath;
 
     public static boolean isLibLoaded = false;
 
     ExecuteCallback executeCallback;
     FFMPEGInfo info;
-
-    String opFilePath;
 
 
     public static synchronized void newFFMPEGInstance(FFMPEGInfo ffmpegInfo, Context context, ReflectionInterfaces.SOLoadCallbacks soLoadCallbacks){
@@ -117,29 +111,6 @@ public class FFMPEG {
             }).start();
     }
 
-    //    static DexClassLoader getLoader() throws IOException {
-//        if (loader == null) {
-//            loadDEX();
-//            loader = new DexClassLoader(tempLibsPath, null, filesDir, FFMPEG.class.getClassLoader());
-//        }
-//        return loader;
-//    }
-
-//    static void loadDEX() throws IOException {
-//        File src = new File(dexPath);
-//        FileInputStream inputStream = new FileInputStream(src.getAbsolutePath());
-//        FileOutputStream outputStream = new FileOutputStream(tempLibsPath);
-//        FileChannel inChannel = inputStream.getChannel();
-//        FileChannel outChannel = outputStream.getChannel();
-//        inChannel.transferTo(0, inChannel.size(), outChannel);
-//        inputStream.close();
-//        outputStream.close();
-//    }
-
-
-    public String getOutputPath() {
-        return opFilePath;
-    }
 
     static void loadJni(File file) throws IOException {
         if (!file.exists()) return;
@@ -209,109 +180,53 @@ public class FFMPEG {
     }
 
     public void mergeAsync(StatisticsCallback statisticsCallback) {
-
-//        try {
-//            String command = findCommand(FFMPEGType.MERGE, info.mime_audio, info.mime_video);
-//            opFilePath = String.format(opFilePath, info.outPut);
-//
-//            File jniDirectory = new File(jniPath);
-//            File[] sos = jniDirectory.listFiles();
-//
-//
-//            if(sos!=null){
-//                loadJni(new File(jniPath,"libc++_shared.so"));
-//                loadJni(new File(jniPath,"libavutil.so"));
-//                loadJni(new File(jniPath,"libswresample.so"));
-//                loadJni(new File(jniPath,"libswscale.so"));
-//                loadJni(new File(jniPath,"libavcodec.so"));
-//                loadJni(new File(jniPath,"libavformat.so"));
-//                loadJni(new File(jniPath,"libavfilter.so"));
-//
-//                for (File file:sos) {
-//                    if(file.getName().equals("libc++_shared.so")) continue;
-//                    if(file.getName().equals("libavutil.so")) continue;
-//                    if(file.getName().equals("libswresample.so")) continue;
-//                    if(file.getName().equals("libavfilter.so")) continue;
-//                    if(file.getName().equals("libswscale.so")) continue;
-//                    if(file.getName().equals("libavformat.so")) continue;
-//                    if(file.getName().equals("libavcodec.so")) continue;
-//                    loadJni(file);
-//                }
-//            }
-//
-//
-//            Class<?> Statistics = Class.forName("com.arthenica.ffmpegkit.Statistics",true,getLoader());
-//            Class<?> StatisticsCallback = Class.forName("com.arthenica.ffmpegkit.StatisticsCallback",true,getLoader());
-//
-//
-//            InvocationHandler statisticsInvocationHandler = (proxy, method, args) -> {
-//                Log.e(TAG, "invoke: "+"Static Executing");
-//                statisticsCallback.apply(Statistics,args[0]);
-//                return null;
-//            };
-//
-//
-//            Class<?> FFmpegKitConfig = Class.forName("com.arthenica.ffmpegkit.FFmpegKitConfig",true,getLoader());
-//            Method enableStatisticsCallback= FFmpegKitConfig.getMethod("enableStatisticsCallback",StatisticsCallback);
-//            enableStatisticsCallback.invoke(FFmpegKitConfig, Proxy.newProxyInstance(FFmpegKitConfig.getClassLoader(),new Class[]{StatisticsCallback}, statisticsInvocationHandler));
-//
-//            Class<?> Session = Class.forName("com.arthenica.ffmpegkit.Session",true,getLoader());
-//            Class<?> ExecuteCallback = Class.forName("com.arthenica.ffmpegkit.ExecuteCallback",true,getLoader());
-//
-//
-//            InvocationHandler executeInvocationHandler = (proxy, method, args) -> {
-//                Log.e(TAG, "invoke: "+"Execute Executing");
-//                ffmpegCallback.apply(Session,args[0],opFilePath);
-//                return null;
-//            };
-//
-//            Class<?> FFmpegKit = Class.forName("com.arthenica.ffmpegkit.FFmpegKit",true,getLoader());
-//            Method executeAsync = FFmpegKit.getMethod("executeAsync",String.class,ExecuteCallback);
-//            executeAsync.invoke(FFmpegKit,String.format(command, info.videoPath, info.audioPath, opFilePath),Proxy.newProxyInstance(FFmpegKit.getClassLoader(),new Class[]{ExecuteCallback},executeInvocationHandler));
-//
-//
-//        }catch (Exception e){
-//            Log.e(TAG, "mergeAsync: ",e);
-//        }
-
-
-        String command = findCommand(FFMPEGType.MERGE, info);
-        opFilePath = String.format(opFilePath, info.outPut);
+        String command = findCommand(FFMPEGType.MERGE);
         FFmpegKitConfig.enableStatisticsCallback(statisticsCallback);
-        FFmpegKit.executeAsync(String.format(command, info.videoPath, info.audioPath, opFilePath), wrappedExecuteCallback);
+        FFmpegKit.executeAsync(String.format(command, info.videoPath, info.audioPath, info.localOutputPath), wrappedExecuteCallback);
     }
 
 
-    String findCommand(String type, FFMPEGInfo info) {
+    String findCommand(String type) {
+        File file = new File(info.localOutputPath);
+        info.localOutputPath = file.getParent() + File.separator+ file.getName().split("\\.")[0];
         switch (type) {
             case FFMPEGType.MERGE:
-                return findEncodeType(info.mime_audio, info.mime_video);
+                return findEncodeType();
             case FFMPEGType.HLS_DOWNLOAD:
-                return "-i \""+info.hlsURL+"\" -codec copy "+info.videoPath;
+                info.localOutputMime = MIMEType.VIDEO_MP4;
+                info.localOutputPath+=".mp4";
+                return "-i \""+info.hlsURL+"\" -codec copy "+info.localOutputPath;
         }
         return null;
     }
 
-    private  String findEncodeType(String audio_mime, String video_mime) {
-        if (MIMEType.AUDIO_WEBM.equals(audio_mime) && MIMEType.VIDEO_WEBM.equals(video_mime)) {
-            opFilePath = "%s.webm";
+    private  String findEncodeType() {
+        if (MIMEType.AUDIO_WEBM.equals(info.audioMime) && MIMEType.VIDEO_WEBM.equals(info.videoMime)) {
+            info.localOutputPath += ".webm";
+            info.localOutputMime = MIMEType.VIDEO_WEBM;
             return "-i %s -i %s -c copy %s";
-        } else if (MIMEType.AUDIO_WEBM.equals(audio_mime) && MIMEType.VIDEO_MP4.equals(video_mime)) {
-            opFilePath = "%s.mp4";
+        } else if (MIMEType.AUDIO_WEBM.equals(info.audioMime) && MIMEType.VIDEO_MP4.equals(info.videoMime)) {
+            info.localOutputPath += ".mp4";
+            info.localOutputMime = MIMEType.VIDEO_MP4;
             return "-i %s -i %s -c:v copy -c:a aac %s";
-        } else if (MIMEType.AUDIO_MP4.equals(audio_mime) && MIMEType.VIDEO_WEBM.equals(video_mime)) {
-            opFilePath = "%s.webm";
+        } else if (MIMEType.AUDIO_MP4.equals(info.audioMime) && MIMEType.VIDEO_WEBM.equals(info.videoMime)) {
+            info.localOutputPath += ".webm";
+            info.localOutputMime = MIMEType.VIDEO_WEBM;
             return "-i %s -i %s -c:v copy -c:a libopus %s";
-        } else if (MIMEType.AUDIO_MP4.equals(audio_mime) && MIMEType.VIDEO_MP4.equals(video_mime)) {
-            opFilePath = "%s.mp4";
+        } else if (MIMEType.AUDIO_MP4.equals(info.audioMime) && MIMEType.VIDEO_MP4.equals(info.videoMime)) {
+            info.localOutputPath += ".mp4";
+            info.localOutputMime = MIMEType.VIDEO_MP4;
             return "-i %s -i %s -c copy %s";
         }
         return null;
     }
 
     public void downloadHLS(LogCallback logCallback){
-        info.outPut += ".mp4";
-        String command = findCommand(FFMPEGType.HLS_DOWNLOAD,info);
+        String command = findCommand(FFMPEGType.HLS_DOWNLOAD);
         FFmpegKit.executeAsync(command, wrappedExecuteCallback, logCallback,null);
+    }
+
+    public FFMPEGInfo getInfo() {
+        return info;
     }
 }

@@ -15,15 +15,13 @@
  *  along with VidSnap.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.mugames.vidsnap.ui.main.Fragments;
+package com.mugames.vidsnap.ui.Fragments;
 
 import android.content.Context;
 import android.os.Bundle;
 
 import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
-import androidx.fragment.app.FragmentManager;
-import androidx.fragment.app.FragmentTransaction;
 import androidx.lifecycle.Observer;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -34,15 +32,17 @@ import android.view.View;
 import android.view.ViewGroup;
 
 import com.mugames.vidsnap.DataBase.History;
-import com.mugames.vidsnap.ViewModels.HistoryViewModel;
-import com.mugames.vidsnap.ui.main.Activities.MainActivity;
+import com.mugames.vidsnap.ui.ViewModels.HistoryViewModel;
 import com.mugames.vidsnap.R;
 import com.mugames.vidsnap.Utility.Statics;
-import com.mugames.vidsnap.ui.main.Adapters.HistoryRecyclerViewAdapter;
+import com.mugames.vidsnap.ui.Adapters.HistoryRecyclerViewAdapter;
 
 import java.util.List;
 
-
+/**
+ * This fragment keeps track of Download history data
+ * Usually get displayed when Menu->Downloads is clicked
+ */
 public class HistoryFragment extends Fragment {
 
     String TAG = Statics.TAG + ":HistoryFragment";
@@ -98,9 +98,4 @@ public class HistoryFragment extends Fragment {
         return view;
     }
 
-//    @Override
-//    public void onSaveInstanceState(@NonNull Bundle outState) {
-//        super.onSaveInstanceState(outState);
-////        outState.putParcelableArrayList(LIST_HISTORY,list);
-//    }
 }

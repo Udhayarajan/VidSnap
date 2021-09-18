@@ -19,7 +19,7 @@ package com.mugames.vidsnap.Extractor;
 
 import com.mugames.vidsnap.Utility.UtilityClass;
 import com.mugames.vidsnap.Threads.HttpRequest;
-import com.mugames.vidsnap.Utility.Formats;
+import com.mugames.vidsnap.Utility.Bundles.Formats;
 import com.mugames.vidsnap.Utility.MIMEType;
 import com.mugames.vidsnap.Utility.Statics;
 
@@ -84,10 +84,10 @@ public class Facebook extends Extractor {
         if(url.startsWith("facebook:")) url=String.format("https://www.facebook.com/video/video.php?v=%s",ID);
         this.url=url;
         getDialogueInterface().show("Accessing Server...");
-        ExtractInfo();
+        extractInfo();
     }
 
-    private void ExtractInfo() {
+    private void extractInfo() {
         url = url.replaceAll("://m.facebook\\.com/","://www.facebook.com/");
         HttpRequest request = new HttpRequest(url,getDialogueInterface(),this::scratchWebPage);
         request.setType(HttpRequest.GET);
@@ -187,60 +187,12 @@ public class Facebook extends Extractor {
                 }
                 UpdateUI();
             }
-//            if(video_data==null && url.contains("/watchparty/")){
-//                JSONObject data=grab_relay_prefetched_data(webPage,new String[]{"\"login_data\""});
-//                if(data!=null){
-//                    String api="/api/graphql/";
-//                    String post_data="\"doc_id\":3731964053542869," +
-//                            "\"variables\":{\"livingRoomID\":\""+ID+"\"}"
-//
-//                    JSONObject lsd=GetObj_or_Null(GetObj_or_Null(data,"login_data"),"lsd");
-//                    if(lsd!=null){
-//
-//                    }
-//                    String  jsonString=grab_relay_data(webPage,new String[]{"\"RelayAPIConfigDefaults\""});
-//                    if(isNullOrEmpty(jsonString)){
-//                        JSONArray def=GetArray_or_Null(new JSONObject(jsonString),"define");
-//                        for (int i = 0; i < def.length(); i++) {
-//                            JSONArray define=def.getJSONArray(i);
-//                            if(define.getString(0).equals("RelayAPIConfigDefaults"))
-//                                api=define.getJSONObject(2).getString("graphURI");
-//                        }
-//                        String link=joinURL(url,api);
-//                        //new HttpRequest(activity,link,cookies,null,null,)
-//                    }
-//                }
-//            }
-//
-//            if(video_data==null){
-//                String data="__a=1&__pc=";
-//                Matcher m=Pattern.compile("pkg_cohort[\"']\\s*:\\s*[\"'](.+?)[\"']").matcher(webPage);
-//                if(m.find()) data+=m.group(1);
-//                data+="&__rev=";
-//                m=Pattern.compile("client_revision[\"']\\s*:\\s*(\\d+),").matcher(webPage);
-//                data+="&fb_dtsg=";
-//                m=Pattern.compile("\"DTSGInitialData\"\\s*,\\s*\\[\\]\\s*,\\s*{\\s*\"token\"\\s*:\\s*\"([^\"]+)\"").matcher(webPage);
-//                if(m.find()) data+=m.group(1);
-//
-//                Hashtable<String,String> headers=new Hashtable<>();
-//                headers.put("Content-Type","application/x-www-form-urlencoded");
-//
-//                new HttpRequest(activity,
-//                        String.format("https://www.facebook.com/video/tahoe/async/%s/?chain=true&isvideo=true&payloadtype=primary", ID),
-//                        cookies, headers, HttpRequest.POST, data,userAgent, new UtilityInterface.ResponseCallBack() {
-//                    @Override
-//                    public void onReceive(String response) {
-//
-//                    }
-//                });
-//            }
         }catch (JSONException e) {
             e.printStackTrace();
             getDialogueInterface().error("Something went wrong",e);
         }
     }
 
-    int got;
 
     private void UpdateUI() {
         fetchDataFromURLs();
@@ -333,10 +285,10 @@ public class Facebook extends Extractor {
                             parse_attachment(attachments.getJSONObject(j), "media");
                         }
                     }
-                    if (formats.videoURLs.isEmpty()) parse_graphql_video(video);
+                    if (formats.mainFileURLs.isEmpty()) parse_graphql_video(video);
                 }
 
-                if (!formats.videoURLs.isEmpty()) return SUCCESS;
+                if (!formats.mainFileURLs.isEmpty()) return SUCCESS;
             }
 
         } catch (JSONException e) {}
@@ -401,8 +353,8 @@ public class Facebook extends Extractor {
                 String playable_url = getString_or_Null(media, "playable_url" + suffix);
                 if (playable_url == null) continue;
 
-                formats.videoURLs.add(playable_url);
-                formats.videoMime.add(MIMEType.VIDEO_MP4);
+                formats.mainFileURLs.add(playable_url);
+                formats.fileMime.add(MIMEType.VIDEO_MP4);
                 formats.audioURLs.add(null);
                 formats.audioMime.add(null);
 
@@ -450,8 +402,8 @@ public class Facebook extends Extractor {
                 }
                 String video_mime=video.getString(pre+"mimeType");
 
-                formats.videoMime.add(video_mime);
-                formats.videoURLs.add(video_url);
+                formats.fileMime.add(video_mime);
+                formats.mainFileURLs.add(video_url);
                 formats.qualities.add(res);
                 formats.audioURLs.add(audio_url);
                 formats.audioMime.add(audio_mime);
@@ -487,12 +439,12 @@ public class Facebook extends Extractor {
                     for (String s:new String[]{"hd","sd"}){
                         String url= getString_or_Null(videoData,s+"_src");
                         if(url==null || url.equals("null")) continue;
-                        formats.videoURLs.add(url);
+                        formats.mainFileURLs.add(url);
                         formats.qualities.add(videoData.getString("original_width")+"x"+
                                 videoData.getString("original_height")+"("+
                                 s.toUpperCase()+")"
                         );
-                        formats.videoMime.add(MIMEType.AUDIO_MP4);
+                        formats.fileMime.add(MIMEType.AUDIO_MP4);
                         formats.audioURLs.add(null);
                         formats.audioMime.add(null);
 

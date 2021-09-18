@@ -15,7 +15,7 @@
  *  along with VidSnap.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.mugames.vidsnap.ui.main.Activities;
+package com.mugames.vidsnap.ui.Activities;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
@@ -29,7 +29,6 @@ import android.widget.EditText;
 import android.widget.Spinner;
 import android.widget.Toast;
 
-import com.mugames.vidsnap.Firebase.FirebaseCallBacks;
 import com.mugames.vidsnap.Firebase.FirebaseManager;
 import com.mugames.vidsnap.R;
 

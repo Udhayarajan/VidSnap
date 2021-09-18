@@ -15,19 +15,20 @@
  *  along with VidSnap.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.mugames.vidsnap.ui.main.Activities;
+package com.mugames.vidsnap.ui.Activities;
 
 import androidx.appcompat.app.AppCompatActivity;
 
 import android.app.Activity;
 import android.content.Intent;
 import android.os.Bundle;
-import android.util.Log;
 
 import com.mugames.vidsnap.R;
-import com.mugames.vidsnap.ViewModels.MainActivityViewModel;
-import com.mugames.vidsnap.ui.main.Activities.MainActivity;
+import com.mugames.vidsnap.ui.ViewModels.MainActivityViewModel;
 
+/**
+ * Receives intent when user click share from other app
+ */
 public class ShareActivity extends AppCompatActivity {
 
     @Override
@@ -37,19 +38,15 @@ public class ShareActivity extends AppCompatActivity {
         Intent intent = new Intent(this, MainActivity.class);
         String content = MainActivityViewModel.intentString(getIntent());
         if(content ==null){
-            Start(this,null);
+            startActivity(intent);
             finish();
             return;
         }
         intent.putExtra(Intent.EXTRA_TEXT,content);
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-        Start(this,intent);
+        startActivity(intent);
         finish();
 
 
-    }
-
-    public static void Start(Activity activity, Intent intent){
-        activity.startActivity(intent);
     }
 }

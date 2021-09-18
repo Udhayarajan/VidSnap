@@ -15,11 +15,10 @@
  *  along with VidSnap.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.mugames.vidsnap.ui.main.Activities;
+package com.mugames.vidsnap.ui.Activities;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
-import androidx.core.content.ContextCompat;
 import androidx.core.text.HtmlCompat;
 
 import android.content.ActivityNotFoundException;
@@ -32,6 +31,9 @@ import android.widget.TextView;
 
 import com.mugames.vidsnap.R;
 
+/**
+ * About activity
+ */
 public class ContactActivity extends AppCompatActivity {
 
     @Override

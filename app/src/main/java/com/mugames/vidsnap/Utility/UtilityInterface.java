@@ -18,17 +18,16 @@
 package com.mugames.vidsnap.Utility;
 
 import android.graphics.Bitmap;
-import android.net.Uri;
 import android.os.Bundle;
 import android.view.MotionEvent;
 
-import com.mugames.vidsnap.Utility.Bundles.DownloadDetails;
-import com.mugames.vidsnap.ui.main.Fragments.QualityFragment;
+import com.mugames.vidsnap.Utility.Bundles.Formats;
+import com.mugames.vidsnap.ui.Fragments.QualityFragment;
 
 
 public interface UtilityInterface {
     interface DownloadButtonCallBack {
-        void onDownloadButtonPressed(String fileName);
+        void onDownloadButtonPressed(String fileName, Bitmap image);
 
         void onSelectedItem(int position, QualityFragment qualityFragment);
     }
@@ -62,22 +61,17 @@ public interface UtilityInterface {
     }
 
     interface DownloadCallback {
-        void onDownloadCompleted();
+        void onDownloadCompleted(int id);
     }
 
     interface AnalyzeCallback {
-        void onAnalyzeCompleted(Formats formats, boolean isLast);
+        void onAnalyzeCompleted(Formats formats);
     }
 
     interface AnalyzeUICallback {
         void onAnalyzeCompleted(boolean isMultipleFile);
     }
 
-    interface DownloadableCardSelectedCallBack {
-        void onCardSelected(int index);
-
-        void onCardDeSelected(int index);
-    }
 
     interface TouchCallback {
         void onDispatchTouch(MotionEvent event);
@@ -95,14 +89,12 @@ public interface UtilityInterface {
         void onReceiveSize(long size, Bundle extras);
     }
 
-    interface ThumbnailCallbacks {
-        void onReceivedThumbnail(Bitmap thumbnail, Bundle extras);
-    }
-
     interface DialogueInterface {
         void show(String text);
 
         void error(String message, Exception e);
+
+        void dismiss();
     }
 
     interface LoginHelper{

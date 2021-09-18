@@ -15,7 +15,7 @@
  *  along with VidSnap.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.mugames.vidsnap.ui.main.Fragments;
+package com.mugames.vidsnap.ui.Fragments;
 
 import android.os.Bundle;
 
@@ -30,9 +30,7 @@ import android.widget.TextView;
 import com.mugames.vidsnap.R;
 
 /**
- * A simple {@link Fragment} subclass.
- * Use the {@link NoRecordFragment#newInstance} factory method to
- * create an instance of this fragment.
+ * Will be removed in future
  */
 public class NoRecordFragment extends Fragment {
 

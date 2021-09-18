@@ -19,8 +19,7 @@ package com.mugames.vidsnap.Threads;
 
 import android.util.Log;
 
-import com.google.firebase.crashlytics.FirebaseCrashlytics;
-import com.mugames.vidsnap.ui.main.Activities.MainActivity;
+import com.mugames.vidsnap.ui.Activities.MainActivity;
 import com.mugames.vidsnap.Utility.Statics;
 import com.mugames.vidsnap.Utility.UtilityInterface;
 

@@ -15,7 +15,7 @@
  *  along with VidSnap.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.mugames.vidsnap.ui.main.Fragments;
+package com.mugames.vidsnap.ui.Fragments;
 
 import android.os.Bundle;
 
@@ -37,9 +37,7 @@ import com.mugames.vidsnap.Utility.UtilityInterface;
 
 
 /**
- * A simple {@link Fragment} subclass.
- * Use the {@link LoginFragment#newInstance} factory method to
- * create an instance of this fragment.
+ * This fragment offers embedded users' login
  */
 public class LoginFragment extends Fragment {
 

@@ -15,9 +15,10 @@
  *  along with VidSnap.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.mugames.vidsnap.ui.main.Fragments;
+package com.mugames.vidsnap.ui.Fragments;
 
 import android.graphics.Bitmap;
+import android.graphics.drawable.BitmapDrawable;
 import android.os.Bundle;
 
 import androidx.annotation.Nullable;
@@ -44,10 +45,7 @@ import java.util.ArrayList;
 
 /**
  * <p>A fragment that shows a list of items as a modal bottom sheet.</p>
- * <p>You can show this modal bottom sheet from your activity like this:</p>
- * <pre>
- *     QualityFragment.newInstance(30).show(getSupportFragmentManager(), "dialog");
- * </pre>
+ * It offers users to select their video quality options
  */
 
 public class QualityFragment extends BottomSheetDialogFragment {
@@ -88,7 +86,7 @@ public class QualityFragment extends BottomSheetDialogFragment {
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
 
-        final RecyclerView recyclerView = view.findViewById(R.id.list);
+        final RecyclerView recyclerView = view.findViewById(R.id.formats);
         recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
 
 
@@ -104,7 +102,8 @@ public class QualityFragment extends BottomSheetDialogFragment {
         download.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                callback.onDownloadButtonPressed(editText.getText().toString());
+                Bitmap bitmap = ((BitmapDrawable)imageView.getDrawable()).getBitmap();
+                callback.onDownloadButtonPressed(editText.getText().toString(),bitmap);
                 QualityFragment.this.dismiss();
             }
         });
@@ -165,7 +164,7 @@ public class QualityFragment extends BottomSheetDialogFragment {
             View.OnClickListener listener = new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
-                    ItemCheckChanged(v);
+                    itemCheckChanged(v);
                 }
             };
 
@@ -200,7 +199,7 @@ public class QualityFragment extends BottomSheetDialogFragment {
             return mItemCount;
         }
 
-        void ItemCheckChanged(View v) {
+        void itemCheckChanged(View v) {
             selectedItem = (int) v.getTag();
             for (RadioButton radioButton : radioButtons) {
                 radioButton.setChecked(false);

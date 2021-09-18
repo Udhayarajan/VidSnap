@@ -15,7 +15,7 @@
  *  along with VidSnap.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.mugames.vidsnap.ui.main.Activities;
+package com.mugames.vidsnap.ui.Activities;
 
 import android.Manifest;
 import android.app.Activity;
@@ -23,11 +23,13 @@ import android.content.ActivityNotFoundException;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.media.MediaScannerConnection;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.text.format.DateFormat;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -61,6 +63,7 @@ import androidx.lifecycle.ViewModelProvider;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.navigation.NavigationView;
 import com.google.firebase.crashlytics.FirebaseCrashlytics;
+import com.mugames.vidsnap.DataBase.History;
 import com.mugames.vidsnap.DataBase.HistoryDatabase;
 import com.mugames.vidsnap.Firebase.FirebaseCallBacks;
 import com.mugames.vidsnap.Firebase.FirebaseManager;
@@ -79,13 +82,14 @@ import com.mugames.vidsnap.Utility.UtilityClass;
 import com.mugames.vidsnap.Utility.UtilityInterface;
 import com.mugames.vidsnap.Utility.UtilityInterface.ConfigurationCallback;
 import com.mugames.vidsnap.Utility.UtilityInterface.TouchCallback;
-import com.mugames.vidsnap.ViewModels.MainActivityViewModel;
-import com.mugames.vidsnap.ui.main.Fragments.DownloadFragment;
-import com.mugames.vidsnap.ui.main.Fragments.HistoryFragment;
-import com.mugames.vidsnap.ui.main.Fragments.HomeFragment;
-import com.mugames.vidsnap.ui.main.Fragments.LoginFragment;
-import com.mugames.vidsnap.ui.main.Fragments.SettingsFragment;
-import com.mugames.vidsnap.ui.main.Fragments.VideoFragment;
+import com.mugames.vidsnap.ui.Fragments.StatusFragment;
+import com.mugames.vidsnap.ui.ViewModels.MainActivityViewModel;
+import com.mugames.vidsnap.ui.Fragments.DownloadFragment;
+import com.mugames.vidsnap.ui.Fragments.HistoryFragment;
+import com.mugames.vidsnap.ui.Fragments.HomeFragment;
+import com.mugames.vidsnap.ui.Fragments.LoginFragment;
+import com.mugames.vidsnap.ui.Fragments.SettingsFragment;
+import com.mugames.vidsnap.ui.Fragments.VideoFragment;
 import com.tonyodev.fetch2.Download;
 import com.tonyodev.fetch2core.FetchObserver;
 import com.tonyodev.fetch2core.Reason;
@@ -93,24 +97,21 @@ import com.tonyodev.fetch2core.Reason;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Objects;
-import java.util.Random;
+import java.util.concurrent.CountDownLatch;
 
-import static com.mugames.vidsnap.Storage.FileUtil.getValidFile;
 import static com.mugames.vidsnap.Utility.Statics.ACTIVE_DOWNLOAD;
 import static com.mugames.vidsnap.Utility.Statics.COMMUNICATOR;
 import static com.mugames.vidsnap.Utility.Statics.REQUEST_WRITE;
-import static com.mugames.vidsnap.ViewModels.MainActivityViewModel.DYNAMIC_CACHE;
-import static com.mugames.vidsnap.ViewModels.MainActivityViewModel.LIBRARY_PATH;
-import static com.mugames.vidsnap.ViewModels.MainActivityViewModel.service_in_use;
-import static com.mugames.vidsnap.ViewModels.VideoFragmentViewModel.URL_KEY;
+import static com.mugames.vidsnap.ui.ViewModels.MainActivityViewModel.LIBRARY_PATH;
+import static com.mugames.vidsnap.ui.ViewModels.VideoFragmentViewModel.URL_KEY;
 
 public class MainActivity extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener,
-        Toolbar.OnMenuItemClickListener,FetchObserver<Download>, UtilityInterface.DialogueInterface, UtilityInterface.LoginHelper {
+        Toolbar.OnMenuItemClickListener, FetchObserver<Download>, UtilityInterface.DialogueInterface, UtilityInterface.LoginHelper {
 
     String TAG = Statics.TAG + ":MainActivity";
-
 
 
     public PopUpDialog dialog;
@@ -130,9 +131,6 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     MainActivityViewModel activityViewModel;
 
 
-
-
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
 
@@ -140,10 +138,9 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main_preview);
 
-        Log.e(TAG, "onCreate: "+getApplicationContext().getCodeCacheDir());
 
         activityViewModel = new ViewModelProvider(this).get(MainActivityViewModel.class);
-
+        activityViewModel.getActiveDownload().observe(this,this::setupBadge);
 
         String[] themes = getResources().getStringArray(R.array.theme_values);
         String theme = getStringValue(R.string.key_Theme, themes[0]);
@@ -159,8 +156,8 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         storageSwitcher = new StorageSwitcher(this);
 
 
-        for (DownloadDetails details :activityViewModel.getDownloadDetailsList()) {
-            ((DownloadReceiver)details.receiver).setDialogInterface(this);
+        for (DownloadDetails details : activityViewModel.getDownloadDetailsList()) {
+            ((DownloadReceiver) details.receiver).setDialogInterface(this);
         }
 
         locationResultLauncher = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(),
@@ -173,8 +170,6 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                     }
                 }
         );
-
-
 
 
         drawer = findViewById(R.id.drawer_layout);
@@ -212,7 +207,6 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         dialog = new PopUpDialog(this);
 
 
-
         if (!activityViewModel.isAgree()) {
             new Terms(this).show();
             intent = getIntent();
@@ -221,15 +215,21 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             gotIntent(getIntent());
         }
 
-        activityViewModel.getActiveDownload().observe(this, new Observer<Integer>() {
-            @Override
-            public void onChanged(Integer integer) {
-                setupBadge(integer);
-            }
-        });
 
     }
 
+    @Override
+    protected void onResume() {
+        super.onResume();
+        Log.e(TAG, "onResume: ");
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        Log.e(TAG, "onPause: ");
+        //556819.0
+    }
 
     @Override
     protected void onNewIntent(Intent intent) {
@@ -250,12 +250,10 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         if (content != null)
             replaceFragment(VideoFragment.newInstance(content), VideoFragment.class.getName());
 
-        else if(intent.getBooleanExtra(ACTIVE_DOWNLOAD,false)){
+        else if (intent.getBooleanExtra(ACTIVE_DOWNLOAD, false)) {
             replaceFragment(DownloadFragment.newInstance(), DownloadFragment.class.getName());
         }
     }
-
-
 
 
     @Override
@@ -353,6 +351,9 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         boolean isRunning = manager.popBackStackImmediate(tag, 0);
         Fragment runningFragment = manager.findFragmentByTag(tag);
 
+        if(runningFragment instanceof StatusFragment && !(fragment instanceof StatusFragment))
+            manager.popBackStack();
+
 
         if (!isRunning && runningFragment == null) {
             transaction.setTransition(FragmentTransaction.TRANSIT_FRAGMENT_FADE);
@@ -360,10 +361,6 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             transaction.replace(R.id.fragment_container, fragment, tag).commit();
 
         } else if (runningFragment != null) {
-
-            if(isInstanceof(runningFragment,fragment,VideoFragment.class)){
-                ((VideoFragment) runningFragment).startProcess(fragment.getArguments() != null ? fragment.getArguments().getString(URL_KEY) : null);
-            }
 //            if (isInstanceof(runningFragment,fragment,VideoFragment.class)) {
 //                VideoFragment videoFragment = ((VideoFragment) runningFragment);
 //                videoFragment.link = ((VideoFragment) fragment).link;
@@ -384,10 +381,13 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 //                else downloadFragment.setArrayList(dataFragment.list, dataFragment.DownloadReceiver);
 //            }
             transaction.show(runningFragment).commit();
+            if (isInstanceof(runningFragment, fragment, VideoFragment.class)) {
+                ((VideoFragment) runningFragment).startProcess(fragment.getArguments() != null ? fragment.getArguments().getString(URL_KEY) : null);
+            }
         }
     }
 
-    boolean isInstanceof(Fragment runningFragment,Fragment incomingFragment, Class<?> fragment){
+    boolean isInstanceof(Fragment runningFragment, Fragment incomingFragment, Class<?> fragment) {
         return fragment.isInstance(runningFragment) && fragment.isInstance(incomingFragment);
     }
 
@@ -427,7 +427,6 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             }
         });
 
-        setupBadge(activityViewModel.getDownloadDetailsList().size());
     }
 
 
@@ -451,7 +450,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     public boolean onMenuItemClick(MenuItem item) {
         Log.d(TAG, "onMenuItemClick: ");
         if (item.getItemId() == R.id.menu_download) {
-            Log.d(TAG, "List size:"+activityViewModel.getDownloadDetailsList().size());
+            Log.d(TAG, "List size:" + activityViewModel.getDownloadDetailsList().size());
             replaceFragment(DownloadFragment.newInstance(), DownloadFragment.class.getName());
         }
         return false;
@@ -459,53 +458,53 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
     @Override
     public void show(String text) {
-        runOnUiThread(()->{
-            dialog.show(text);
-        });
+        dialog.show(text);
     }
 
     @Override
     public void error(String reason, Exception e) {
-        runOnUiThread(() -> {
-            if (dialog != null)
-                dialog.dismiss();
-            Fragment fragment = getSupportFragmentManager().findFragmentById(R.id.fragment_container);
+        if (dialog != null)
+            dialog.dismiss();
+        Fragment fragment = getSupportFragmentManager().findFragmentById(R.id.fragment_container);
 
-            try {
-                if (fragment == null)
-                    return;
-                VideoFragment videoFragment = (VideoFragment) fragment;
-                videoFragment.unLockAnalysis();
-            } catch (Exception ex) {
-                ex.printStackTrace();
+        try {
+            if (fragment == null)
+                return;
+            VideoFragment videoFragment = (VideoFragment) fragment;
+            videoFragment.unLockAnalysis();
+        } catch (Exception ex) {
+            ex.printStackTrace();
+        }
+
+        MaterialAlertDialogBuilder dialogBuilder = new MaterialAlertDialogBuilder(this)
+                .setCancelable(true)
+                .setTitle("Oops!!")
+                .setMessage(reason);
+        Log.e(TAG, "error: ", e);
+
+        if (e != null) {
+            if (AppPref.getInstance(this).getBooleanValue(R.string.key_media_link, true)) {
+                dialogBuilder.setNegativeButton("Go,Back", (dialog, which) -> {
+                    FirebaseCrashlytics.getInstance().recordException(e);
+                });
+            } else {
+                dialogBuilder.setPositiveButton("Report", (dialog, which) -> {
+                    FirebaseCrashlytics.getInstance().recordException(e);
+                    Toast.makeText(MainActivity.this, "Thanks for reporting", Toast.LENGTH_SHORT).show();
+                });
+
+                dialogBuilder.setNegativeButton("Go,Back", (dialog, which) -> {
+                    FirebaseCrashlytics.getInstance().setCustomKey("URL", "--");
+                    FirebaseCrashlytics.getInstance().recordException(e);
+                });
             }
+        } else dialogBuilder.setNegativeButton("Go,Back", null);
+        dialogBuilder.create().show();
+    }
 
-            MaterialAlertDialogBuilder dialogBuilder = new MaterialAlertDialogBuilder(this)
-                    .setCancelable(true)
-                    .setTitle("Oops!!")
-                    .setMessage(reason);
-            Log.e(TAG, "error: ", e);
-
-            if (e != null) {
-                if (AppPref.getInstance(this).getBooleanValue(R.string.key_media_link, true)) {
-                    dialogBuilder.setNegativeButton("Go,Back", (dialog, which) -> {
-                        FirebaseCrashlytics.getInstance().recordException(e);
-                    });
-                } else {
-                    dialogBuilder.setPositiveButton("Report", (dialog, which) -> {
-                        FirebaseCrashlytics.getInstance().recordException(e);
-                        Toast.makeText(MainActivity.this, "Thanks for reporting", Toast.LENGTH_SHORT).show();
-                    });
-
-                    dialogBuilder.setNegativeButton("Go,Back", (dialog, which) -> {
-                        FirebaseCrashlytics.getInstance().setCustomKey("URL", "--");
-                        FirebaseCrashlytics.getInstance().recordException(e);
-                    });
-                }
-            } else dialogBuilder.setNegativeButton("Go,Back", null);
-            dialogBuilder.create().show();
-        });
-
+    @Override
+    public void dismiss() {
+        dialog.dismiss();
     }
 
 
@@ -514,16 +513,19 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
 
         if (requestCode == REQUEST_WRITE) {
-            if (grantResults[0] == PackageManager.PERMISSION_GRANTED)
-                if (getPath() == null || Objects.requireNonNull(DocumentFile.fromTreeUri(getApplicationContext(), getPath())).exists()) {
+            if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                if (getPath() == null ||
+                        (getPath().getScheme().equals("content") && Objects.requireNonNull(DocumentFile.fromTreeUri(getApplicationContext(), getPath())).exists())
+                ) {
                     Log.e(TAG, "onRequestPermissionsResult: ");
                     openDirectoryChooser();
                     return;
                 }
-            download(null);
-        } else {
-            Toast.makeText(this, "Sorry We can't download", Toast.LENGTH_SHORT).show();
-            activityViewModel.getDownloadDetailsList().clear();
+                download(null);
+            } else {
+                Toast.makeText(this, "Sorry We can't download", Toast.LENGTH_SHORT).show();
+                activityViewModel.getDownloadDetailsList().clear();
+            }
         }
     }
 
@@ -561,7 +563,6 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     }
 
 
-
     public void agreedTerms() {
         AppPref.getInstance(this).setBooleanValue(R.string.key_terms_con, true);
         if (intent != null) gotIntent(intent);
@@ -587,7 +588,6 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     }
 
 
-
     private String getStringValue(int id, String def) {
         return AppPref.getInstance(this).getStringValue(id, def);
     }
@@ -597,10 +597,6 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     }
 
     public void download(ArrayList<DownloadDetails> details) {
-        if (service_in_use && details.get(0).audioURL != null) {
-            error("Video download in progress please try after completing download.", null);
-            return;
-        }
         if (details != null)
             activityViewModel.tempDetails.addAll(details);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
@@ -614,26 +610,59 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             return;
         }
         // Skip this for loop if you use static module loading of FFmpeg-kit
-        for(DownloadDetails d:activityViewModel.tempDetails)
-            if((d.audioURL != null || d.chunkUrl != null) && !FileUtil.isFileExists(AppPref.getInstance(this).getCachePath(LIBRARY_PATH)+"lib.zip")){
+        for (DownloadDetails d : activityViewModel.tempDetails)
+            if ((d.audioURL != null || d.chunkUrl != null) && !FileUtil.isFileExists(AppPref.getInstance(this).getCachePath(LIBRARY_PATH) + "lib.zip")) {
                 fetchSOFiles();
                 return;
             }
-        realDownload();
-//        tryShowAd();
+        if (activityViewModel.tempDetails.get(0).src.equals("WhatsApp")) {
+            saveVideos();
+        } else {
+            realDownload();
+        }
+    }
+
+    public void saveVideos() {
+        new Thread(() -> {
+            CountDownLatch countDownLatch = new CountDownLatch(activityViewModel.tempDetails.size());
+            for (DownloadDetails details : activityViewModel.tempDetails) {
+                Uri uri = FileUtil.pathToNewUri(this, details.pathUri, details.fileName, details.fileMime);
+                details.pathUri = uri;
+                new Thread(() -> FileUtil.copyFile(this, Uri.parse(details.videoURL), uri, countDownLatch::countDown)).start();
+            }
+            try {
+                countDownLatch.await();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            for (DownloadDetails details : activityViewModel.tempDetails) {
+                FileUtil.scanMedia(this, details.pathUri.toString(), new MediaScannerConnection.OnScanCompletedListener() {
+                    @Override
+                    public void onScanCompleted(String s, Uri uri) {
+                        History history = new History(details, uri, (String) DateFormat.format("yyyy-MM-dd", new Date()));
+                        new Thread(() -> HistoryDatabase.getInstance(getApplicationContext()).historyDao().insertItem(history)).start();
+                    }
+                });
+
+            }
+            activityViewModel.tempDetails.clear();
+            runOnUiThread(() -> Toast.makeText(this, "Saved...", Toast.LENGTH_SHORT).show());
+
+        }).start();
+
     }
 
     private void fetchSOFiles() {
         final String abi = Build.SUPPORTED_ABIS[0];
         dialog.show("Preparing download");
 
-        HashMap<String,String> abiHashMap = new HashMap<>();
-        abiHashMap.put("armeabi-v7a","https://raw.githubusercontent.com/Udhayarajan/SOserver/master/armeabi-v7a.zip");
-        abiHashMap.put("arm64-v8a","https://raw.githubusercontent.com/Udhayarajan/SOserver/master/arm64-v8a.zip");
-        abiHashMap.put("x86","https://raw.githubusercontent.com/Udhayarajan/SOserver/master/x86.zip");
-        abiHashMap.put("x86_64","https://raw.githubusercontent.com/Udhayarajan/SOserver/master/x86_64.zip");
+        HashMap<String, String> abiHashMap = new HashMap<>();
+        abiHashMap.put("armeabi-v7a", "https://raw.githubusercontent.com/Udhayarajan/SOserver/master/armeabi-v7a.zip");
+        abiHashMap.put("arm64-v8a", "https://raw.githubusercontent.com/Udhayarajan/SOserver/master/arm64-v8a.zip");
+        abiHashMap.put("x86", "https://raw.githubusercontent.com/Udhayarajan/SOserver/master/x86.zip");
+        abiHashMap.put("x86_64", "https://raw.githubusercontent.com/Udhayarajan/SOserver/master/x86_64.zip");
 
-        new MiniExecute(null).getSize(abiHashMap.get(abi), (size, bundle) -> runOnUiThread(()-> downloadAdditionalModule(size,abiHashMap.get(abi))));
+        new MiniExecute(null).getSize(abiHashMap.get(abi), (size, bundle) -> runOnUiThread(() -> downloadAdditionalModule(size, abiHashMap.get(abi))));
 
     }
 
@@ -642,13 +671,13 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         dialog.dismiss();
         MaterialAlertDialogBuilder dialogBuilder = new MaterialAlertDialogBuilder(this);
         dialogBuilder.setTitle("Additional required");
-        dialogBuilder.setMessage(String.format("Additional file (%s) needed to be download to use %s downloader. Would you like to download it ?",UtilityClass.formatFileSize(size,false),activityViewModel.tempDetails.get(0).src));
+        dialogBuilder.setMessage(String.format("Additional file (%s) needed to be download to use %s downloader. Would you like to download it ?", UtilityClass.formatFileSize(size, false), activityViewModel.tempDetails.get(0).src));
         dialogBuilder.setPositiveButton("Download", (dialog, which) -> {
             addDownloadListener();
-            activityViewModel.downloadSO(url,moduleDownloadCallback);
+            activityViewModel.downloadSO(url, moduleDownloadCallback);
         });
         dialogBuilder.setNegativeButton("Leave", (dialog, which) -> {
-            Toast.makeText(MainActivity.this,"Download aborted",Toast.LENGTH_SHORT).show();
+            Toast.makeText(MainActivity.this, "Download aborted", Toast.LENGTH_SHORT).show();
             activityViewModel.tempDetails.clear();
         });
         dialogBuilder.create().show();
@@ -664,10 +693,11 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     };
 
     AlertDialog externalPackageAlertDialog;
+
     private void addDownloadListener() {
         MaterialAlertDialogBuilder dialogBuilder = new MaterialAlertDialogBuilder(this);
         dialogBuilder.setCancelable(false);
-        View view = getLayoutInflater().inflate(R.layout.module_download_dialogue,null);
+        View view = getLayoutInflater().inflate(R.layout.module_download_dialogue, null);
         dialogBuilder.setView(view);
         TextView statusView = view.findViewById(R.id.module_status);
         ProgressBar progressBar = view.findViewById(R.id.module_bar);
@@ -682,11 +712,11 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             @Override
             public void onChanged(Integer integer) {
                 progressBar.setProgress(integer);
-                percentageView.setText(integer+"%");
+                percentageView.setText(integer + "%");
             }
         });
 
-        externalPackageAlertDialog  = dialogBuilder.create();
+        externalPackageAlertDialog = dialogBuilder.create();
         externalPackageAlertDialog.show();
 
     }
@@ -695,7 +725,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         try {
             DocumentFile file = DocumentFile.fromTreeUri(MainActivity.this, getPath());
             if (file != null) return file.exists();
-        }catch (IllegalArgumentException e){
+        } catch (IllegalArgumentException e) {
             e.printStackTrace();
             return new File(getPath().getPath()).exists();
         }
@@ -706,8 +736,8 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     private void realDownload() {
         dialog.dismiss();
 
-        for (int i = 0; i < activityViewModel.tempDetails.size(); i++) {
-            Intent download = detailsToIntent(i);
+        for (DownloadDetails details:activityViewModel.tempDetails) {
+            Intent download = detailsToIntent(details);
             ContextCompat.startForegroundService(this, download);
         }
 
@@ -716,36 +746,26 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
     @Override
     public void onChanged(Download download, @NonNull Reason reason) {
-        Log.e(TAG, "onChanged: "+reason);
+        Log.e(TAG, "onChanged: " + reason);
     }
 
 
-
-    Intent detailsToIntent(int index) {
+    Intent detailsToIntent(DownloadDetails details) {
 
         Intent downloadIntent = new Intent(this, Downloader.class);
 
         int id = activityViewModel.getUniqueDownloadId();
 
-        activityViewModel.tempDetails.get(index).id = id;
+        details.id = id;
 
-        activityViewModel.tempDetails.get(index).thumbNailPath = getValidFile(AppPref.getInstance(this).getCachePath(DYNAMIC_CACHE), String.valueOf(new Random().nextInt()), ".muim");
-        activityViewModel.tempDetails.get(index).thumbWidth = activityViewModel.tempDetails.get(index).thumbNail.getWidth();
-        activityViewModel.tempDetails.get(index).thumbHeight = activityViewModel.tempDetails.get(index).thumbNail.getHeight();
-        FileUtil.saveFile(activityViewModel.tempDetails.get(index).thumbNailPath, UtilityClass.bitmapToBytes(activityViewModel.tempDetails.get(index).thumbNail),null);
-
-
-        activityViewModel.tempDetails.get(index).receiver = new DownloadReceiver(new Handler(Looper.getMainLooper()),
-                this,this,
+        details.receiver = new DownloadReceiver(new Handler(Looper.getMainLooper()),
+                this, this,
                 id, activityViewModel);
 
 
-        downloadIntent.putExtra(COMMUNICATOR, activityViewModel.tempDetails.get(index));
+        downloadIntent.putExtra(COMMUNICATOR, details);
 
-        activityViewModel.tempDetails.get(index).thumbNail = null;
-
-
-        activityViewModel.addDownloadDetails(activityViewModel.tempDetails.get(index));
+        activityViewModel.addDownloadDetails(details);
 
         return downloadIntent;
     }
@@ -754,7 +774,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     @Override
     public void signInNeeded(String reason, String loginURL, String[] loginDoneUrl, int cookiesKey, UtilityInterface.LoginIdentifier identifier) {
 
-        runOnUiThread(()->{
+        runOnUiThread(() -> {
             dialog.dismiss();
             MaterialAlertDialogBuilder dialog = new MaterialAlertDialogBuilder(this)
                     .setTitle("Seems to be Private Video!")
@@ -766,7 +786,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                             openWebPage(loginURL, loginDoneUrl, null, new UtilityInterface.CookiesInterface() {
                                 @Override
                                 public void onReceivedCookies(String cookies) {
-                                    setStringValue(cookiesKey,cookies);
+                                    setStringValue(cookiesKey, cookies);
                                     identifier.loggedIn(cookies);
                                 }
                             });
@@ -784,7 +804,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
     @Override
     public String getCookies(int cookiesKey) {
-        return getStringValue(cookiesKey,null);
+        return getStringValue(cookiesKey, null);
     }
 
     void openWebPage(String url, String[] loginDoneUrls, String cookies, UtilityInterface.CookiesInterface cookiesInterface) {
@@ -834,7 +854,6 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     }
 
 
-
     public void logOutInsta(ConfigurationCallback configurationCallback) {
         openWebPage("https://instagram.com/accounts/logout/", new String[]{"https://www.instagram.com/"}, getStringValue(R.string.key_instagram, null), new UtilityInterface.CookiesInterface() {
             @Override
@@ -846,7 +865,6 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     }
 
     public void logOutFB(ConfigurationCallback configurationCallback) {
-        //TODO FB logout
         openWebPage("https://www.facebook.com/help/contact/logout?id=260749603972907",
                 new String[]{"https://www.facebook.com/help/contact/260749603972907", "https://m.facebook.com/help/contact/260749603972907"}, getStringValue(R.string.key_facebook, null),
                 new UtilityInterface.CookiesInterface() {

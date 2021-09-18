@@ -15,7 +15,7 @@
  *  along with VidSnap.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.mugames.vidsnap.ui.main.Fragments;
+package com.mugames.vidsnap.ui.Fragments;
 
 import android.app.Activity;
 import android.content.Intent;
@@ -43,14 +43,16 @@ import androidx.preference.SwitchPreferenceCompat;
 
 import com.mugames.vidsnap.DataBase.HistoryRepository;
 import com.mugames.vidsnap.Utility.AppPref;
-import com.mugames.vidsnap.ui.main.Activities.MainActivity;
+import com.mugames.vidsnap.ui.Activities.MainActivity;
 import com.mugames.vidsnap.R;
 import com.mugames.vidsnap.Storage.StorageSwitcher;
 import com.mugames.vidsnap.Storage.FileUtil;
 import com.mugames.vidsnap.Utility.Statics;
 import com.mugames.vidsnap.Utility.UtilityInterface;
 
-
+/**
+ * It is setting's UI
+ */
 public class SettingsFragment extends PreferenceFragmentCompat implements Preference.OnPreferenceClickListener {
 
 

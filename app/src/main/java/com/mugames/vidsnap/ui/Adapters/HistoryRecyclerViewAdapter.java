@@ -15,38 +15,36 @@
  *  along with VidSnap.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.mugames.vidsnap.ui.main.Adapters;
+package com.mugames.vidsnap.ui.Adapters;
 
 import androidx.annotation.NonNull;
 import androidx.lifecycle.LifecycleOwner;
-import androidx.lifecycle.Observer;
 import androidx.recyclerview.widget.DiffUtil;
 import androidx.recyclerview.widget.ListAdapter;
 import androidx.recyclerview.widget.RecyclerView;
 
 import android.content.Intent;
 import android.os.Build;
+import android.util.Base64;
 import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+import android.webkit.MimeTypeMap;
 import android.widget.ImageView;
 import android.widget.PopupMenu;
 import android.widget.TextView;
 
+import com.bumptech.glide.Glide;
 import com.mugames.vidsnap.DataBase.History;
-import com.mugames.vidsnap.ViewModels.HistoryViewModel;
-import com.mugames.vidsnap.ui.main.Activities.MainActivity;
+import com.mugames.vidsnap.ui.ViewModels.HistoryViewModel;
+import com.mugames.vidsnap.ui.Activities.MainActivity;
 import com.mugames.vidsnap.R;
-import com.mugames.vidsnap.Utility.Bundles.HistoryDetails;
 import com.mugames.vidsnap.Utility.MIMEType;
 import com.mugames.vidsnap.Utility.Statics;
 
 import org.jetbrains.annotations.NotNull;
-
-import java.util.ArrayList;
-import java.util.List;
 
 import static com.mugames.vidsnap.Utility.UtilityClass.formatFileSize;
 
@@ -55,7 +53,7 @@ public class HistoryRecyclerViewAdapter extends ListAdapter<History, HistoryRecy
 
     String TAG = Statics.TAG + ":HistoryRecyclerViewAdapter";
 
-    //    private final ArrayList<HistoryDetails> list;
+    //    private final ArrayList<HistoryDetails> formats;
 
     MainActivity activity;
     HistoryViewModel historyViewModel;
@@ -91,15 +89,21 @@ public class HistoryRecyclerViewAdapter extends ListAdapter<History, HistoryRecy
 
     @Override
     public void onBindViewHolder(@NotNull final ViewHolder holder, int position) {
-//        holder.details = list.get(position);
+//        holder.details = formats.get(position);
 
 
         History currentHistory = getItem(position);
-        holder.name.setText(currentHistory.fileName + currentHistory.fileType);
+        if (currentHistory.fileType.contains("."))
+            holder.name.setText(currentHistory.fileName + currentHistory.fileType);
+        else
+            holder.name.setText(currentHistory.fileName + "." + currentHistory.fileType);
         holder.src.setText(currentHistory.source);
         holder.date.setText(currentHistory.date);
         holder.size.setText(formatFileSize(Long.parseLong(currentHistory.size), false));
-        holder.thumbnail.setImageBitmap(currentHistory.getThumbnail());
+
+        Glide.with(holder.thumbnail.getContext()).asBitmap()
+                .load(Base64.decode(currentHistory.image, Base64.DEFAULT))
+                .into(holder.thumbnail);
 
 
         holder.itemView.setOnClickListener(new View.OnClickListener() {
@@ -117,12 +121,12 @@ public class HistoryRecyclerViewAdapter extends ListAdapter<History, HistoryRecy
                         switch (item.getItemId()) {
                             case R.id.menu_play:
                                 intent = new Intent(Intent.ACTION_VIEW);
-                                intent.setDataAndType(currentHistory.getUri(), MIMEType.VIDEO_MP4);
+                                intent.setDataAndType(currentHistory.getUri(), MimeTypeMap.getSingleton().getMimeTypeFromExtension(currentHistory.fileType));
                                 activity.startActivity(Intent.createChooser(intent, "Select player"));
                                 return true;
                             case R.id.menu_share:
                                 intent = new Intent(Intent.ACTION_SEND);
-                                intent.setType(MIMEType.VIDEO_MP4);
+                                intent.setType(MimeTypeMap.getSingleton().getMimeTypeFromExtension(currentHistory.fileType));
                                 intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
                                 intent.putExtra(Intent.EXTRA_STREAM, currentHistory.getUri());
                                 activity.startActivity(Intent.createChooser(intent, "Select Social Media"));

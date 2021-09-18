@@ -15,7 +15,7 @@
  *  along with VidSnap.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.mugames.vidsnap.ui.main.Fragments;
+package com.mugames.vidsnap.ui.Fragments;
 
 import android.os.Bundle;
 
@@ -35,14 +35,19 @@ import android.view.ViewGroup;
 import com.mugames.vidsnap.R;
 import com.mugames.vidsnap.Utility.Bundles.DownloadDetails;
 import com.mugames.vidsnap.Utility.Statics;
-import com.mugames.vidsnap.ViewModels.DownloadViewModel;
-import com.mugames.vidsnap.ViewModels.MainActivityViewModel;
-import com.mugames.vidsnap.ui.main.Adapters.DownloadAdapter;
+import com.mugames.vidsnap.ui.ViewModels.DownloadViewModel;
+import com.mugames.vidsnap.ui.ViewModels.MainActivityViewModel;
+import com.mugames.vidsnap.ui.Adapters.DownloadAdapter;
 
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
 
+
+/**
+ * It keeps track of active downloading task
+ * Usually displaced when right top corner download icon is clicked
+ */
 
 public class DownloadFragment extends Fragment {
 
@@ -73,10 +78,9 @@ public class DownloadFragment extends Fragment {
 
 
         View view;
-        activityViewModel = new ViewModelProvider(getActivity()).get(MainActivityViewModel.class);
+        activityViewModel = new ViewModelProvider(getActivity(),ViewModelProvider.AndroidViewModelFactory.getInstance(getActivity().getApplication())).get(MainActivityViewModel.class);
         downloadViewModel = new ViewModelProvider(this).get(DownloadViewModel.class);
 
-        Log.d(TAG, "List size:"+activityViewModel.getDownloadDetailsList().size());
 
         view = inflater.inflate(R.layout.fragment_downloading, container, false);
 
@@ -85,7 +89,7 @@ public class DownloadFragment extends Fragment {
 
         recyclerView = view.findViewById(R.id.download_recyclerView);
         recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
-        adapter = new DownloadAdapter(activityViewModel, downloadViewModel, getViewLifecycleOwner());
+        adapter = new DownloadAdapter(activityViewModel, downloadViewModel, this);
 
         activityViewModel.getDownloadDetailsLiveData().observe(getViewLifecycleOwner(), new Observer<ArrayList<DownloadDetails>>() {
             @Override

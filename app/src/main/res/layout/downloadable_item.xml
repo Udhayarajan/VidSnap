@@ -1,4 +1,20 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+  ~  This file is part of VidSnap.
+  ~
+  ~  VidSnap is free software: you can redistribute it and/or modify
+  ~  it under the terms of the GNU General Public License as published by
+  ~  the Free Software Foundation, either version 3 of the License, or
+  ~  any later version.
+  ~  VidSnap is distributed in the hope that it will be useful,
+  ~  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  ~  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  ~  GNU General Public License for more details.
+  ~  You should have received a copy of the GNU General Public License
+  ~  along with VidSnap.  If not, see <https://www.gnu.org/licenses/>.
+  ~
+  -->
+
 <com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="160dp"
@@ -13,7 +29,7 @@
     app:cardCornerRadius="12dp"
     app:cardElevation="6dp"
     app:strokeColor="@color/cardViewStoke"
-    app:strokeWidth="2dp">
+    app:strokeWidth="1dp">
 
     <FrameLayout
         android:id="@+id/downloadable_frame"
@@ -21,13 +37,20 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent">
         <RelativeLayout
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content">
+            android:layout_width="match_parent"
+            android:layout_height="match_parent">
 
             <ImageView
                 android:id="@+id/downloadable_imageView"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"/>
+
+            <ImageView
+                android:id="@+id/downloadable_play_icon"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_centerInParent="true"
+                android:src="@drawable/ic_play_circle" />
 
             <RadioButton
                 android:clickable="false"

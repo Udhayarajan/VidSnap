@@ -115,13 +115,6 @@ public class YouTube extends Extractor {
             } else return id;
         }
         return null;
-//        if (url.contains(".be")||url.contains("/")) id= url.replaceAll(".+?(?:/)","");
-//        else if (url.contains(".com")) id=url.replaceAll(".+?(?:=)", "");
-//        else {
-//            Log.d(TAG, "GetId: "+url.replaceAll(".+?(?:=)", ""));
-//        }
-//        Log.d(TAG, "GetId: "+id);
-//        return id;
     }
 
     int got = 0;
@@ -132,13 +125,6 @@ public class YouTube extends Extractor {
     }
 
 
-//    public void Download() {
-//        formats.thumbNailBit = thumbNail;
-//
-//        analyzeCallback.onAnalyzeCompleted(formats, true);
-//    }
-
-
     public void videoInfo(String info) {
         if (info == null) {
             fetchFromWebPage();
@@ -147,7 +133,7 @@ public class YouTube extends Extractor {
 
         getDialogueInterface().show("Downloading Player");
         if (jsFunctionName == null || jsFunctionName.isEmpty())
-            GetJSFile(new JSDownloaded() {
+            getJSFile(new JSDownloaded() {
                 @Override
                 public void onDone() {
                     getDialogueInterface().show("Analysing data");
@@ -173,15 +159,10 @@ public class YouTube extends Extractor {
     void ExtractInfo(String decoded) {
 
         try {
-//            File file = new File(activity.getExternalFilesDir(null) + "/json" + attempt + ".json");
-//            FileWriter writer = new FileWriter(file);
-//            writer.write(UtilityClass.parseQueryString(decoded));
-//            writer.close();
-
             JSONObject jsonObject = new JSONObject(UtilityClass.parseQueryString(decoded));
             JSONObject player_response = getObj_or_Null(jsonObject, "player_response");
             if (!webScratch && player_response == null) {
-                OtherURLs(attempt++);
+                alternateURLs(attempt++);
                 return;
             } else player_response = new JSONObject(decoded);
 
@@ -198,7 +179,7 @@ public class YouTube extends Extractor {
                         getDialogueInterface().error("Movies can't be downloaded", null);
                         return;
                     }
-                } else OtherURLs(attempt++);
+                } else alternateURLs(attempt++);
                 return;
             }
             JSONArray formatsObj = getArray_or_Null(streamingData, "adaptiveFormats");//formats
@@ -245,9 +226,9 @@ public class YouTube extends Extractor {
                         }
                     } else {
                         formats.videoSPs.add(sp);
-                        formats.videoURLs.add(urlField);
+                        formats.mainFileURLs.add(urlField);
                         formats.videoSIGs.add(s);
-                        formats.videoMime.add(mime);
+                        formats.fileMime.add(mime);
                     }
 
                 } else if (isAudio) {
@@ -256,8 +237,8 @@ public class YouTube extends Extractor {
                         formats.audioMime.add(mime);
                     }
                 } else {
-                    formats.videoURLs.add(urlField);
-                    formats.videoMime.add(mime);
+                    formats.mainFileURLs.add(urlField);
+                    formats.fileMime.add(mime);
                 }
             }
 
@@ -293,10 +274,10 @@ public class YouTube extends Extractor {
             checkCompletion();
         })).start();
 
-        for (int i = 0; i < formats.videoURLs.size(); i++) {
+        for (int i = 0; i < formats.mainFileURLs.size(); i++) {
 
 
-            String urlRaw = formats.videoURLs.get(i);
+            String urlRaw = formats.mainFileURLs.get(i);
             String s = formats.videoSIGs.get(i);
             String sp = formats.videoSPs.get(i);
 
@@ -311,9 +292,9 @@ public class YouTube extends Extractor {
                 Log.d(TAG, "Video_Info: \n" + url);
 
 
-                formats.videoURLs.set(index, url);
+                formats.mainFileURLs.set(index, url);
 
-                boolean isLast = got == formats.videoURLs.size();
+                boolean isLast = got == formats.mainFileURLs.size();
 
                 if (isLast) {
                     got = 0;
@@ -338,13 +319,13 @@ public class YouTube extends Extractor {
         return url;
     }
 
-    void OtherURLs(int attempts) {
+    void alternateURLs(int attempts) {
         webScratch = false;
         String[] dataURL = new String[]{String.format("https://www.youtube.com/get_video_info?html5=1&video_id=%s&el=embedded&ps=default&eurl=", videoID),
                 String.format("https://www.youtube.com/get_video_info?html5=1&video_id=%s&el=detailpage&ps=default&eurl=", videoID),
                 String.format("https://www.youtube.com/get_video_info?html5=1&video_id=%s&el=vevo&ps=default&eurl=", videoID)
         };
-        Log.d(TAG, "OtherURLs: " + (attempts));
+        Log.d(TAG, "alternateURLs: " + (attempts));
         getDialogueInterface().show("Attempt " + (attempts + 1));
         if (attempts >= 3) {
             getDialogueInterface().error("URL Seems to be wrong", null);
@@ -356,7 +337,7 @@ public class YouTube extends Extractor {
     }
 
 
-    void GetJSFile(JSDownloaded jsDownloaded) {
+    void getJSFile(JSDownloaded jsDownloaded) {
         ResponseCallBack responseCallBack = embedResponse -> {
             for (String i : PLAYER_REGEXS) {
                 Pattern pattern = Pattern.compile(i);
@@ -364,7 +345,6 @@ public class YouTube extends Extractor {
                 if (matcher.find()) {
                     String player_url = matcher.group(1);
                     player_url = player_url==null?"":player_url.replaceAll("\"", "");
-                    Log.d(TAG, "onReceive: \n" + YT_URL + player_url);
 
                     HttpRequest request = new HttpRequest(YT_URL+player_url,getDialogueInterface(),response -> {
                         for (String j : FUNCTION_REGEX) {
@@ -377,7 +357,6 @@ public class YouTube extends Extractor {
                                 break;
                             }
                         }
-
                     });
                     request.setType(HttpRequest.GET);
                     request.start();
@@ -392,7 +371,6 @@ public class YouTube extends Extractor {
     }
 
     void decryptSignature(int index, String signature, String url, SignNotifier notifier) {
-        Log.d(TAG, "DecryptSignature: " + signature);
         JSInterpreter jsInterpreter = new JSInterpreter(jsCode, null);
         JSInterface jsInterface = jsInterpreter.Extract_Function(jsFunctionName);
         char[] o = (char[]) jsInterface.resf(new String[]{signature});

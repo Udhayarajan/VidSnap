@@ -17,6 +17,9 @@
 
 package com.mugames.vidsnap.Utility.Bundles;
 
+import static com.mugames.vidsnap.ui.ViewModels.MainActivityViewModel.downloadDetailsList;
+
+import android.content.Context;
 import android.graphics.Bitmap;
 import android.net.Uri;
 import android.os.Parcel;
@@ -24,10 +27,20 @@ import android.os.Parcelable;
 import android.os.ResultReceiver;
 
 
+import androidx.core.content.FileProvider;
+
+import com.mugames.vidsnap.Storage.FileUtil;
+import com.mugames.vidsnap.Utility.AppPref;
 import com.mugames.vidsnap.Utility.DownloadReceiver;
+import com.mugames.vidsnap.Utility.UtilityClass;
+import com.mugames.vidsnap.ui.ViewModels.MainActivityViewModel;
 
+import java.io.File;
+import java.util.Random;
 
-
+/**
+ * keeps information while proceeding towards download
+ */
 
 public class DownloadDetails implements Parcelable {
 
@@ -42,7 +55,7 @@ public class DownloadDetails implements Parcelable {
     public String videoURL;
     public String audioURL;
 
-    public String mimeVideo;
+    public String fileMime;
     public String mimeAudio;
 
     public String chunkUrl;
@@ -51,11 +64,9 @@ public class DownloadDetails implements Parcelable {
     public long videoSize;
     public long audioSize;
 
-
-    public Bitmap thumbNail;
-    public String thumbNailPath;
-    public int thumbWidth;
-    public int thumbHeight;
+    private Uri thumbNailPath;
+    int thumbWidth;
+    int thumbHeight;
 
     public ResultReceiver receiver;
 
@@ -74,7 +85,7 @@ public class DownloadDetails implements Parcelable {
         videoURL = in.readString();
         audioURL = in.readString();
 
-        mimeVideo = in.readString();
+        fileMime = in.readString();
         mimeAudio = in.readString();
 
         chunkUrl = in.readString();
@@ -83,8 +94,7 @@ public class DownloadDetails implements Parcelable {
         videoSize = in.readLong();
         audioSize = in.readLong();
 
-        thumbNail = in.readParcelable(Bitmap.class.getClassLoader());
-        thumbNailPath = in.readString();
+        thumbNailPath = Uri.parse(in.readString());
         thumbWidth = in.readInt();
         thumbHeight = in.readInt();
 
@@ -104,7 +114,7 @@ public class DownloadDetails implements Parcelable {
         dest.writeString(videoURL);
         dest.writeString(audioURL);
 
-        dest.writeString(mimeVideo);
+        dest.writeString(fileMime);
         dest.writeString(mimeAudio);
 
         dest.writeString(chunkUrl);
@@ -113,8 +123,7 @@ public class DownloadDetails implements Parcelable {
         dest.writeLong(videoSize);
         dest.writeLong(audioSize);
 
-        dest.writeParcelable(thumbNail, flags);
-        dest.writeString(thumbNailPath);
+        dest.writeString(thumbNailPath.toString());
         dest.writeInt(thumbWidth);
         dest.writeInt(thumbHeight);
 
@@ -137,4 +146,29 @@ public class DownloadDetails implements Parcelable {
             return new DownloadDetails[size];
         }
     };
+
+    public Bitmap getThumbNail() {
+        return UtilityClass.bytesToBitmap(FileUtil.loadImage(thumbNailPath.getPath()),thumbWidth,thumbHeight);
+    }
+
+    public void setThumbNail(Context context, Bitmap resource) {
+        Random random = new Random();
+        String path = FileUtil.getValidFile(AppPref.getInstance(context).getCachePath(MainActivityViewModel.DYNAMIC_CACHE), String.valueOf(random.nextLong()),"jpg");
+        FileUtil.saveFile(path,UtilityClass.bitmapToBytes(resource),null);
+        thumbNailPath = Uri.fromFile(new File(path));
+        thumbWidth = resource.getWidth();
+        thumbHeight = resource.getHeight();
+    }
+
+    public void deleteThumbnail() {
+        FileUtil.deleteFile(thumbNailPath.getPath(),null);
+    }
+
+    public static DownloadDetails findDetails(int id) {
+        for (DownloadDetails details :
+                downloadDetailsList) {
+            if (details.id == id) return details;
+        }
+        return null;
+    }
 }

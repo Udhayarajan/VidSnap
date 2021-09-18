@@ -15,7 +15,7 @@
  *  along with VidSnap.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.mugames.vidsnap.ui.main.Adapters;
+package com.mugames.vidsnap.ui.Adapters;
 
 import android.graphics.Bitmap;
 import android.os.Bundle;
@@ -26,20 +26,22 @@ import android.widget.ProgressBar;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
+import androidx.fragment.app.Fragment;
 import androidx.lifecycle.LifecycleOwner;
 import androidx.lifecycle.Observer;
 import androidx.recyclerview.widget.DiffUtil;
 import androidx.recyclerview.widget.ListAdapter;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.bumptech.glide.Glide;
 import com.mugames.vidsnap.R;
 import com.mugames.vidsnap.Utility.Bundles.DownloadDetails;
 import com.mugames.vidsnap.Utility.DownloadReceiver;
 import com.mugames.vidsnap.Storage.FileUtil;
 import com.mugames.vidsnap.Utility.Statics;
 import com.mugames.vidsnap.Utility.UtilityClass;
-import com.mugames.vidsnap.ViewModels.DownloadViewModel;
-import com.mugames.vidsnap.ViewModels.MainActivityViewModel;
+import com.mugames.vidsnap.ui.ViewModels.DownloadViewModel;
+import com.mugames.vidsnap.ui.ViewModels.MainActivityViewModel;
 
 import org.jetbrains.annotations.NotNull;
 
@@ -50,12 +52,12 @@ public class DownloadAdapter extends ListAdapter<DownloadDetails, DownloadAdapte
 
     MainActivityViewModel activityViewModel;
     DownloadViewModel viewModel;
-    LifecycleOwner lifecycleOwner;
+    Fragment fragment;
 
 
-    public DownloadAdapter(MainActivityViewModel activityViewModel, DownloadViewModel downloadViewModel, LifecycleOwner owner) {
+    public DownloadAdapter(MainActivityViewModel activityViewModel, DownloadViewModel downloadViewModel, Fragment fragment) {
         super(DIFF_CALLBACK);
-        lifecycleOwner = owner;
+        this.fragment = fragment;
         viewModel = downloadViewModel;
         this.activityViewModel = activityViewModel;
     }
@@ -74,16 +76,6 @@ public class DownloadAdapter extends ListAdapter<DownloadDetails, DownloadAdapte
         }
     };
 
-//        public DownloadAdapter(ArrayList<DownloadDetails> list, ArrayList<DownloadReceiver> receivers) {
-//            ((MainActivity)getActivity()).activityViewModel.getDownloadList().observe(getViewLifecycleOwner(), new Observer<List<DownloadDetails>>() {
-//                @Override
-//                public void onChanged(List<DownloadDetails> downloadDetails) {
-//                    infos = (ArrayList<DownloadDetails>) downloadDetails;
-//                }
-//            });
-//            downloadReceivers = new ArrayList<>(receivers);
-//        }
-
 
     @NonNull
     @Override
@@ -94,40 +86,24 @@ public class DownloadAdapter extends ListAdapter<DownloadDetails, DownloadAdapte
     @Override
     public void onBindViewHolder(@NonNull DownloadViewHolder holder, int position) {
         DownloadDetails details = getItem(position);
-        holder.downloadText.setText(details.fileName + details.fileType);
-        byte[] img = (byte[]) FileUtil.loadImage(details.thumbNailPath);
-        Bitmap thumbnail = UtilityClass.bytesToBitmap(img, details.thumbWidth, details.thumbHeight);
-        holder.thumbNailView.setImageBitmap(thumbnail);
+        holder.downloadText.setText(details.fileName+"."+ details.fileType);
 
-        ((DownloadReceiver) details.receiver).getResultBundle().observe(lifecycleOwner, new Observer<Bundle>() {
+        Glide.with(fragment).asBitmap().load(details.getThumbNail()).into(holder.thumbNailView);
+
+        ((DownloadReceiver) details.receiver).getResultBundle().observe(fragment, new Observer<Bundle>() {
             @Override
             public void onChanged(Bundle bundle) {
                 viewModel.process(bundle);
-                viewModel.getDownloadProgress().observe(lifecycleOwner, s -> holder.sizeText.setText(s));
-                viewModel.getProgressPercentage().observe(lifecycleOwner, s -> holder.progressText.setText(s));
-                viewModel.getSpeed().observe(lifecycleOwner, s -> holder.speedText.setText(s));
-                viewModel.getStatus().observe(lifecycleOwner, s -> holder.statusText.setText(s));
-                viewModel.getVal().observe(lifecycleOwner, holder.progressBar::setProgress);
+                viewModel.getDownloadProgress().observe(fragment, s -> holder.sizeText.setText(s));
+                viewModel.getProgressPercentage().observe(fragment, s -> holder.progressText.setText(s));
+                viewModel.getSpeed().observe(fragment, s -> holder.speedText.setText(s));
+                viewModel.getStatus().observe(fragment, s -> holder.statusText.setText(s));
+                viewModel.getVal().observe(fragment, holder.progressBar::setProgress);
             }
         });
     }
 
 
-    //    @Override
-//    public void onDownloadDone(int index) {
-//
-//        DownloadReceiver downloadReceiver = receivers.get(index);
-//
-//        index = downloadReceivers.indexOf(downloadReceiver);
-//
-//        downloadReceivers.remove(index);
-//        downloadDetails.remove(index);
-//        adapter.notifyItemRemoved(index);
-//
-//        if (downloadDetails.isEmpty()) {
-//            receivers.clear();
-//        }
-//    }
     static class DownloadViewHolder extends RecyclerView.ViewHolder {
 
         TextView downloadText;

@@ -15,7 +15,7 @@
  *  along with VidSnap.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.mugames.vidsnap.ViewModels;
+package com.mugames.vidsnap.ui.ViewModels;
 
 import android.app.Application;
 import android.os.Bundle;
@@ -24,13 +24,12 @@ import androidx.annotation.NonNull;
 import androidx.lifecycle.AndroidViewModel;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
-import androidx.lifecycle.ViewModelProvider;
-import androidx.lifecycle.ViewModelStoreOwner;
 
 import org.jetbrains.annotations.NotNull;
 
 import static com.mugames.vidsnap.Utility.Statics.DOWNLOADED;
 import static com.mugames.vidsnap.Utility.Statics.DOWNLOAD_SPEED;
+import static com.mugames.vidsnap.Utility.Statics.FETCH_MESSAGE;
 import static com.mugames.vidsnap.Utility.Statics.PROGRESS;
 import static com.mugames.vidsnap.Utility.Statics.PROGRESS_UPDATE_AUDIO;
 import static com.mugames.vidsnap.Utility.Statics.PROGRESS_UPDATE_MERGING;
@@ -80,9 +79,9 @@ public class DownloadViewModel extends AndroidViewModel {
         int resultCode =resultData.getInt(RESULT_CODE);
 
         if (resultCode == PROGRESS_UPDATE_AUDIO) status.setValue("Downloading Audio");
-        if (resultCode == PROGRESS_UPDATE_VIDEO) status.setValue("Downloading Video");
-
-        if (resultCode == PROGRESS_UPDATE_MERGING) status.setValue("Merging");
+        else if (resultCode == PROGRESS_UPDATE_VIDEO) status.setValue("Downloading Video");
+        else if (resultCode == PROGRESS_UPDATE_MERGING) status.setValue("Merging");
+        else status.setValue(resultData.getString(FETCH_MESSAGE));
 
 
         downloadProgress.setValue(String.format("%s/%s", formatFileSize(passed, false), formatFileSize(total, false)));

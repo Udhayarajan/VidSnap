@@ -15,9 +15,11 @@
  *  along with VidSnap.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.mugames.vidsnap.ui.main.Fragments;
+package com.mugames.vidsnap.ui.Fragments;
 
+import android.graphics.Bitmap;
 import android.graphics.Rect;
+import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.os.Bundle;
 import android.util.Log;
@@ -26,43 +28,51 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.inputmethod.InputMethodManager;
+import android.webkit.MimeTypeMap;
 import android.widget.Button;
 import android.widget.EditText;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.bumptech.glide.Glide;
+import com.bumptech.glide.request.FutureTarget;
+import com.bumptech.glide.request.target.CustomTarget;
+import com.bumptech.glide.request.transition.Transition;
 import com.google.firebase.crashlytics.FirebaseCrashlytics;
 import com.mugames.vidsnap.Utility.AppPref;
 import com.mugames.vidsnap.Utility.UtilityClass;
-import com.mugames.vidsnap.ViewModels.VideoFragmentViewModel;
-import com.mugames.vidsnap.ui.main.Activities.MainActivity;
+import com.mugames.vidsnap.ui.ViewModels.VideoFragmentViewModel;
+import com.mugames.vidsnap.ui.Activities.MainActivity;
 import com.mugames.vidsnap.R;
 import com.mugames.vidsnap.Utility.Bundles.DownloadDetails;
-import com.mugames.vidsnap.Utility.Formats;
+import com.mugames.vidsnap.Utility.Bundles.Formats;
 import com.mugames.vidsnap.Utility.Statics;
-import com.mugames.vidsnap.ui.main.Adapters.DownloadableAdapter;
+import com.mugames.vidsnap.ui.Adapters.DownloadableAdapter;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.concurrent.ExecutionException;
 
 import static android.content.Context.INPUT_METHOD_SERVICE;
 import static com.mugames.vidsnap.Storage.FileUtil.removeStuffFromName;
 import static com.mugames.vidsnap.Utility.UtilityInterface.*;
-import static com.mugames.vidsnap.ViewModels.VideoFragmentViewModel.URL_KEY;
+import static com.mugames.vidsnap.ui.ViewModels.VideoFragmentViewModel.URL_KEY;
 
-
+/**
+ * A fragment that is opened when user selected video from {@link HomeFragment}
+ */
 public class VideoFragment extends Fragment implements
-        AnalyzeUICallback, DownloadableCardSelectedCallBack, TouchCallback {
+        AnalyzeUICallback, TouchCallback {
 
 
     String TAG = Statics.TAG + ":VideoFragment";
 
     MainActivity activity;
-
-    public static Uri directory;
 
     Button analysis;
     EditText urlBox;
@@ -74,7 +84,6 @@ public class VideoFragment extends Fragment implements
 
 
     long size;
-
 
 
     private boolean isPaused;
@@ -101,10 +110,9 @@ public class VideoFragment extends Fragment implements
         View view = inflater.inflate(R.layout.fragment_video, container, false);
         activity = (MainActivity) getActivity();
         activity.setTouchCallback(this);
-        directory = AppPref.getInstance(getContext()).getSavePath();
 
         viewModel = new ViewModelProvider(this).get(VideoFragmentViewModel.class);
-
+        viewModel.setAnalyzeUICallback(this);
 
         analysis = view.findViewById(R.id.analysis);
         urlBox = view.findViewById(R.id.url);
@@ -115,7 +123,10 @@ public class VideoFragment extends Fragment implements
         button.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                SelectResolution();
+                dialogFragment = null;
+                urlBox.setText("");
+                new Thread(()-> actionForMOREFile()).start();
+                resetMultiVideoList();
             }
         });
 
@@ -123,7 +134,7 @@ public class VideoFragment extends Fragment implements
 
 
         analysis.setOnClickListener(v -> {
-            if(adapter !=null) resetMultiVideoList();
+            if (adapter != null) resetMultiVideoList();
             analysis.setEnabled(false);
             hideKeyboard(null);
             startProcess(urlBox.getText().toString());
@@ -143,7 +154,6 @@ public class VideoFragment extends Fragment implements
         urlBox.setText(link);
         if (dialogFragment != null) dialogFragment.dismiss();
         dialogFragment = null;
-        viewModel.setAnalyzeUICallback(this);
         if (viewModel.onClickAnalysis(urlBox.getText().toString(), (MainActivity) getActivity()) == null)
             unLockAnalysis();
         else linkFor(link);
@@ -184,50 +194,31 @@ public class VideoFragment extends Fragment implements
 
     @Override
     public void onAnalyzeCompleted(boolean isMultipleFile) {
-        activity.dialog.dismiss();
-        activity.runOnUiThread(() -> {
-            unLockAnalysis();
-            if (isMultipleFile) {
-                adapter = new DownloadableAdapter(activity, viewModel.getFormatsArrayList(), this);
-                list.setLayoutManager(new GridLayoutManager(activity, 2));
-                list.setAdapter(adapter);
-                button.setVisibility(View.VISIBLE);
-
-            } else {
-                SelectResolution();
-            }
-        });
-    }
-
-
-    @Override
-    public void onCardSelected(int index) {
-        viewModel.getSelected().add(index);
-        size += viewModel.getFormatsArrayList().get(index).videoSizes.get(0);
-        button.setText("DOWNLOAD(" + UtilityClass.formatFileSize(size, false) + ")");
-    }
-
-    @Override
-    public void onCardDeSelected(int index) {
-        Log.e(TAG, "onCardDeSelected: " + index);
-        viewModel.getSelected().remove((Object) index);
-        size -= viewModel.getFormatsArrayList().get(index).videoSizes.get(0);
-        button.setText("DOWNLOAD(" + UtilityClass.formatFileSize(size, false) + ")");
-    }
-
-    void SelectResolution() {
-        if (viewModel.getSelected().isEmpty()) {
-            actionForSOLOFile();
+        unLockAnalysis();
+        if (isMultipleFile) {
+            adapter = new DownloadableAdapter(this, viewModel.getFormats());
+            adapter.getSelectedList().observe(this, this::selectedItemChanged);
+            list.setLayoutManager(new GridLayoutManager(activity, 2));
+            list.setAdapter(adapter);
         } else {
-            dialogFragment = null;
-            urlBox.setText("");
-            activity.download(viewModel.actionForMOREFile());
-            resetMultiVideoList();
+            actionForSOLOFile();
         }
-        viewModel.getFormatsArrayList().clear();
     }
 
-    void resetMultiVideoList(){
+    void selectedItemChanged(ArrayList<Integer> selectedValue){
+        viewModel.setSelected(selectedValue);
+        size =0;
+        for (int selectedIndex : selectedValue) {
+            size+=viewModel.getFormats().videoSizes.get(selectedIndex);
+        }
+        if(selectedValue.size()>0){
+            button.setVisibility(View.VISIBLE);
+            button.setText("DOWNLOAD(" + UtilityClass.formatFileSize(size, false) + ")");
+        }
+        else button.setVisibility(View.GONE);
+    }
+
+    void resetMultiVideoList() {
         button.setVisibility(View.GONE);
         adapter.clear();
         adapter = null;
@@ -237,41 +228,43 @@ public class VideoFragment extends Fragment implements
     void actionForSOLOFile() {
         final DownloadDetails details = new DownloadDetails();
 
-        final Formats formats;
-        formats = viewModel.getFormatsArrayList().get(0);
+        final Formats formats = viewModel.getFormats();
 
         dialogFragment = QualityFragment.newInstance(formats.qualities, formats.videoSizeInString);
 
         dialogFragment.setRequired(new DownloadButtonCallBack() {
             @Override
-            public void onDownloadButtonPressed(String fileName) {
+            public void onDownloadButtonPressed(String fileName,Bitmap image) {
 
                 dialogFragment = null;
                 urlBox.setText("");
 
+                details.setThumbNail(getContext(),image);
+
                 ArrayList<DownloadDetails> downloadDetails = new ArrayList<>();
-
                 fileName = removeStuffFromName(fileName);
-
-                details.fileType = ".mp4";
                 details.fileName = fileName.split("\\.")[0];
-
                 downloadDetails.add(details);
                 activity.download(downloadDetails);
             }
 
             @Override
             public void onSelectedItem(int position, QualityFragment qualityFragment) {
-                Log.d(TAG, "onSelectedItem: " + position);
                 try {
-                    details.mimeVideo = formats.videoMime.get(position);
-                    details.mimeAudio = formats.audioMime.get(position);
                     details.chunkUrl = formats.chunkUrlList.get(position);
                     details.chunkCount = formats.manifest.get(position).size();
                 } catch (IndexOutOfBoundsException e) {
                     e.printStackTrace();
                 }
 
+                try {
+                    details.mimeAudio = formats.audioMime.get(position);
+                }catch (IndexOutOfBoundsException e){
+                    e.printStackTrace();
+                }
+
+                details.fileMime = formats.fileMime.get(position);
+                details.fileType = MimeTypeMap.getSingleton().getExtensionFromMimeType(details.fileMime);
 
                 details.videoSize = formats.videoSizes.get(position);
                 try {
@@ -280,41 +273,38 @@ public class VideoFragment extends Fragment implements
                     details.audioURL = null;
                 }
                 try {
-                    details.videoURL = formats.videoURLs.get(position);
+                    details.videoURL = formats.mainFileURLs.get(position);
                 } catch (IndexOutOfBoundsException e) {
                     e.printStackTrace();
                     Log.d(TAG, "onSelectedItem: M3u8");
                 }
-
                 String quality = formats.qualities.get(position);
                 formats.title = removeStuffFromName(formats.title);
-
                 if (quality.equals("--")) quality = "";
-                details.pathUri = directory;
-
-                details.fileType = ".mp4";
-
+                details.pathUri = AppPref.getInstance(getContext()).getSavePath();
                 details.fileName = formats.title + "_" + quality + "_";
-
                 details.src = formats.src;
-
-
                 qualityFragment.setName(details.fileName + details.fileType);
 
             }
         });
 
-        details.thumbNail = formats.thumbNailsBitMap.get(0);
+        Glide.with(getContext())
+                .asBitmap()
+                .load(Uri.parse(formats.thumbNailsURL.get(0)))
+                .into(new CustomTarget<Bitmap>() {
+                    @Override
+                    public void onResourceReady(@NonNull Bitmap resource, @Nullable Transition<? super Bitmap> transition) {
+                        details.setThumbNail(getContext(),resource);
+                        dialogFragment.setThumbNail(resource);
+                        if (!isPaused) dialogFragment.show(activity.getSupportFragmentManager(), "TAG");
+                    }
 
-//
-//        if (formats.thumbNail == null) {
-//            //only in instagram case
-//            details.thumbNail = formats.thumbNailsBitMap.get(0);
-//        }
+                    @Override
+                    public void onLoadCleared(@Nullable Drawable placeholder) {
 
-        dialogFragment.setThumbNail(details.thumbNail);
-
-        if (!isPaused) dialogFragment.show(activity.getSupportFragmentManager(), "TAG");
+                    }
+                });
     }
 
 
@@ -349,4 +339,37 @@ public class VideoFragment extends Fragment implements
             }
         }
     }
+
+    public void actionForMOREFile(){
+        ArrayList<DownloadDetails> downloadDetails = new ArrayList<>();
+        for (int i = 0; i < viewModel.getSelected().size(); i++) {
+            int index = viewModel.getSelected().get(i);
+            DownloadDetails details = new DownloadDetails();
+            details.videoSize = viewModel.getFormats().videoSizes.get(index);
+            details.videoURL = viewModel.getFormats().mainFileURLs.get(index);
+            viewModel.getFormats().title = removeStuffFromName(viewModel.getFormats().title);
+
+            FutureTarget<Bitmap> target = Glide.with(getContext())
+                    .asBitmap()
+                    .load(viewModel.getFormats().thumbNailsURL.get(index))
+                    .submit();
+
+            try {
+                details.setThumbNail(getContext(),target.get());
+            } catch (ExecutionException | InterruptedException e) {
+                e.printStackTrace();
+            }
+
+            details.fileType = MimeTypeMap.getSingleton().getExtensionFromMimeType(viewModel.getFormats().fileMime.get(index));
+            details.fileName = viewModel.getFormats().title + "_(" + (i + 1) + ")_";
+            details.src = viewModel.getFormats().src;
+            details.pathUri = AppPref.getInstance(getContext()).getSavePath();
+
+            downloadDetails.add(details);
+        }
+
+        activity.runOnUiThread(()-> activity.download(downloadDetails));
+
+    }
+
 }

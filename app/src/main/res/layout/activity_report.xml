@@ -1,4 +1,20 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+  ~  This file is part of VidSnap.
+  ~
+  ~  VidSnap is free software: you can redistribute it and/or modify
+  ~  it under the terms of the GNU General Public License as published by
+  ~  the Free Software Foundation, either version 3 of the License, or
+  ~  any later version.
+  ~  VidSnap is distributed in the hope that it will be useful,
+  ~  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  ~  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  ~  GNU General Public License for more details.
+  ~  You should have received a copy of the GNU General Public License
+  ~  along with VidSnap.  If not, see <https://www.gnu.org/licenses/>.
+  ~
+  -->
+
 <androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
@@ -7,7 +23,7 @@
     android:layout_height="match_parent"
     android:padding="8dp"
     android:layout_centerInParent="true"
-    tools:context=".ui.main.Activities.ReportActivity">
+    tools:context=".ui.Activities.ReportActivity">
 
     <androidx.appcompat.widget.Toolbar
         android:id="@+id/toolbar"

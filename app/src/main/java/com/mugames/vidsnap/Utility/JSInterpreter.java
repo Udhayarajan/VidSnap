@@ -31,6 +31,9 @@ import java.util.regex.Pattern;
 
 import static com.mugames.vidsnap.Utility.UtilityClass.*;
 
+/**
+ * Used to decrypt the signature by Youtube and only used by {@link com.mugames.vidsnap.Extractor.YouTube}
+ */
 public class JSInterpreter {
 
     public static final String NAME_REGEX="[a-zA-Z_$][a-zA-Z_$0-9]*";
@@ -305,7 +308,7 @@ public class JSInterpreter {
                     if (Character.isDigit(v.charAt(0))) {
                         if(!functions.contains(funcName))
                             functions.put(funcName,Extract_Function(funcName));
-                        return functions.get(funcName).resf((String[]) arg_val.toArray());
+                        return functions.get(funcName).resf(arg_val.toArray());
                     }
                     else {}
                 }

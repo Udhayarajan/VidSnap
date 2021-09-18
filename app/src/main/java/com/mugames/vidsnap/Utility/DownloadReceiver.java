@@ -23,23 +23,21 @@ import static com.mugames.vidsnap.Utility.Statics.PROGRESS_DONE;
 import static com.mugames.vidsnap.Utility.Statics.PROGRESS_FAILED;
 import static com.mugames.vidsnap.Utility.Statics.RESULT_CODE;
 import static com.mugames.vidsnap.Utility.UtilityInterface.DownloadCallback;
-import static com.mugames.vidsnap.ViewModels.MainActivityViewModel.downloadDetailsList;
+import static com.mugames.vidsnap.ui.ViewModels.MainActivityViewModel.downloadDetailsList;
 
 import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
-import android.media.MediaScannerConnection;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Parcelable;
 import android.os.ResultReceiver;
 import android.text.format.DateFormat;
-import android.util.Log;
+import android.webkit.MimeTypeMap;
 
 import androidx.core.app.NotificationCompat;
 import androidx.core.app.NotificationManagerCompat;
-import androidx.core.content.FileProvider;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 
@@ -49,13 +47,15 @@ import com.mugames.vidsnap.R;
 import com.mugames.vidsnap.Storage.FileUtil;
 import com.mugames.vidsnap.Utility.Bundles.DownloadDetails;
 import com.mugames.vidsnap.VidSnapApp;
-import com.mugames.vidsnap.ViewModels.MainActivityViewModel;
-import com.mugames.vidsnap.ui.main.Activities.MainActivity;
+import com.mugames.vidsnap.ui.Activities.MainActivity;
 
 import java.io.File;
 import java.util.Date;
 import java.util.Random;
 
+/**
+ * Kind of {@link ResultReceiver} that communicate between {@link android.app.Service} and UI
+ */
 public class DownloadReceiver extends ResultReceiver implements Parcelable {
 
     String TAG = Statics.TAG + ":DownloadReceiver";
@@ -67,7 +67,6 @@ public class DownloadReceiver extends ResultReceiver implements Parcelable {
 
     int id;
     DownloadCallback callback;
-    History history;
 
     public DownloadReceiver(Handler handler, Context context, UtilityInterface.DialogueInterface dialogueInterface, int id, DownloadCallback callback) {
         super(handler);
@@ -110,38 +109,29 @@ public class DownloadReceiver extends ResultReceiver implements Parcelable {
             return;
         }
         if (resultCode == PROGRESS_DONE) {
-            scan(resultData.getString(OUTFILE_URI, null));
+            Uri outputUri = Uri.parse(resultData.getString(OUTFILE_URI, null));
+            DownloadDetails details = DownloadDetails.findDetails(id);
+            if(details==null) return;
+            File file = new File(FileUtil.uriToPath(context,outputUri));
+            details.fileName = file.getName().split("\\.")[0];
+            details.fileType = file.getName().split("\\.")[1];
+            details.fileMime = MimeTypeMap.getSingleton().getMimeTypeFromExtension(details.fileType);
+            scan(outputUri.toString());
         }
 
     }
 
     void scan(String fileUri) {
-        Log.e(TAG, "scan: Starting");
-        MainActivityViewModel.service_in_use = false;
-        Uri uri = Uri.parse(fileUri);
-
-        String path = FileUtil.uriToPath(context, uri);
-        if (path.equals(File.separator)) path = uri.getPath();
-
-        MediaScannerConnection.scanFile(context, new String[]{path}, null, new MediaScannerConnection.OnScanCompletedListener() {
-            @Override
-            public void onScanCompleted(String path, Uri uri) {
-                if(uri == null)
-                    uri = FileProvider.getUriForFile(context,context.getPackageName()+".provider",new File(path));
-                notificationSetup(uri);
-            }
-        });
+        FileUtil.scanMedia(context, fileUri, (s, uri1) -> notificationSetup(uri1));
     }
 
     void notificationSetup(Uri uri) {
-        DownloadDetails details = findDetails(id);
-        downloadDetailsList.remove(details);
+        DownloadDetails details = DownloadDetails.findDetails(id);
+        if(details==null) return;
         History history = new History(details, uri, (String) DateFormat.format("yyyy-MM-dd", new Date()));
-        Log.d(TAG, "onScanCompleted: Completed" + uri);
 
 
         new Thread(() -> addItemToDB(history)).start();
-
 
         NotificationCompat.Builder builder = new NotificationCompat.Builder(context, VidSnapApp.NOTIFY_DOWNLOADED);
         NotificationManagerCompat managerCompat = NotificationManagerCompat.from(context);
@@ -157,10 +147,9 @@ public class DownloadReceiver extends ResultReceiver implements Parcelable {
                 .setAutoCancel(true)
                 .setContentIntent(pendingIntent);
         managerCompat.notify(new Random().nextInt(), builder.build());
-        new Thread(()-> FileUtil.deleteFile(details.thumbNailPath,null)).start();
+        details.deleteThumbnail();
 
-        callback.onDownloadCompleted();
-        Log.d(TAG, "onScanCompleted: " + uri);
+        callback.onDownloadCompleted(id);
     }
 
     synchronized void addItemToDB(History history) {
@@ -170,8 +159,7 @@ public class DownloadReceiver extends ResultReceiver implements Parcelable {
     }
 
     void notificationFailed(Bundle resultData) {
-        DownloadDetails details = findDetails(id);
-        downloadDetailsList.remove(details);
+        DownloadDetails details = DownloadDetails.findDetails(id);
 
         Intent play_Intent = new Intent(context, MainActivity.class);
 
@@ -188,16 +176,10 @@ public class DownloadReceiver extends ResultReceiver implements Parcelable {
         managerCompat.notify(new Random().nextInt(), builder.build());
         dialogInterface.error("Sorry!! for inconvenience try changing name and re-download or change download location",
                 new Exception(resultData.getString(ERROR_DOWNLOADING)));
-        callback.onDownloadCompleted();
+        callback.onDownloadCompleted(id);
     }
 
-    private static DownloadDetails findDetails(int id) {
-        for (DownloadDetails details :
-                downloadDetailsList) {
-            if (details.id == id) return details;
-        }
-        return null;
-    }
+
 
 
 }

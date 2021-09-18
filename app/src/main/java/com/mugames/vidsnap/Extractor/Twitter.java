@@ -17,11 +17,11 @@
 
 package com.mugames.vidsnap.Extractor;
 
-import android.graphics.Bitmap;
+import static com.mugames.vidsnap.Utility.MIMEType.VIDEO_MP4;
+
 import android.util.Log;
 
 import com.mugames.vidsnap.Threads.HttpRequest;
-import com.mugames.vidsnap.Utility.Formats;
 import com.mugames.vidsnap.Utility.MIMEType;
 import com.mugames.vidsnap.Utility.Statics;
 import com.mugames.vidsnap.Utility.UtilityClass;
@@ -44,15 +44,9 @@ public class Twitter extends Extractor {
     String httpURL;
     String tweetID;
 
-    //download details
-    String selectedURL;
-    String fileSize;
-    Bitmap thumbNail;
-    String cacheFileName;
 
     String auth = "Bearer AAAAAAAAAAAAAAAAAAAAAPYXBAAAAAAACLXUNDekMxqa8h%2F40K4moUkGsoc%3DTYfbDKbT3jJPCEVnMYqilB28NHfOPqkca3qaAxGfsyKCs0wRbw";
-    String videoName;
-    String thumbNailURL;
+
 
 
     JSONObject info;
@@ -127,56 +121,53 @@ public class Twitter extends Extractor {
             JSONObject extended_entities = UtilityClass.JSONGetter.getObj_or_Null(jsonObject, "extended_entities");
             if (extended_entities != null) {
                 JSONObject media = extended_entities.getJSONArray("media").getJSONObject(0);
-                FromVideoInfo(media);
-                UpdateUI();
+                fromVideoInfo(media);
+                updateUI();
             } else {
                 JSONObject card = UtilityClass.JSONGetter.getObj_or_Null(jsonObject, "card");
                 if (card != null) {
                     JSONObject binding_values = card.getJSONObject("binding_values");
                     String[] strings = card.getString("name").split(":");
                     String cardName = strings[strings.length - 1];
-                    if (cardName.equals("player")) {
-                        new Twitch(getDialogueInterface()).ExtractURLFromClips(get_binding_value(binding_values, "player_url"), new Twitch.TwitchInfoInterface() {
-                            @Override
-                            public void onDone(Formats format) {
-                                formats = format;
-                                UpdateUI();
-                            }
-                        });
-                    } else if (cardName.equals("periscope_broadcast")) {
-                        String s = get_binding_value(binding_values, "url");
-                        // videoInfo.setVideoURL(s);
-                        if (s == null || s.isEmpty())
-                            s = get_binding_value(binding_values, "player_url");
-                        //Creates new Instance for periscope
-                        new Periscope(this).ExtractInfo(s);
-                    } else if (cardName.equals("broadcast")) {
-                        tweetID = getTweetID(get_binding_value(binding_values, "broadcast_url"));
-                        extractBroadcasts();
-                    }
+                    switch (cardName) {
+                        case "player":
+                            new Twitch(getDialogueInterface()).extractURLFromClips(get_binding_value(binding_values, "player_url"), this::updateUI);
+                            break;
+                        case "periscope_broadcast":
+                            String s = get_binding_value(binding_values, "url");
+                            if (s == null || s.isEmpty())
+                                s = get_binding_value(binding_values, "player_url");
+                            new Periscope(this).extractInfo(s);
+                            break;
+                        case "broadcast":
+                            tweetID = getTweetID(get_binding_value(binding_values, "broadcast_url"));
+                            extractBroadcasts();
+                            break;
 //                            else if(cardName.equals("summary")) videoInfo.setVideoURL(get_binding_value(binding_values,"card_url"));
-                    else if (cardName.equals("unified_card")) {
-                        JSONObject unified_card = new JSONObject(get_binding_value(binding_values, "unified_card"));
-                        JSONObject media_entities = unified_card.getJSONObject("media_entities");
-                        JSONObject media = media_entities.getJSONObject(media_entities.names().getString(0));
-                        FromVideoInfo(media);
-                        UpdateUI();
-                    } else {
-                        boolean isAmplify = cardName.equals("amplify");
-                        String vmap_url;
-                        if (isAmplify)
-                            vmap_url = get_binding_value(binding_values, "amplify_url_vmap");
-                        else
-                            vmap_url = get_binding_value(binding_values, "player_stream_url");
-                        for (String s : new String[]{"_original", "_x_large", "_large", "", "_small"}) {
-                            JSONObject image = new JSONObject(get_binding_value(binding_values, "player_image" + s));
-                            String img_url = UtilityClass.JSONGetter.getString_or_Null(image, "url");
-                            if (img_url != null && !img_url.contains("/player-placeholder")) {
-                                formats.thumbNailsURL.add(img_url);
-                                break;
+                        case "unified_card":
+                            JSONObject unified_card = new JSONObject(get_binding_value(binding_values, "unified_card"));
+                            JSONObject media_entities = unified_card.getJSONObject("media_entities");
+                            JSONObject media = media_entities.getJSONObject(media_entities.names().getString(0));
+                            fromVideoInfo(media);
+                            updateUI();
+                            break;
+                        default:
+                            boolean isAmplify = cardName.equals("amplify");
+                            String vmap_url;
+                            if (isAmplify)
+                                vmap_url = get_binding_value(binding_values, "amplify_url_vmap");
+                            else
+                                vmap_url = get_binding_value(binding_values, "player_stream_url");
+                            for (String s1 : new String[]{"_original", "_x_large", "_large", "", "_small"}) {
+                                JSONObject image = new JSONObject(get_binding_value(binding_values, "player_image" + s1));
+                                String img_url = UtilityClass.JSONGetter.getString_or_Null(image, "url");
+                                if (img_url != null && !img_url.contains("/player-placeholder")) {
+                                    formats.thumbNailsURL.add(img_url);
+                                    break;
+                                }
                             }
-                        }
-                        FromVMap(vmap_url);
+                            fromVMap(vmap_url);
+                            break;
                     }
                 } else {
                     getDialogueInterface().error("This media can't be downloaded. It may be a retweet so paste URL of main tweet",null);
@@ -188,7 +179,7 @@ public class Twitter extends Extractor {
         }
     }
 
-    private void FromVMap(String url) {
+    private void fromVMap(String url) {
 
         HttpRequest request = new HttpRequest(url,getDialogueInterface(),response -> {
             Pattern pattern = Pattern.compile("(?<=<tw:videoVariants>)[\\s\\S]*(?=</tw:videoVariants>)");
@@ -200,14 +191,15 @@ public class Twitter extends Extractor {
                     pattern = Pattern.compile("(?<=url=\")(.*?)\".*(?<=content_type=\")(.*?)\"");
                     matcher = pattern.matcher(s);
                     if (matcher.find()) {
-                        if (matcher.group(2).equals(MIMEType.VIDEO_MP4)) {
+                        if (matcher.group(2).equals(VIDEO_MP4)) {
                             String u = UtilityClass.decodeHTML(matcher.group(1));
-                            formats.videoURLs.add(u);
+                            formats.mainFileURLs.add(u);
+                            formats.fileMime.add(VIDEO_MP4);
                             formats.qualities.add(resolution(u));
                         }
                     }
                 }
-                UpdateUI();
+                updateUI();
                 return;
             }
             getDialogueInterface().error("Sorry! Something wrong in vmap.",new Exception("Problem with vmap"));
@@ -226,38 +218,34 @@ public class Twitter extends Extractor {
         return null;
     }
 
-    private void FromVideoInfo(JSONObject media) {
+    private void fromVideoInfo(JSONObject media) {
         JSONObject video_info;
         try {
             video_info = media.getJSONObject("video_info");
             JSONArray variants = video_info.getJSONArray("variants");
             for (int i = 0; i < variants.length(); i++) {
                 JSONObject data = variants.getJSONObject(i);
-                if (data.getString("content_type").equals(MIMEType.VIDEO_MP4)) {
+                if (data.getString("content_type").equals(VIDEO_MP4)) {
                     String s = data.getString("url");
                     formats.qualities.add(resolution(s));
-                    formats.videoURLs.add(s);
+                    formats.fileMime.add(VIDEO_MP4);
+                    formats.mainFileURLs.add(s);
                 }
             }
-            thumbNailURL = media.getString("media_url");
+            String thumbNailURL = media.getString("media_url");
             if (thumbNailURL.isEmpty()) thumbNailURL = media.getString("media_url_https");
             if (thumbNailURL.startsWith("http:/"))
                 thumbNailURL = thumbNailURL.replaceAll("http:/", "https:/");
+            formats.thumbNailsURL.add(thumbNailURL);
         } catch (JSONException e) {
             e.printStackTrace();
         }
 
     }
 
-    int uiIndex = 0;
-
-    void UpdateUI() {
-        videoName = formats.title;
+    void updateUI() {
         getDialogueInterface().show("Setting up...");
         fetchDataFromURLs();
-
-//        activity.dialog.show("Almost done!!");
-
 
     }
 
@@ -280,7 +268,7 @@ public class Twitter extends Extractor {
     void parseBroadcastResponse(String response){
         try {
             JSONObject broadcasts = new JSONObject(response).getJSONObject("broadcasts").getJSONObject(tweetID);
-            info = ExtractInfo(broadcasts);
+            info = extractInfo(broadcasts);
             String mediaKey = broadcasts.getString("media_key");
 
             HttpRequest request = new HttpRequest(String.format(base_url + "live_video_stream/status/%s", mediaKey),getDialogueInterface(),response1 -> {
@@ -296,7 +284,7 @@ public class Twitter extends Extractor {
                         getDialogueInterface().error("Geo restricted try with VPN",null);
                         return;
                     }
-                    new m3u8(this).Extract_m3u8(m3u8_url, info);
+                    new m3u8(this).extract_m3u8(m3u8_url, info);
                 } catch (JSONException e) {
                     e.printStackTrace();
                 }
@@ -310,7 +298,7 @@ public class Twitter extends Extractor {
         }
     }
 
-    JSONObject ExtractInfo(JSONObject broadcast) {
+    JSONObject extractInfo(JSONObject broadcast) {
         try {
             String title = UtilityClass.JSONGetter.getString_or_Null(broadcast, "status");
             if (title == null) title = "Periscope Broadcast";

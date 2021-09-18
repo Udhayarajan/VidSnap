@@ -15,7 +15,7 @@
  *  along with VidSnap.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.mugames.vidsnap.ui.main.Activities;
+package com.mugames.vidsnap.ui.Activities;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
@@ -37,6 +37,9 @@ import com.mugames.vidsnap.R;
 
 import static androidx.core.text.HtmlCompat.FROM_HTML_MODE_LEGACY;
 
+/**
+ * Activity to check app update
+ */
 public class CheckUpdateActivity extends AppCompatActivity {
 
     FirebaseManager firebaseManager;
@@ -85,7 +88,7 @@ public class CheckUpdateActivity extends AppCompatActivity {
 
         check_update.setOnClickListener(v -> checkUpdate());
 
-        linearLayout.setVisibility(View.GONE);;
+        linearLayout.setVisibility(View.GONE);
     }
 
     @Override

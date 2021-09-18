@@ -23,6 +23,7 @@ import android.net.Uri;
 import androidx.room.Entity;
 import androidx.room.PrimaryKey;
 
+import com.bumptech.glide.Glide;
 import com.mugames.vidsnap.Utility.Bundles.DownloadDetails;
 import com.mugames.vidsnap.Storage.FileUtil;
 import com.mugames.vidsnap.Utility.UtilityClass;
@@ -38,11 +39,10 @@ public class History {
     public String date;
     public String size;
     public String uriString;
-    public byte[] thumbnail;
-    public int imageWidth;
-    public int imageHeight;
+    public String image;
 
     public History() {}
+
 
     public History(DownloadDetails details, Uri uri, String date) {
         this.fileName = details.fileName;
@@ -51,15 +51,7 @@ public class History {
         this.date = date;
         this.size = String.valueOf(details.videoSize);
         this.uriString = uri.toString();
-        new Thread(()->{
-            this.thumbnail = (byte[]) FileUtil.loadImage(details.thumbNailPath);
-        }).start();
-        this.imageWidth = details.thumbWidth;
-        this.imageHeight = details.thumbHeight;
-    }
-
-    public Bitmap getThumbnail() {
-        return UtilityClass.bytesToBitmap(thumbnail,imageWidth,imageHeight);
+        image = UtilityClass.bitmapToString(details.getThumbNail());
     }
 
     public Uri getUri(){

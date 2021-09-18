@@ -22,8 +22,10 @@ import static com.mugames.vidsnap.Utility.Statics.COMMUNICATOR;
 import static com.mugames.vidsnap.Utility.Statics.DOWNLOADED;
 import static com.mugames.vidsnap.Utility.Statics.DOWNLOAD_SPEED;
 import static com.mugames.vidsnap.Utility.Statics.ERROR_DOWNLOADING;
+import static com.mugames.vidsnap.Utility.Statics.FETCH_MESSAGE;
 import static com.mugames.vidsnap.Utility.Statics.OUTFILE_URI;
 import static com.mugames.vidsnap.Utility.Statics.PROGRESS;
+import static com.mugames.vidsnap.Utility.Statics.PROGRESS_DEFAULT;
 import static com.mugames.vidsnap.Utility.Statics.PROGRESS_DONE;
 import static com.mugames.vidsnap.Utility.Statics.PROGRESS_FAILED;
 import static com.mugames.vidsnap.Utility.Statics.PROGRESS_UPDATE;
@@ -49,7 +51,6 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.core.app.NotificationCompat;
 import androidx.core.app.NotificationManagerCompat;
-import androidx.documentfile.provider.DocumentFile;
 
 import com.mugames.vidsnap.PostProcessor.FFMPEG;
 import com.mugames.vidsnap.PostProcessor.FFMPEGInfo;
@@ -58,10 +59,8 @@ import com.mugames.vidsnap.R;
 import com.mugames.vidsnap.Utility.AppPref;
 import com.mugames.vidsnap.Utility.Bundles.DownloadDetails;
 import com.mugames.vidsnap.Storage.FileUtil;
-import com.mugames.vidsnap.Utility.MIMEType;
 import com.mugames.vidsnap.Utility.Statics;
-import com.mugames.vidsnap.ViewModels.MainActivityViewModel;
-import com.mugames.vidsnap.ui.main.Activities.MainActivity;
+import com.mugames.vidsnap.ui.Activities.MainActivity;
 
 import com.tonyodev.fetch2.Download;
 import com.tonyodev.fetch2.Fetch;
@@ -112,13 +111,11 @@ public class Downloader extends Service {
     @Override
     public void onDestroy() {
         super.onDestroy();
-        Log.d(TAG, "onDestroy: called");
     }
 
     @Nullable
     @Override
     public IBinder onBind(Intent intent) {
-
         return null;
     }
 
@@ -126,9 +123,6 @@ public class Downloader extends Service {
         String TEMP_VIDEO_NAME = "MUvideo";
         String TEMP_AUDIO_NAME = "MUaudio";
         String TEMP_RESULT_NAME = "final";
-
-        //storage/emulated/0/Download/
-        //storage/emulated/0/Aaaaa/
 
         int PROCESS = 0;
 
@@ -148,16 +142,10 @@ public class Downloader extends Service {
 
         int startId;
 
-        int val_cache;
-
-
         long passed = 0;
-        long startTime = System.nanoTime();
-        long startBytes = 0;
+
         double speed = -10;
         private int notificationVal;
-        boolean isFirst = true;
-        double passedTime;
 
 
         Timer notificationTimer;
@@ -178,20 +166,11 @@ public class Downloader extends Service {
 
             path = AppPref.getInstance(context).getCachePath("");
 
-            TEMP_VIDEO_NAME = FileUtil.getValidFile(path, ran + "Video", ".muvideo");
-            TEMP_AUDIO_NAME = FileUtil.getValidFile(path, ran + "Audio", ".muaudio");
-            TEMP_RESULT_NAME = FileUtil.getValidFile(path, ran + "FullVideo", ".muout");
+            TEMP_VIDEO_NAME = FileUtil.getValidFile(path, ran + "Video", "muvideo");
+            TEMP_AUDIO_NAME = FileUtil.getValidFile(path, ran + "Audio", "muaudio");
+            TEMP_RESULT_NAME = FileUtil.getValidFile(path, ran + "FullVideo", "muout");
 
             details = intent.getParcelableExtra(COMMUNICATOR);
-
-            DocumentFile directory;
-            try {
-                directory = DocumentFile.fromTreeUri(context, details.pathUri);
-                DocumentFile file = directory.createFile(MIMEType.VIDEO_MP4, details.fileName);
-                outputUri = file.getUri();
-            } catch (IllegalArgumentException|NullPointerException e) {
-                outputUri = Uri.fromFile(new File(FileUtil.getValidFile(details.pathUri.getPath() + File.separator, details.fileName, details.fileType)));
-            }
 
 
             receiver = details.receiver;
@@ -199,7 +178,7 @@ public class Downloader extends Service {
             PROCESS = PROGRESS_UPDATE;
 
             Intent intent = new Intent(context, MainActivity.class);
-            intent.putExtra(ACTIVE_DOWNLOAD,true);
+            intent.putExtra(ACTIVE_DOWNLOAD, true);
             PendingIntent downloading_PendingIntent = PendingIntent.getActivity(getBaseContext(), 10, intent, 0);
 
             builder = new NotificationCompat.Builder(context, NOTIFY_DOWNLOADING);
@@ -211,8 +190,6 @@ public class Downloader extends Service {
 
             startForeground(ran, builder.build());
 
-
-            if (details.audioURL != null) MainActivityViewModel.service_in_use = true;
 
             new Thread(() -> {
 
@@ -236,9 +213,8 @@ public class Downloader extends Service {
             AtomicInteger got = new AtomicInteger();
             final Timer notifyTimer = notifyProgress();
             ffmpeg.setExecuteCallback(session -> {
-                Log.e(TAG, "apply: HLS Successfull");
                 Bundle progressData = new Bundle();
-                onDoneDownload(ffmpeg.getOutputPath());
+                onDoneDownload(ffmpeg.getInfo().localOutputPath, ffmpeg.getInfo().localOutputMime);
                 progressData.putInt(PROGRESS, 100);
                 sendBundle(PROGRESS_UPDATE_MERGING, progressData);
                 notifyTimer.cancel();
@@ -262,7 +238,7 @@ public class Downloader extends Service {
 
             if (currentCode == PROGRESS_UPDATE_VIDEO) {
                 if (details.audioURL == null)
-                    onDoneDownload(null);
+                    onDoneDownload(null, null);
                 else {
                     String audio_url = details.audioURL;
                     audio_url = audio_url.replaceAll("\\\\", "");
@@ -284,17 +260,17 @@ public class Downloader extends Service {
             FFMPEGInfo info = new FFMPEGInfo();
             info.videoPath = TEMP_VIDEO_NAME;
             info.audioPath = TEMP_AUDIO_NAME;
-            info.outPut = TEMP_RESULT_NAME;
+            info.localOutputPath = TEMP_RESULT_NAME;
             info.hlsURL = details.chunkUrl;
-            info.mime_video = details.mimeVideo;
-            info.mime_audio = details.mimeAudio;
+            info.videoMime = details.fileMime;
+            info.audioMime = details.mimeAudio;
             if (soLoadCallbacks == null)
                 return new FFMPEG(info, context, null);
             FFMPEG.newFFMPEGInstance(info, context, soLoadCallbacks);
             return null;
         }
 
-        private void onDownloadFailed(Bundle data) {
+        synchronized void onDownloadFailed(Bundle data) {
             sendBundle(PROGRESS_FAILED, data);
             manager.cancel(ran);
             activeDownload -= 1;
@@ -302,9 +278,10 @@ public class Downloader extends Service {
                 stopForeground(true);
         }
 
-        synchronized void onDoneDownload(String finalPath) {
+        synchronized void onDoneDownload(String finalPath, String finalMime) {
             if (finalPath == null) finalPath = TEMP_VIDEO_NAME;
-            copyVideoToDestination(finalPath);
+            if (finalMime == null) finalMime = details.fileMime;
+            copyVideoToDestination(finalPath, finalMime);
             Bundle bundle = new Bundle();
             bundle.putString(OUTFILE_URI, outputUri.toString());
 
@@ -325,7 +302,7 @@ public class Downloader extends Service {
 
             ffmpeg.setExecuteCallback(session -> {
                 Bundle progressData = new Bundle();
-                onDoneDownload(ffmpeg.getOutputPath());
+                onDoneDownload(ffmpeg.getInfo().localOutputPath, ffmpeg.getInfo().localOutputMime);
                 progressData.putInt(PROGRESS, 100);
                 sendBundle(PROGRESS_UPDATE_MERGING, progressData);
                 notifyTimer.cancel();
@@ -342,11 +319,11 @@ public class Downloader extends Service {
             });
         }
 
-        void copyVideoToDestination(String finalFile) {
-
+        void copyVideoToDestination(String localFile, String localMime) {
+            outputUri = FileUtil.pathToNewUri(context, details.pathUri, details.fileName, localMime);
             try {
 
-                FileChannel inChannel = new FileInputStream(finalFile).getChannel();
+                FileChannel inChannel = new FileInputStream(localFile).getChannel();
                 FileChannel outChannel;
 
                 try {
@@ -362,9 +339,9 @@ public class Downloader extends Service {
                 Log.e(TAG, "copyVideoToDestination: ", e);
                 sendErrorBundle(e.toString());
             }
-            new Thread(()-> FileUtil.deleteFile(finalFile,null)).start();
-            new Thread(()-> FileUtil.deleteFile(TEMP_AUDIO_NAME,null)).start();
-            new Thread(()-> FileUtil.deleteFile(TEMP_VIDEO_NAME,null)).start();
+            new Thread(() -> FileUtil.deleteFile(localFile, null)).start();
+            new Thread(() -> FileUtil.deleteFile(TEMP_AUDIO_NAME, null)).start();
+            new Thread(() -> FileUtil.deleteFile(TEMP_VIDEO_NAME, null)).start();
         }
 
         ReflectionInterfaces.SOLoadCallbacks mergeSOCallback = new ReflectionInterfaces.SOLoadCallbacks() {
@@ -420,47 +397,9 @@ public class Downloader extends Service {
         void sendErrorBundle(String error) {
             Bundle bundle = new Bundle();
             bundle.putString(ERROR_DOWNLOADING, error);
-            Log.e(TAG, "run: " + error);
+            Log.e(TAG, "run: ", new Exception(error));
             onDownloadFailed(bundle);
         }
-
-
-        //        void Download(URL downloadingURL) {
-//            try {
-//
-//                URLConnection connection = downloadingURL.openConnection();
-//
-//                BufferedInputStream inputStream = new BufferedInputStream(connection.getInputStream());
-//
-//                byte[] buff = new byte[8192];
-//                int length;
-//
-//
-//                Timer timer = new Timer();
-//                timer.scheduleAtFixedRate(new TimerTask() {
-//                    @Override
-//                    public void run() {
-//                        calculateSpeed();
-//                        uiSpeed();
-//                    }
-//                }, 0, 1000);
-//
-//                Timer notificationTimer = notifyProgress();
-//
-//                while ((length = inputStream.read(buff)) > 0) {
-//                    passed += length;
-//                    notificationVal = (int) (passed * 100 / file_size);
-//                    outputStream.write(buff, 0, length);
-//                }
-//
-//                outputStream.close();
-//                timer.cancel();
-//                notificationTimer.cancel();
-//            } catch (IOException e) {
-//                e.printStackTrace();
-//            }
-//
-//        }
 
 
         void uiSpeed() {
@@ -505,13 +444,14 @@ public class Downloader extends Service {
                 Log.e(TAG, "onChanged: " + speed);
                 speed /= 1024;
                 uiSpeed();
-            }
-            if (reason == Reason.DOWNLOAD_ERROR) {
+            } else if (reason == Reason.DOWNLOAD_ERROR) {
                 sendErrorBundle(String.valueOf(download.getError()));
                 Log.e(TAG, "onChanged: " + download.getError());
+            } else if(reason != Reason.DOWNLOAD_PROGRESS_CHANGED) {
+                Bundle bundle = new Bundle();
+                bundle.putString(FETCH_MESSAGE, reason.toString());
+                sendBundle(PROGRESS_DEFAULT, bundle);
             }
         }
     }
-
-
 }

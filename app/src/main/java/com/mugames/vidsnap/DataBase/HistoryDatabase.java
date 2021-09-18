@@ -17,31 +17,63 @@
 
 package com.mugames.vidsnap.DataBase;
 
-import static com.mugames.vidsnap.ViewModels.MainActivityViewModel.STATIC_CACHE;
-import static com.mugames.vidsnap.ViewModels.MainActivityViewModel.db_name;
+import static com.mugames.vidsnap.ui.ViewModels.MainActivityViewModel.STATIC_CACHE;
+import static com.mugames.vidsnap.ui.ViewModels.MainActivityViewModel.db_name;
 
 import android.content.Context;
+import android.database.Cursor;
 
+import androidx.annotation.NonNull;
 import androidx.room.Database;
 import androidx.room.Room;
 import androidx.room.RoomDatabase;
+import androidx.room.migration.Migration;
+import androidx.sqlite.db.SupportSQLiteDatabase;
 
 import com.mugames.vidsnap.Utility.AppPref;
+import com.mugames.vidsnap.Utility.UtilityClass;
 
-@Database(entities = {History.class}, version = 1)
+@Database(entities = {History.class}, version = 2)
 public abstract class HistoryDatabase extends RoomDatabase {
 
 
     private static volatile HistoryDatabase instance;
 
+    static Migration migration1_2 = new Migration(1, 2) {
+        @Override
+        public void migrate(@NonNull SupportSQLiteDatabase database) {
+            database.execSQL("CREATE TABLE HISTORY_NEW (id INTEGER NOT NULL , fileName TEXT, fileType TEXT, source TEXT, date TEXT, size TEXT, uriString TEXT, image TEXT, PRIMARY KEY(id))");
+            Cursor cursor = database.query("SELECT * FROM HISTORY");
+            while (cursor.moveToNext()) {
+                int id = cursor.getInt(0);
+                String fileName = cursor.getString(1);
+                String fileType = cursor.getString(2);
+                String src = cursor.getString(3);
+                String date = cursor.getString(4);
+                String size = cursor.getString(5);
+                String uriString = cursor.getString(6);
+                byte[] thumbNail = cursor.getBlob(7);
+                int width = cursor.getInt(8);
+                int height = cursor.getInt(9);
+
+                fileType = fileType.replaceAll("\\.","");
+                String thumbnailString = UtilityClass.bitmapToString(UtilityClass.bytesToBitmap(thumbNail, width, height));
+                String value = id + ",\"" + fileName + "\",\"" + fileType + "\",\"" + src + "\",\"" + date + "\",\"" + size + "\",\"" + uriString + "\",\"" + thumbnailString+"\"";
+                database.execSQL("INSERT INTO HISTORY_NEW (id,fileName,fileType,source,date,size,uriString,image) VALUES("+value+")");
+            }
+            database.execSQL("DROP TABLE HISTORY");
+            database.execSQL("ALTER TABLE HISTORY_NEW RENAME TO HISTORY");
+        }
+    };
+
     public abstract HistoryDao historyDao();
 
-    public static HistoryDatabase getInstance(Context context){
-        if(instance == null){
-            synchronized (HistoryDatabase.class){
-                if(instance==null){
-                    instance = Room.databaseBuilder(context.getApplicationContext(),HistoryDatabase.class,AppPref.getInstance(context).getCachePath(STATIC_CACHE)+db_name)
-                            .fallbackToDestructiveMigration()
+    public static HistoryDatabase getInstance(Context context) {
+        if (instance == null) {
+            synchronized (HistoryDatabase.class) {
+                if (instance == null) {
+                    instance = Room.databaseBuilder(context.getApplicationContext(), HistoryDatabase.class, AppPref.getInstance(context).getCachePath(STATIC_CACHE) + db_name)
+                            .addMigrations(migration1_2)
                             .build();
                 }
             }

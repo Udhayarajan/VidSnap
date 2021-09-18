@@ -17,14 +17,10 @@
 
 package com.mugames.vidsnap.Extractor;
 
-import android.content.DialogInterface;
-
 import com.mugames.vidsnap.Utility.UtilityInterface.DialogueInterface;
-import com.mugames.vidsnap.ui.main.Activities.MainActivity;
 import com.mugames.vidsnap.Threads.HttpRequest;
 import com.mugames.vidsnap.Utility.MIMEType;
-import com.mugames.vidsnap.Utility.UtilityInterface;
-import com.mugames.vidsnap.Utility.Formats;
+import com.mugames.vidsnap.Utility.Bundles.Formats;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -48,7 +44,7 @@ public class Twitch {
         this.dialogueInterface = dialogueInterface;
     }
 
-    String GetId(String s){
+    String getId(String s){
         Pattern pattern = Pattern.compile("https?://(?:clips\\.twitch\\.tv/(?:embed\\?.*?\\bclip=|(?:[^/]+/)*)|(?:(?:www|go|m)\\.)?twitch\\.tv/[^/]+/clip/)([^/?#&]+)");
         Matcher matcher=pattern.matcher(s);
         if(matcher.find()){
@@ -57,11 +53,11 @@ public class Twitch {
         return null;
     }
 
-    public void ExtractURLFromClips(String twitchURL,TwitchInfoInterface i){
+    public void extractURLFromClips(String twitchURL, TwitchInfoInterface i){
         String id;
         Formats formats =new Formats();
         headers=new Hashtable<>();
-        if((id=GetId(twitchURL))==null){
+        if((id= getId(twitchURL))==null){
             try {
                 throw new Exception("Error!! Id can't find for URL "+twitchURL);
             } catch (Exception e) {
@@ -80,11 +76,11 @@ public class Twitch {
                 formats.title= clip.getString("title");
                 for (int j = 0; j< videoQualities.length(); j++){
                     JSONObject object= videoQualities.getJSONObject(j);
-                    formats.videoURLs.add(object.getString("sourceURL"));
-                    formats.videoMime.add(MIMEType.VIDEO_MP4);
+                    formats.mainFileURLs.add(object.getString("sourceURL"));
+                    formats.fileMime.add(MIMEType.VIDEO_MP4);
                     formats.qualities.add(object.getString("quality")+"p");
                 }
-                i.onDone(formats);
+                i.onDone();
             } catch (JSONException e) {
                 e.printStackTrace();
             }
@@ -94,6 +90,6 @@ public class Twitch {
         request.start();
     }
     interface TwitchInfoInterface{
-        void onDone(Formats formats);
+        void onDone();
     }
 }

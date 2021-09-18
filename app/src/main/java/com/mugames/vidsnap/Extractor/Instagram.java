@@ -22,6 +22,7 @@ import android.util.Log;
 
 import com.mugames.vidsnap.Firebase.FirebaseManager;
 import com.mugames.vidsnap.Threads.HttpRequest;
+import com.mugames.vidsnap.Utility.MIMEType;
 import com.mugames.vidsnap.Utility.Statics;
 import com.mugames.vidsnap.Utility.UtilityClass;
 
@@ -41,14 +42,7 @@ public class Instagram extends Extractor {
     String TAG = Statics.TAG + ":Instagram";
 
 
-
-    String cacheFileName;
-    String fileURL;
-    String fileSize;
-    String videoName;
-    Bitmap thumbNail;
     String httpURL;
-    String user_cookies;
     String own_cookie;
 
     boolean own_used;
@@ -150,7 +144,7 @@ public class Instagram extends Extractor {
     void setInfo(JSONObject media) {
         try {
 
-            videoName = getString_or_Null(media, "title");
+            String videoName = getString_or_Null(media, "title");
             //media.getJSONObject("edge_media_to_caption").getJSONArray("edges").getJSONObject(0).getJSONObject("node").getString("text")
 
             if (videoName == null || videoName.equals("null") || videoName.isEmpty())
@@ -166,7 +160,7 @@ public class Instagram extends Extractor {
 
             if (videoName == null || videoName.equals("null") || videoName.isEmpty())
                 videoName = "instagram_video";
-            fileURL = getString_or_Null(media, "video_url");
+            String fileURL = getString_or_Null(media, "video_url");
             if (fileURL == null) {
                 JSONArray edges = getArray_or_Null(UtilityClass.JSONGetter.getObj_or_Null(media, "edge_sidecar_to_children"), "edges");
                 if (edges == null) {
@@ -177,12 +171,13 @@ public class Instagram extends Extractor {
                     JSONObject node = edges.getJSONObject(i).getJSONObject("node");
                     if (node.getBoolean("is_video")) {
                         formats.thumbNailsURL.add(nodeToThumb(node));
-                        formats.videoURLs.add(nodeToVideo(node));
+                        formats.mainFileURLs.add(nodeToVideo(node));
                         formats.qualities.add("--");
+                        formats.fileMime.add(MIMEType.VIDEO_MP4);
                     }
                 }
             } else{
-                formats.videoURLs.add(fileURL);
+                formats.mainFileURLs.add(fileURL);
                 formats.qualities.add("--");
                 formats.thumbNailsURL.add(media.getString("thumbnail_src"));
             }
@@ -197,9 +192,6 @@ public class Instagram extends Extractor {
             getDialogueInterface().error("Internal Error Occurred",e);
             e.printStackTrace();
         }
-
-        Log.d(TAG, "ExtractInfo: " + fileURL);
-
 
     }
 

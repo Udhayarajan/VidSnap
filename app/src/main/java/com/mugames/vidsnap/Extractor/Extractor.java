@@ -34,16 +34,15 @@
 package com.mugames.vidsnap.Extractor;
 
 import android.content.Context;
-import android.graphics.Bitmap;
 //import android.os.Bundle;
 import android.os.Bundle;
-import android.util.Log;
+import android.os.Handler;
 
 import androidx.annotation.Nullable;
 
 import com.mugames.vidsnap.R;
 import com.mugames.vidsnap.Threads.MiniExecute;
-import com.mugames.vidsnap.Utility.Formats;
+import com.mugames.vidsnap.Utility.Bundles.Formats;
 import com.mugames.vidsnap.Utility.Statics;
 import com.mugames.vidsnap.Utility.UtilityInterface;
 import com.mugames.vidsnap.Utility.UtilityInterface.AnalyzeCallback;
@@ -54,7 +53,11 @@ import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.concurrent.CountDownLatch;
 
-public abstract class Extractor {
+/**
+ * Base class of all kind of analyzer/extractor automatically which runs on separate thread and change itself to main thread at end
+ */
+
+public abstract class Extractor extends Thread {
 
 
     Context applicationContext;
@@ -66,8 +69,8 @@ public abstract class Extractor {
 
     boolean isVideoSizeReady;
     boolean isAudioSizeReady;
-    boolean isThumbnailReady;
     boolean isManifestReady;
+    String url;
 
 
     AnalyzeCallback analyzeCallback;
@@ -77,9 +80,14 @@ public abstract class Extractor {
     LoginHelper loginHelper;
 
 
-
-
     int totalUrlsCount;
+
+    public Extractor(String source, Context context, AnalyzeCallback analyzeCallback, DialogueInterface dialogueInterface) {
+        this(source);
+        this.applicationContext = context.getApplicationContext();
+        this.analyzeCallback = analyzeCallback;
+        this.dialogueInterface = dialogueInterface;
+    }
 
 
     public Extractor(DialogueInterface dialogueInterface, String source) {
@@ -101,18 +109,28 @@ public abstract class Extractor {
         this.loginHelper = loginHelper;
     }
 
-    public abstract void analyze(String url);
+    protected abstract void analyze(String url);
+
+    @Override
+    public void run() {
+        super.run();
+        analyze(url);
+    }
 
     public String getUserCookies() {
         return loginHelper.getCookies(getCookiesKey());
     }
 
+    /**
+     * It is a exit point of extractor upon getting details like video url, thumbnail url
+     * it must be called to estimate file size
+     * NOTE: It is only for file size estimation
+     */
     public void fetchDataFromURLs() {
         getDialogueInterface().show("Almost Done !!");
         new Thread(this::getSizeForManifest).start();
         new Thread(this::getSizeForVideos).start();
         new Thread(this::getSizeForAudio).start();
-        new Thread(this::getThumbnail).start();
     }
 
     private void getSizeForManifest() {
@@ -123,7 +141,7 @@ public abstract class Extractor {
         getDialogueInterface().show("This may take a while\nPlease don't close app");
 
 
-        for (ArrayList<String> chunk:formats.manifest) totalUrlsCount += chunk.size();
+        for (ArrayList<String> chunk : formats.manifest) totalUrlsCount += chunk.size();
 
         CountDownLatch countDownLatch = new CountDownLatch(totalUrlsCount);
 
@@ -134,7 +152,7 @@ public abstract class Extractor {
             bundle.putBoolean(EXTRA_isVideo, true);
             bundle.putInt(EXTRA_INDEX, chunkIndex);
 
-            for (String url:formats.manifest.get(chunkIndex)) {
+            for (String url : formats.manifest.get(chunkIndex)) {
                 MiniExecute miniExecute = new MiniExecute(bundle, countDownLatch);
                 miniExecutes.add(miniExecute);
                 miniExecute.getSize(url);
@@ -151,13 +169,13 @@ public abstract class Extractor {
             }
         }
 
-        for (MiniExecute miniExecute: miniExecutes) {
+        for (MiniExecute miniExecute : miniExecutes) {
             int chunkIndex = miniExecute.getBundle().getInt(EXTRA_INDEX);
             long oldSize = formats.videoSizes.get(chunkIndex);
             long size = oldSize + miniExecute.getSize();
             formats.videoSizes.set(chunkIndex, size);
             DecimalFormat decimalFormat = new DecimalFormat("#.##");
-            formats.videoSizeInString.set(chunkIndex, decimalFormat.format( size/ Math.pow(10, 6)));
+            formats.videoSizeInString.set(chunkIndex, decimalFormat.format(size / Math.pow(10, 6)));
         }
         isManifestReady = true;
         checkForManifestCompletion();
@@ -166,17 +184,18 @@ public abstract class Extractor {
 
 
     private void getSizeForVideos() {
-        if(formats.videoURLs.isEmpty()) return;//It must be m3u8
-        CountDownLatch countDownLatch = new CountDownLatch(formats.videoURLs.size());
+        if (formats.mainFileURLs.isEmpty()) return;//It must be m3u8
+
+        CountDownLatch countDownLatch = new CountDownLatch(formats.mainFileURLs.size());
         ArrayList<MiniExecute> miniExecutes = new ArrayList<>();
 
-        for (int i = 0; i < formats.videoURLs.size(); i++) {
+        for (int i = 0; i < formats.mainFileURLs.size(); i++) {
             Bundle bundle = new Bundle();
-            bundle.putInt(EXTRA_INDEX,i);
-            bundle.putBoolean(EXTRA_isVideo,true);
-            MiniExecute miniExecute = new MiniExecute(bundle,countDownLatch);
+            bundle.putInt(EXTRA_INDEX, i);
+            bundle.putBoolean(EXTRA_isVideo, true);
+            MiniExecute miniExecute = new MiniExecute(bundle, countDownLatch);
             miniExecutes.add(miniExecute);
-            miniExecute.getSize(formats.videoURLs.get(i));
+            miniExecute.getSize(formats.mainFileURLs.get(i));
             formats.videoSizes.add(-1L);
             formats.videoSizeInString.add("");
         }
@@ -185,10 +204,10 @@ public abstract class Extractor {
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
-        for (MiniExecute miniExecute: miniExecutes) {
+        for (MiniExecute miniExecute : miniExecutes) {
             int index = miniExecute.getBundle().getInt(EXTRA_INDEX);
             long size = miniExecute.getSize();
-            formats.videoSizes.set(index,size);
+            formats.videoSizes.set(index, size);
             DecimalFormat decimalFormat = new DecimalFormat("#.##");
             formats.videoSizeInString.set(index, decimalFormat.format(size / Math.pow(10, 6)));
         }
@@ -198,7 +217,7 @@ public abstract class Extractor {
 
     private void getSizeForAudio() {
 
-        if (formats.audioURLs.isEmpty()){
+        if (formats.audioURLs.isEmpty()) {
             isAudioSizeReady = true;
             checkForCompletion();
             return;
@@ -209,8 +228,8 @@ public abstract class Extractor {
 
         for (int i = 0; i < formats.audioURLs.size(); i++) {
             Bundle bundle = new Bundle();
-            bundle.putInt(EXTRA_INDEX,i);
-            MiniExecute miniExecute = new MiniExecute(bundle,countDownLatch);
+            bundle.putInt(EXTRA_INDEX, i);
+            MiniExecute miniExecute = new MiniExecute(bundle, countDownLatch);
             miniExecutes.add(miniExecute);
             miniExecute.getSize(formats.audioURLs.get(i));
             formats.audioSizes.add(-1L);
@@ -220,45 +239,17 @@ public abstract class Extractor {
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
-        for (MiniExecute miniExecute: miniExecutes) {
+        for (MiniExecute miniExecute : miniExecutes) {
             int index = miniExecute.getBundle().getInt(EXTRA_INDEX);
             long size = miniExecute.getSize();
-            formats.audioSizes.set(index,size);
+            formats.audioSizes.set(index, size);
         }
         isAudioSizeReady = true;
         checkForCompletion();
     }
 
-    private void getThumbnail() {
-        CountDownLatch countDownLatch = new CountDownLatch(formats.thumbNailsURL.size());
-        ArrayList<MiniExecute> miniExecutes = new ArrayList<>();
-
-        for (int i = 0; i < formats.thumbNailsURL.size(); i++) {
-            Bundle bundle = new Bundle();
-            bundle.putInt(EXTRA_INDEX,i);
-            MiniExecute miniExecute = new MiniExecute(bundle,countDownLatch);
-            miniExecutes.add(miniExecute);
-            miniExecute.getThumbnail(formats.thumbNailsURL.get(i));
-            formats.thumbNailsBitMap.add(null);
-        }
-
-        try {
-            countDownLatch.await();
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-        for (MiniExecute miniExecute: miniExecutes) {
-            int index = miniExecute.getBundle().getInt(EXTRA_INDEX);
-            Bitmap bitmap = miniExecute.getBitmap();
-            formats.thumbNailsBitMap.set(index, bitmap);
-        }
-        isThumbnailReady = true;
-        checkForCompletion();
-        checkForManifestCompletion();
-    }
-
     public DialogueInterface getDialogueInterface() {
-        return dialogueInterface;
+        return wrappedDialogueInterface;
     }
 
     public void setDialogueInterface(DialogueInterface dialogueInterface) {
@@ -277,25 +268,24 @@ public abstract class Extractor {
 
     public void trySignIn(String notificationTxt, String url, String[] validDoneURLS, UtilityInterface.LoginIdentifier loginIdentifier) {
         String cookies = loginHelper.getCookies(getCookiesKey());
-        if(cookies==null)
+        if (cookies == null)
             loginHelper.signInNeeded(notificationTxt, url, validDoneURLS, getCookiesKey(), loginIdentifier);
         else loginIdentifier.loggedIn(cookies);
     }
 
 
-
     private void checkForManifestCompletion() {
-
-        if(formats.manifest.isEmpty()) return;
-
-        if(isManifestReady&&isThumbnailReady) analyzeCallback.onAnalyzeCompleted(formats, true);
-
-
+        if (formats.manifest.isEmpty()) return;
+        if (isManifestReady) completed();
     }
 
     private void checkForCompletion() {
-        if (isThumbnailReady && isAudioSizeReady && isVideoSizeReady)
-            analyzeCallback.onAnalyzeCompleted(formats, true);
+        if (isAudioSizeReady && isVideoSizeReady)
+            completed();
+    }
+
+    void completed() {
+        wrappedAnalyzeCallback.onAnalyzeCompleted(formats);
     }
 
     @Nullable
@@ -305,5 +295,38 @@ public abstract class Extractor {
 
     public void setContext(Context context) {
         this.applicationContext = context.getApplicationContext();
+    }
+
+    public void whatsAppStatusAnalyzed() {
+        wrappedAnalyzeCallback.onAnalyzeCompleted(formats);
+    }
+
+    AnalyzeCallback wrappedAnalyzeCallback = new AnalyzeCallback() {
+        @Override
+        public void onAnalyzeCompleted(Formats formats) {
+            wrappedDialogueInterface.dismiss();
+            new Handler(applicationContext.getMainLooper()).post(()-> analyzeCallback.onAnalyzeCompleted(formats));
+        }
+    };
+
+    DialogueInterface wrappedDialogueInterface = new DialogueInterface() {
+        @Override
+        public void show(String text) {
+            new Handler(applicationContext.getMainLooper()).post(()-> dialogueInterface.show(text));
+        }
+
+        @Override
+        public void error(String message, Exception e) {
+            new Handler(applicationContext.getMainLooper()).post(()-> dialogueInterface.error(message,e));
+        }
+
+        @Override
+        public void dismiss() {
+            new Handler(applicationContext.getMainLooper()).post(()-> dialogueInterface.dismiss());
+        }
+    };
+
+    public void setLink(String url) {
+        this.url = url;
     }
 }

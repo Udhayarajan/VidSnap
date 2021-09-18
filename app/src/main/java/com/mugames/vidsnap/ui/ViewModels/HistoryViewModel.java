@@ -15,7 +15,7 @@
  *  along with VidSnap.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.mugames.vidsnap.ViewModels;
+package com.mugames.vidsnap.ui.ViewModels;
 
 import android.app.Application;
 
@@ -28,7 +28,6 @@ import com.mugames.vidsnap.DataBase.HistoryRepository;
 
 import org.jetbrains.annotations.NotNull;
 
-import java.util.ArrayList;
 import java.util.List;
 
 public class HistoryViewModel extends AndroidViewModel {

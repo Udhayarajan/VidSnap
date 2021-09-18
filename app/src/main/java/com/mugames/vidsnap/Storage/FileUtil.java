@@ -35,6 +35,7 @@ package com.mugames.vidsnap.Storage;
 
 import android.app.Activity;
 import android.content.Context;
+import android.media.MediaScannerConnection;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Environment;
@@ -42,10 +43,15 @@ import android.os.storage.StorageManager;
 import android.os.storage.StorageVolume;
 import android.provider.DocumentsContract;
 import android.util.Log;
+import android.webkit.MimeTypeMap;
 
 import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
 import androidx.core.content.ContextCompat;
+import androidx.core.content.FileProvider;
+import androidx.documentfile.provider.DocumentFile;
+
+import com.mugames.vidsnap.Utility.MIMEType;
 
 import java.io.BufferedInputStream;
 import java.io.File;
@@ -75,7 +81,7 @@ public final class FileUtil {
         String volumeID = getIDFromUri(uri, context);
         String volumePath = getVolumePath(volumeID, context);
 
-        if (volumePath == null) return File.separator;
+        if (volumePath == null) return uri.getPath();
 
         if (volumePath.endsWith(File.separator))
             volumePath = volumePath.substring(0, volumePath.length() - 1);
@@ -281,18 +287,18 @@ public final class FileUtil {
         return Character.UnicodeBlock.of(c) != Character.UnicodeBlock.BASIC_LATIN;
     }
 
-    public static String getValidFile(String path, String name, String extention) {
+    public static String getValidFile(String path, String name, String extension) {
         int num = 1;
 
         if (path == null) {
-            return name + extention;
+            return name +"."+ extension;
         }
-        path = path + name.replaceAll("[\\|\\\\\\?\\*<>\":\n]+", "_") + extention;
+        path = path + name.replaceAll("[\\|\\\\\\?\\*<>\":\n]+", "_")+"." + extension;
 
         File file = new File(path);
 
         while (file.exists()) {
-            path = file.getParent() + "/" + name + "(" + (num++) + ")" + extention;
+            path = file.getParent() + "/" + name + "(" + (num++) + ")" +"."+ extension;
             file = new File(path);
         }
         return path;
@@ -421,39 +427,83 @@ public final class FileUtil {
             src = context.getExternalFilesDirs("")[1];
             dest = context.getExternalFilesDirs("")[0];
         }
-        copyFile(src, dest, null);
+        moveFile(context, src, dest, null);
         if (fileStreamCallback != null) fileStreamCallback.onFileOperationDone();
     }
 
-    static void copyFolder(File src, File dest) {
+    static void copyFolder(Context context, File src, File dest) {
         for (File child : Objects.requireNonNull(src.listFiles())) {
             if (!child.getName().equals(".essential"))
-                copyFile(child, new File(dest, child.getName()), null);
+                moveFile(context, child, new File(dest, child.getName()), null);
         }
     }
 
-    public static void copyFile(File src, File dest, FileStreamCallback fileStreamCallback) {
+    public static void moveFile(Context context,File src, File dest, FileStreamCallback fileStreamCallback) {
         if (src.isDirectory()) {
-            copyFolder(src, dest);
+            copyFolder(context,src, dest);
             return;
         }
 
         if (src.getName().endsWith(".muout") || src.getName().endsWith(".muvideo") || src.getName().endsWith(".muaudio"))
             return;
-        Log.e("TAG", "src copyFile: " + src);
-        Log.e("TAG", "dest copyFile: " + dest);
 
+        copyFile(context,Uri.fromFile(src), Uri.fromFile(src), fileStreamCallback);
+        deleteFile(src.getAbsolutePath(), null);
+        if (fileStreamCallback != null) fileStreamCallback.onFileOperationDone();
+    }
+
+
+    public static void copyFile(Context context, Uri src, Uri dest, FileStreamCallback callback) {
         try {
-            FileChannel inChannel = new FileInputStream(src).getChannel();
-            FileChannel outChannel = new FileOutputStream(dest).getChannel();
+            FileChannel inChannel = ((FileInputStream) context.getContentResolver().openInputStream(src)).getChannel();
+            FileChannel outChannel;
+            try{
+                outChannel = new FileOutputStream(context.getContentResolver().openFileDescriptor(dest,"w").getFileDescriptor()).getChannel();
+            }catch (FileNotFoundException e){
+                outChannel = new FileOutputStream(dest.getPath()).getChannel();
+            }
             inChannel.transferTo(0, inChannel.size(), outChannel);
             inChannel.close();
             outChannel.close();
-            deleteFile(src.getAbsolutePath(), null);
         } catch (IOException e) {
             e.printStackTrace();
-
         }
-        if (fileStreamCallback != null) fileStreamCallback.onFileOperationDone();
+        if (callback != null) callback.onFileOperationDone();
+    }
+
+    /**
+     *
+     * @param context
+     * @param parentUri
+     * @param fileName
+     * @param mimeType
+     * @return New uri for a file eg. if file exist name will be file(1)
+     */
+    public static Uri pathToNewUri(Context context, Uri parentUri, String fileName, String mimeType){
+        DocumentFile directory;
+        try {
+            directory = DocumentFile.fromTreeUri(context, parentUri);
+            DocumentFile file = directory.createFile(mimeType, fileName);
+            return file.getUri();
+        } catch (IllegalArgumentException|NullPointerException e) {
+            return Uri.fromFile(new File(FileUtil.getValidFile(parentUri.getPath() + File.separator, fileName, MimeTypeMap.getSingleton().getExtensionFromMimeType(mimeType))));
+        }
+    }
+
+
+    public static synchronized void scanMedia(Context context, String fileUri, MediaScannerConnection.OnScanCompletedListener listener){
+        Uri uri = Uri.parse(fileUri);
+
+        String path = FileUtil.uriToPath(context, uri);
+        if (path.equals(File.separator)) path = uri.getPath();
+
+        MediaScannerConnection.scanFile(context, new String[]{path}, null, new MediaScannerConnection.OnScanCompletedListener() {
+            @Override
+            public void onScanCompleted(String path, Uri uri) {
+                if(uri == null)
+                    uri = FileProvider.getUriForFile(context,context.getPackageName()+".provider",new File(path));
+                listener.onScanCompleted(path,uri);
+            }
+        });
     }
 }
