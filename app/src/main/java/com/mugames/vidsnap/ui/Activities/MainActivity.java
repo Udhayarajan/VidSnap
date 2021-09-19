@@ -219,19 +219,6 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     }
 
     @Override
-    protected void onResume() {
-        super.onResume();
-        Log.e(TAG, "onResume: ");
-    }
-
-    @Override
-    protected void onPause() {
-        super.onPause();
-        Log.e(TAG, "onPause: ");
-        //556819.0
-    }
-
-    @Override
     protected void onNewIntent(Intent intent) {
         super.onNewIntent(intent);
 
@@ -639,7 +626,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                 FileUtil.scanMedia(this, details.pathUri.toString(), new MediaScannerConnection.OnScanCompletedListener() {
                     @Override
                     public void onScanCompleted(String s, Uri uri) {
-                        History history = new History(details, uri, (String) DateFormat.format("yyyy-MM-dd", new Date()));
+                        History history = new History(details, uri);
                         new Thread(() -> HistoryDatabase.getInstance(getApplicationContext()).historyDao().insertItem(history)).start();
                     }
                 });

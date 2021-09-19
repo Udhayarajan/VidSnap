@@ -227,6 +227,11 @@ public abstract class Extractor extends Thread {
         ArrayList<MiniExecute> miniExecutes = new ArrayList<>();
 
         for (int i = 0; i < formats.audioURLs.size(); i++) {
+            if(formats.audioURLs.get(i)==null) {
+                formats.audioSizes.add(0L);
+                countDownLatch.countDown();
+                continue;
+            }
             Bundle bundle = new Bundle();
             bundle.putInt(EXTRA_INDEX, i);
             MiniExecute miniExecute = new MiniExecute(bundle, countDownLatch);

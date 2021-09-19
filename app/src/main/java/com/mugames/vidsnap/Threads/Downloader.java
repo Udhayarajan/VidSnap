@@ -144,7 +144,7 @@ public class Downloader extends Service {
 
         long passed = 0;
 
-        double speed = -10;
+        Long speed = -10L;
         private int notificationVal;
 
 
@@ -407,7 +407,7 @@ public class Downloader extends Service {
             progressData.putInt(PROGRESS, notificationVal);
             progressData.putLong(TOTAL_SIZE, file_size);
             progressData.putLong(DOWNLOADED, passed);
-            progressData.putLong(DOWNLOAD_SPEED, (long) (speed * 1000));
+            progressData.putLong(DOWNLOAD_SPEED, speed);
 
             sendBundle(PROCESS, progressData);
 
@@ -434,15 +434,12 @@ public class Downloader extends Service {
 
         @Override
         public void onChanged(Download download, @NonNull Reason reason) {
-            Log.e(TAG, "onChanged: " + reason);
             if (reason == Reason.DOWNLOAD_COMPLETED) {
                 fetch2Downloaded(download);
             } else if (download.getDownloadedBytesPerSecond() != -1) {
                 notificationVal = download.getProgress();
                 passed = download.getDownloaded();
-                speed = download.getDownloadedBytesPerSecond();
-                Log.e(TAG, "onChanged: " + speed);
-                speed /= 1024;
+                speed = download.getDownloadedBytesPerSecond()/2;
                 uiSpeed();
             } else if (reason == Reason.DOWNLOAD_ERROR) {
                 sendErrorBundle(String.valueOf(download.getError()));

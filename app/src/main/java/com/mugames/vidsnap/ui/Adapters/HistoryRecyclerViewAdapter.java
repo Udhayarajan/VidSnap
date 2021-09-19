@@ -98,7 +98,7 @@ public class HistoryRecyclerViewAdapter extends ListAdapter<History, HistoryRecy
         else
             holder.name.setText(currentHistory.fileName + "." + currentHistory.fileType);
         holder.src.setText(currentHistory.source);
-        holder.date.setText(currentHistory.date);
+        holder.date.setText(currentHistory.getDate());
         holder.size.setText(formatFileSize(Long.parseLong(currentHistory.size), false));
 
         Glide.with(holder.thumbnail.getContext()).asBitmap()

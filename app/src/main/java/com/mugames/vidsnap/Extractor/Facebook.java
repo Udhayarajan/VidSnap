@@ -75,7 +75,6 @@ public class Facebook extends Extractor {
     @Override
     public void analyze(String url) {
         ID= getId(url);
-        formats=new Formats();
         headers=new Hashtable<>();
 
         headers.put("Accept","text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9");
@@ -351,8 +350,8 @@ public class Facebook extends Extractor {
             res = media.get("width") + "x" + media.get("height");
             for (String suffix : new String[]{"", "_quality_hd"}) {
                 String playable_url = getString_or_Null(media, "playable_url" + suffix);
-                if (playable_url == null) continue;
 
+                if (playable_url == null || playable_url.equals("null")) continue;
                 formats.mainFileURLs.add(playable_url);
                 formats.fileMime.add(MIMEType.VIDEO_MP4);
                 formats.audioURLs.add(null);

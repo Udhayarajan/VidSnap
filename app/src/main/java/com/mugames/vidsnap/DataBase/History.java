@@ -19,16 +19,22 @@ package com.mugames.vidsnap.DataBase;
 
 import android.graphics.Bitmap;
 import android.net.Uri;
+import android.text.format.DateFormat;
 
 import androidx.room.Entity;
 import androidx.room.PrimaryKey;
+import androidx.room.TypeConverters;
 
 import com.bumptech.glide.Glide;
 import com.mugames.vidsnap.Utility.Bundles.DownloadDetails;
 import com.mugames.vidsnap.Storage.FileUtil;
 import com.mugames.vidsnap.Utility.UtilityClass;
 
+import java.util.Calendar;
+import java.util.Date;
+
 @Entity(tableName = "HISTORY")
+@TypeConverters(DateConverter.class)
 public class History {
 
     @PrimaryKey(autoGenerate = true)
@@ -36,7 +42,7 @@ public class History {
     public String fileName;
     public String fileType;
     public String source;
-    public String date;
+    public Date date;
     public String size;
     public String uriString;
     public String image;
@@ -44,11 +50,11 @@ public class History {
     public History() {}
 
 
-    public History(DownloadDetails details, Uri uri, String date) {
+    public History(DownloadDetails details, Uri uri) {
         this.fileName = details.fileName;
         this.fileType = details.fileType;
         this.source = details.src;
-        this.date = date;
+        this.date = DateConverter.toDate( new Date().getTime());
         this.size = String.valueOf(details.videoSize);
         this.uriString = uri.toString();
         image = UtilityClass.bitmapToString(details.getThumbNail());
@@ -56,5 +62,9 @@ public class History {
 
     public Uri getUri(){
         return Uri.parse(uriString);
+    }
+
+    public String getDate() {
+        return (String) DateFormat.format("dd-MM-yyyy", date);
     }
 }

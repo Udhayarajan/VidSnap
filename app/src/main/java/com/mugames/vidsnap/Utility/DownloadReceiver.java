@@ -128,7 +128,7 @@ public class DownloadReceiver extends ResultReceiver implements Parcelable {
     void notificationSetup(Uri uri) {
         DownloadDetails details = DownloadDetails.findDetails(id);
         if(details==null) return;
-        History history = new History(details, uri, (String) DateFormat.format("yyyy-MM-dd", new Date()));
+        History history = new History(details, uri);
 
 
         new Thread(() -> addItemToDB(history)).start();
