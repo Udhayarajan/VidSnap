@@ -25,17 +25,17 @@
         android:theme="@style/Theme.YouTubeDownloader"
         android:allowBackup="true"
         tools:targetApi="R">
-        <activity android:name=".ui.Activities.ContactActivity"
+        <activity android:name=".ui.activities.ContactActivity"
             android:theme="@style/Theme.YouTubeDownloader.NoActionBar"
             android:screenOrientation="portrait"/>
-        <activity android:name=".ui.Activities.ReportActivity"
+        <activity android:name=".ui.activities.ReportActivity"
             android:theme="@style/Theme.YouTubeDownloader.NoActionBar"
             android:screenOrientation="portrait"/>
-        <activity android:name=".ui.Activities.CheckUpdateActivity"
+        <activity android:name=".ui.activities.CheckUpdateActivity"
             android:theme="@style/Theme.YouTubeDownloader.NoActionBar"
             android:screenOrientation="portrait"/>
 
-        <activity android:name=".ui.Activities.ShareActivity"
+        <activity android:name=".ui.activities.ShareActivity"
             android:screenOrientation="portrait"
             android:exported="true">
             <intent-filter>
@@ -46,7 +46,7 @@
         </activity>
 
         <activity
-            android:name=".ui.Activities.MainActivity"
+            android:name=".ui.activities.MainActivity"
             android:label="@string/app_name"
             android:launchMode="singleTop"
             android:screenOrientation="portrait"
@@ -59,7 +59,7 @@
             </intent-filter>
         </activity>
 
-        <service android:name=".Threads.Downloader"/>
+        <service android:name=".network.Downloader"/>
 
         <provider
             android:name="androidx.core.content.FileProvider"

@@ -25,5 +25,5 @@
     android:layout_marginLeft="10dp"
     android:layout_marginRight="10dp"
     app:layoutManager="LinearLayoutManager"
-    tools:context=".ui.Fragments.HistoryFragment"
+    tools:context=".ui.fragments.HistoryFragment"
     tools:listitem="@layout/fragment_history_item" />

@@ -17,10 +17,10 @@
 
 package com.mugames.vidsnap;
 
-import com.mugames.vidsnap.Threads.HttpRequest;
-import com.mugames.vidsnap.Extractor.Extractor;
-import com.mugames.vidsnap.Utility.MIMEType;
-import com.mugames.vidsnap.Utility.Statics;
+import com.mugames.vidsnap.network.HttpRequest;
+import com.mugames.vidsnap.extractor.Extractor;
+import com.mugames.vidsnap.utility.MIMEType;
+import com.mugames.vidsnap.utility.Statics;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -29,7 +29,7 @@ import java.util.ArrayList;
 import java.util.regex.Pattern;
 
 
-import static com.mugames.vidsnap.Utility.UtilityClass.joinURL;
+import static com.mugames.vidsnap.utility.UtilityClass.joinURL;
 
 public class m3u8 {
 

@@ -61,7 +61,7 @@
             android:clipToPadding="false"
             android:paddingTop="@dimen/list_item_spacing_half"
             android:paddingBottom=  "@dimen/list_item_spacing_half"
-            tools:context=".ui.Fragments.QualityFragment"
+            tools:context=".ui.fragments.QualityFragment"
             tools:listitem="@layout/fragment_quality_list_dialog_item"/>
 
     </RelativeLayout>

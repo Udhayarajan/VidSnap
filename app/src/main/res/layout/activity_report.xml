@@ -23,7 +23,7 @@
     android:layout_height="match_parent"
     android:padding="8dp"
     android:layout_centerInParent="true"
-    tools:context=".ui.Activities.ReportActivity">
+    tools:context=".ui.activities.ReportActivity">
 
     <androidx.appcompat.widget.Toolbar
         android:id="@+id/toolbar"

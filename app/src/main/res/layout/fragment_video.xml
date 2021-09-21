@@ -21,7 +21,7 @@
     android:orientation="vertical"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context=".ui.Activities.MainActivity"
+    tools:context=".ui.activities.MainActivity"
     android:background="@color/notification_color"
     android:padding="15dp">
 
