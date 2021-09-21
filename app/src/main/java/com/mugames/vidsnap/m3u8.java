@@ -17,9 +17,10 @@
 
 package com.mugames.vidsnap;
 
-import com.mugames.vidsnap.Threads.HttpRequest;
-import com.mugames.vidsnap.Extractor.Extractor;
-import com.mugames.vidsnap.Utility.Statics;
+import com.mugames.vidsnap.network.HttpRequest;
+import com.mugames.vidsnap.extractor.Extractor;
+import com.mugames.vidsnap.utility.MIMEType;
+import com.mugames.vidsnap.utility.Statics;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -28,7 +29,7 @@ import java.util.ArrayList;
 import java.util.regex.Pattern;
 
 
-import static com.mugames.vidsnap.Utility.UtilityClass.joinURL;
+import static com.mugames.vidsnap.utility.UtilityClass.joinURL;
 
 public class m3u8 {
 
@@ -45,7 +46,7 @@ public class m3u8 {
         this.extractor = extractor;
     }
 
-    public void Extract_m3u8(String url, JSONObject info){
+    public void extract_m3u8(String url, JSONObject info){
         try {
             if(info.get("isLive").equals("true")){
                 extractor.getDialogueInterface().error("Live video can't be downloaded",null);
@@ -61,6 +62,7 @@ public class m3u8 {
             public void onChunkExtracted(int index, ArrayList<String> chunkURLS) {
                 //Called only if it is not playlist else completingProcess() directly called from extractFromPlaylist
                 extractor.formats.manifest.add(chunkURLS);
+                extractor.formats.fileMime.add(MIMEType.VIDEO_MP4);
                 completingProcess();
             }
         });
@@ -114,72 +116,6 @@ public class m3u8 {
             e.printStackTrace();
         }
         extractor.fetchDataFromURLs();
-
-//        for(int i=0;i<chuncks.size();i++){
-//            UtilityInterface.ResponseCallBack responseCallBack = response -> {
-//
-//            };
-//
-//            HttpRequest request = new HttpRequest()
-//            new MiniExecute(activity, chuncks.get(i), true,i, new UtilityInterface.MiniExecutorCallBack() {
-//                @Override
-//                public void onBitmapReceive(Bitmap image) {
-//
-//                }
-//
-//                @Override
-//                public void onSizeReceived(long size, int position){
-//                    sizes+=size;
-//                    got++;
-//
-//                    if(got<chuncks.size()){
-//                        float percen=(float) got /(float) chuncks.size();
-//                        percen+=((float)index/(float) manifest.size());
-//                        DecimalFormat decimalFormat=new DecimalFormat("0");
-//                        activity.dialog.show(String.format("Calculating Size(%s%%)",decimalFormat.format((percen/2f)*100)));
-//                    }
-//                    else {
-//                        Log.d(TAG, "FULLY FOUND onSizeReceived: "+sizes);
-//                        Log.e(TAG, "onSizeReceived: ");
-//                        formats.fileSizes.add(sizes);
-//                        DecimalFormat decimalFormat = new DecimalFormat("#.##");
-//                        formats.fileSizeInString.add(decimalFormat.format(sizes / Math.pow(10, 6)));
-//                        sizes=0;
-//                        got=0;
-//                        if(index<manifest.size()-1){
-//                            index++;
-//                            try {
-//                                Thread.sleep(1000);
-//                            } catch (InterruptedException e) {
-//                                e.printStackTrace();
-//                            }
-//                            completingProcess();
-//                            return;
-//                        }
-//                        index=0;
-//                        try {
-//                            activity.dialog.show("Almost Done!!");
-//                            new MiniExecute(activity, , false,0, new UtilityInterface.MiniExecutorCallBack() {
-//                                @Override
-//                                public void onBitmapReceive(Bitmap image) {
-//                                    formats.thumbNailBit=image;
-//                                    setUpM3U8();
-//                                }
-//
-//                                @Override
-//                                public void onSizeReceived(long size, int isLast) {
-//
-//                                }
-//                            }).start();
-//                        } catch (JSONException e) {
-//                            e.printStackTrace();
-//                        }
-//
-//                    }
-//                }
-//            }).start();
-//
-//        }
     }
 
 
@@ -208,6 +144,7 @@ public class m3u8 {
                 @Override
                 public void onChunkExtracted(int index, ArrayList<String> chunkURLS) {
                     extractor.formats.manifest.set(index,chunkURLS);
+                    extractor.formats.fileMime.add(MIMEType.VIDEO_MP4);
                     got++;
                     if(got==frag_urls.size()){
                         got=0;
@@ -268,7 +205,6 @@ public class m3u8 {
                 }
             }
         }
-//        extractor.formats.manifest.add(chunksUrl);
         chunkCallback.onChunkExtracted(index,chunksUrl);
     }
 
