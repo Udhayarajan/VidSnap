@@ -231,6 +231,7 @@ public abstract class Extractor extends Thread {
             formats.videoSizes.set(index, size);
             DecimalFormat decimalFormat = new DecimalFormat("#.##");
             formats.videoSizeInString.set(index, decimalFormat.format(size / Math.pow(10, 6)));
+            formats.mainFileURLs.set(index,filterURLs(formats.mainFileURLs.get(index)));
         }
         isVideoSizeReady = true;
         checkForCompletion();
@@ -269,6 +270,7 @@ public abstract class Extractor extends Thread {
             int index = miniExecute.getBundle().getInt(EXTRA_INDEX);
             long size = miniExecute.getSize();
             formats.audioSizes.set(index, size);
+            formats.audioURLs.set(index,filterURLs(formats.audioURLs.get(index)));
         }
         isAudioSizeReady = true;
         checkForCompletion();
@@ -311,6 +313,8 @@ public abstract class Extractor extends Thread {
     }
 
     void completed() {
+        for (int i = 0; i < formats.thumbNailsURL.size(); i++)
+            formats.thumbNailsURL.set(i, filterURLs(formats.thumbNailsURL.get(i)));
         wrappedAnalyzeCallback.onAnalyzeCompleted(formats);
     }
 
@@ -378,5 +382,9 @@ public abstract class Extractor extends Thread {
             }
         }
 
+    }
+
+    String filterURLs(String url){
+        return url.replaceAll("\\\\", "");
     }
 }

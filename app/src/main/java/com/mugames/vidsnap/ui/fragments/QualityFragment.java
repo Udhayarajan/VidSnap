@@ -18,7 +18,6 @@
 package com.mugames.vidsnap.ui.fragments;
 
 import android.graphics.Bitmap;
-import android.graphics.drawable.BitmapDrawable;
 import android.os.Bundle;
 
 import androidx.annotation.Nullable;
@@ -58,7 +57,7 @@ public class QualityFragment extends BottomSheetDialogFragment {
     Bitmap thumbNail;
     EditText editText;
 
-    private UtilityInterface.DownloadButtonCallBack callback;
+    private UtilityInterface.DownloadUICallBack callback;
 
 
     public static QualityFragment newInstance(ArrayList<String> qualitiesList, ArrayList<String> sizes) {
@@ -68,7 +67,7 @@ public class QualityFragment extends BottomSheetDialogFragment {
         return fragment;
     }
 
-    public void setRequired(UtilityInterface.DownloadButtonCallBack callBack) {
+    public void setRequired(UtilityInterface.DownloadUICallBack callBack) {
         this.callback = callBack;
     }
 
@@ -102,8 +101,7 @@ public class QualityFragment extends BottomSheetDialogFragment {
         download.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                Bitmap bitmap = ((BitmapDrawable)imageView.getDrawable()).getBitmap();
-                callback.onDownloadButtonPressed(editText.getText().toString(),bitmap);
+                callback.onDownloadButtonPressed(editText.getText().toString());
                 QualityFragment.this.dismiss();
             }
         });

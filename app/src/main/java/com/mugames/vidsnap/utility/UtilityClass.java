@@ -208,6 +208,7 @@ public class UtilityClass {
     }
 
     public static byte[] bitmapToBytes(Bitmap bmp) {
+        if(bmp==null) return null;
         ByteArrayOutputStream stream = new ByteArrayOutputStream();
         bmp.compress(Bitmap.CompressFormat.JPEG, 100, stream);
         return stream.toByteArray();

@@ -26,8 +26,8 @@ import com.mugames.vidsnap.ui.fragments.QualityFragment;
 
 
 public interface UtilityInterface {
-    interface DownloadButtonCallBack {
-        void onDownloadButtonPressed(String fileName, Bitmap image);
+    interface DownloadUICallBack {
+        void onDownloadButtonPressed(String fileName);
 
         void onSelectedItem(int position, QualityFragment qualityFragment);
     }
