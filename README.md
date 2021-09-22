@@ -13,7 +13,20 @@ Refer following lines to build as static library loading:
   - [Reference 2](https://github.com/Udhayarajan/VidSnap/blob/16dc24a5d649edca39d1ac6dae0e60b0e68126f7/app/src/main/java/com/mugames/vidsnap/Threads/Downloader.java#L280)
   
   - [Reference 3](https://github.com/Udhayarajan/VidSnap/blob/16dc24a5d649edca39d1ac6dae0e60b0e68126f7/settings.gradle#L1)
-
-Thanks for [FFmpeg-kit](https://github.com/tanersener/ffmpeg-kit) and [Fetch](https://github.com/tonyofrancis/Fetch)
+ 
+ # Contribution
+ 
+ 1. Fork it
+ 2. Modify it
+ 3. Open an issue, so let's discuss about your modification for better clarity
+ 
+ All contributions are welcomed...
+ 
+ 
+ 
+### Additional Library used
+- [FFmpeg-kit](https://github.com/tanersener/ffmpeg-kit)
+- [Fetch](https://github.com/tonyofrancis/Fetch)
+- [Glide](https://github.com/bumptech/glide)
 
 
