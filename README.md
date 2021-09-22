@@ -1,4 +1,4 @@
-## VidSnap Social Media video downloader
+# VidSnap Social Media video downloader
 
 This app is used to download video from social media platform.
 
@@ -14,11 +14,12 @@ Refer following lines to build as static library loading:
   
   - [Reference 3](https://github.com/Udhayarajan/VidSnap/blob/16dc24a5d649edca39d1ac6dae0e60b0e68126f7/settings.gradle#L1)
  
- # Contribution
+ ## Contribution
  
  1. Fork it
  2. Modify it
  3. Open an issue, so let's discuss about your modification for better clarity
+ 4. Create a pull request
  
  All contributions are welcomed...
  
