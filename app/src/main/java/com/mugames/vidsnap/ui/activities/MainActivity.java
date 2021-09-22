@@ -430,6 +430,11 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         }
     }
 
+    @Override
+    protected void onDestroy() {
+        dialog.dismiss();
+        super.onDestroy();
+    }
 
     @Override
     public boolean onMenuItemClick(MenuItem item) {

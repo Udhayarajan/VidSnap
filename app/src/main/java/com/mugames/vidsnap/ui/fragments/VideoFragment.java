@@ -151,7 +151,12 @@ public class VideoFragment extends Fragment implements
 
     public void startProcess(String link) {
         urlBox.setText(link);
-        if (dialogFragment != null) dialogFragment.dismiss();
+        if (dialogFragment != null) try {
+            dialogFragment.dismiss();
+        } catch (IllegalStateException e) {
+            e.printStackTrace();
+        }
+
         dialogFragment = null;
         if (viewModel.onClickAnalysis(urlBox.getText().toString(), (MainActivity) getActivity()) == null)
             unLockAnalysis();

@@ -33,8 +33,16 @@
 
 package com.mugames.vidsnap.extractor;
 
+import static android.net.ConnectivityManager.TYPE_ETHERNET;
+import static android.net.ConnectivityManager.TYPE_MOBILE;
+import static android.net.ConnectivityManager.TYPE_WIFI;
+
 import android.content.Context;
 //import android.os.Bundle;
+import android.net.ConnectivityManager;
+import android.net.Network;
+import android.net.NetworkCapabilities;
+import android.net.NetworkInfo;
 import android.os.Bundle;
 import android.os.Handler;
 
@@ -42,6 +50,7 @@ import androidx.annotation.Nullable;
 
 import com.mugames.vidsnap.R;
 import com.mugames.vidsnap.network.MiniExecute;
+import com.mugames.vidsnap.ui.activities.MainActivity;
 import com.mugames.vidsnap.utility.bundles.Formats;
 import com.mugames.vidsnap.utility.Statics;
 import com.mugames.vidsnap.utility.UtilityInterface;
@@ -114,7 +123,19 @@ public abstract class Extractor extends Thread {
     @Override
     public void run() {
         super.run();
-        analyze(url);
+        safeAnalyze();
+    }
+
+    private void safeAnalyze() {
+        if(isNetworkAvailable()){
+            try{
+                analyze(url);
+            }catch (Exception e){
+                getDialogueInterface().error("Internal error occurred try with different link",e);
+            }
+        }else {
+            getDialogueInterface().error("No network available :)",null);
+        }
     }
 
     public String getUserCookies() {
@@ -333,5 +354,29 @@ public abstract class Extractor extends Thread {
 
     public void setLink(String url) {
         this.url = url;
+    }
+
+    boolean isNetworkAvailable(){
+        ConnectivityManager connectivityManager = (ConnectivityManager) getContext().getSystemService(Context.CONNECTIVITY_SERVICE);
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
+            Network network  = connectivityManager.getActiveNetwork();
+            if(network==null) return false;
+            NetworkCapabilities networkCapabilities = connectivityManager.getNetworkCapabilities(network);
+            if(networkCapabilities==null) return false;
+            if(networkCapabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI)) return true;
+            if(networkCapabilities.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR)) return true;
+            return networkCapabilities.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET);
+        }else {
+            NetworkInfo networkInfo = connectivityManager.getActiveNetworkInfo();
+            int type = networkInfo.getType();
+            switch (type){
+                case TYPE_WIFI:
+                case TYPE_ETHERNET:
+                case TYPE_MOBILE:
+                    return true;
+                default: return false;
+            }
+        }
+
     }
 }

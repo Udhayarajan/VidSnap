@@ -175,6 +175,7 @@ public class Instagram extends Extractor {
                 }
             } else{
                 formats.mainFileURLs.add(fileURL);
+                formats.fileMime.add(MIMEType.VIDEO_MP4);
                 formats.qualities.add("--");
                 formats.thumbNailsURL.add(media.getString("thumbnail_src"));
             }
