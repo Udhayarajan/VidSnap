@@ -1,5 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
-<!--
+<?xml version="1.0" encoding="utf-8"?><!--
   ~  This file is part of VidSnap.
   ~
   ~  VidSnap is free software: you can redistribute it and/or modify
@@ -16,65 +15,41 @@
   -->
 
 <androidx.cardview.widget.CardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
-    app:cardCornerRadius="15dp"
+    android:layout_margin="8dp"
     android:elevation="6dp"
-    android:layout_margin="8dp">
+    app:cardCornerRadius="15dp">
 
     <LinearLayout
-        android:background="@color/list_color"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:background="@color/list_color"
         android:orientation="horizontal">
 
         <ImageView
             android:id="@+id/download_thumb"
             android:layout_width="152dp"
-            android:layout_height="97dp"
-            android:contentDescription="TODO"
+            android:layout_height="100dp"
             android:padding="10dp" />
 
         <LinearLayout
-            android:layout_width="match_parent"
+            android:layout_width="0dp"
             android:layout_height="match_parent"
             android:layout_weight="1"
             android:orientation="vertical"
-            android:paddingRight="8dp">
+            android:paddingHorizontal="8dp">
 
             <TextView
                 android:id="@+id/download_name"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:ellipsize="middle"
-                android:text="-----"
+                android:singleLine="true"
                 android:textSize="18sp"
-                android:singleLine="true" />
-
-            <LinearLayout
-                android:orientation="horizontal"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content">
-                <TextView
-                    android:id="@+id/download_status"
-                    android:text="---"
-                    android:ellipsize="end"
-                    android:maxLines="1"
-                    android:layout_weight="1"
-                    android:gravity="left"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"/>
-
-                <TextView
-                    android:id="@+id/download_progress_text"
-                    android:layout_width="wrap_content"
-                    android:layout_weight="0"
-                    android:layout_height="wrap_content"
-                    android:gravity="right"
-                    android:text="--- %" />
-
-            </LinearLayout>
+                tools:text="-----" />
 
 
             <LinearLayout
@@ -82,11 +57,61 @@
                 android:layout_height="wrap_content"
                 android:orientation="vertical">
 
-                <ProgressBar
-                    android:id="@+id/download_progress"
-                    style="?android:progressBarStyleHorizontal"
+
+                <LinearLayout
                     android:layout_width="match_parent"
-                    android:layout_height="wrap_content" />
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:orientation="vertical">
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="horizontal">
+
+                            <TextView
+                                android:id="@+id/download_status"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:ellipsize="end"
+                                android:gravity="start"
+                                android:maxLines="1"
+                                tools:text="sdffffffffffffffffffsdffffffffsdfsdfdfsdf" />
+
+                            <TextView
+                                android:id="@+id/download_progress_text"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="0"
+                                android:gravity="end"
+                                tools:text="--- %" />
+
+                        </LinearLayout>
+
+                        <ProgressBar
+                            android:id="@+id/download_progress"
+                            style="?android:progressBarStyleHorizontal"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_gravity="center_vertical" />
+                    </LinearLayout>
+
+                    <ImageButton
+                        android:id="@+id/download_cancel"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="center_vertical"
+                        android:layout_weight="0"
+                        android:src="@drawable/ic_cancel" />
+
+                </LinearLayout>
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -98,15 +123,15 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
-                        android:text="-- --/s" />
+                        tools:text="-- --/s" />
 
                     <TextView
                         android:id="@+id/download_size"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
-                        android:gravity="right"
-                        android:text="-- MB/-- MB" />
+                        android:gravity="end"
+                        tools:text="-- MB/-- MB" />
                 </LinearLayout>
             </LinearLayout>
 

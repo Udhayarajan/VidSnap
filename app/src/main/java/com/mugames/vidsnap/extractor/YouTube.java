@@ -76,8 +76,6 @@ public class YouTube extends Extractor {
 
     int attempt = 0;
 
-    final boolean[] gotMedia = new boolean[]{false, false};//0-audio ;1-video
-
     boolean isVideoDecrypted;
     boolean isAudioDecrypted;
 
@@ -94,7 +92,7 @@ public class YouTube extends Extractor {
             getDialogueInterface().error("URL Seems to be wrong", null);
             return;
         }
-        HttpRequest request = new HttpRequest(get_video_Info + videoID, getDialogueInterface(), response -> videoInfo(UtilityClass.decodeHTML(response)));
+        HttpRequest request = new HttpRequest(get_video_Info + videoID, getDialogueInterface(), response -> videoInfo(UtilityClass.decodeHTML(response.getResponse())));
         request.setType(HttpRequest.GET);
         request.start();
 
@@ -133,14 +131,14 @@ public class YouTube extends Extractor {
 
         getDialogueInterface().show("Downloading Player");
         if (jsFunctionName == null || jsFunctionName.isEmpty())
-            getJSFile(new JSDownloaded() {
+            fetchJSFile(new JSDownloaded() {
                 @Override
                 public void onDone() {
                     getDialogueInterface().show("Analysing data");
-                    ExtractInfo(info);
+                    extractInfo(info);
                 }
             });
-        else ExtractInfo(info);
+        else extractInfo(info);
 
     }
 
@@ -149,14 +147,17 @@ public class YouTube extends Extractor {
         String YT_INITIAL_BOUNDARY_RE = "(?:var\\s+meta|</script|\\n)";
         String YT_INITIAL_PLAYER_RESPONSE_RE = "ytInitialPlayerResponse\\s*=\\s*(\\{.+?\\})\\s*;";
         HttpRequest request = new HttpRequest("https://www.youtube.com/watch?v=" + videoID + "&bpctr=9999999999&has_verified=1", getDialogueInterface(), response -> {
-            Matcher matcher = Pattern.compile(String.format("%s\\s*%s", YT_INITIAL_PLAYER_RESPONSE_RE, YT_INITIAL_BOUNDARY_RE)).matcher(response);
+            if(response.getResponse()==null) {
+                getDialogueInterface().error("Some thing went wrong\nPlease try again", response.getException());
+            }
+            Matcher matcher = Pattern.compile(String.format("%s\\s*%s", YT_INITIAL_PLAYER_RESPONSE_RE, YT_INITIAL_BOUNDARY_RE)).matcher(response.getResponse());
             if (matcher.find()) videoInfo(matcher.group(1));
         });
         request.setType(HttpRequest.GET);
         request.start();
     }
 
-    void ExtractInfo(String decoded) {
+    void extractInfo(String decoded) {
 
         try {
             JSONObject jsonObject = new JSONObject(UtilityClass.parseQueryString(decoded));
@@ -331,17 +332,17 @@ public class YouTube extends Extractor {
             getDialogueInterface().error("URL Seems to be wrong", null);
             return;
         }
-        HttpRequest request = new HttpRequest(dataURL[attempts], getDialogueInterface(), response -> videoInfo(UtilityClass.decodeHTML(response)));
+        HttpRequest request = new HttpRequest(dataURL[attempts], getDialogueInterface(), response -> videoInfo(UtilityClass.decodeHTML(response.getResponse())));
         request.setType(HttpRequest.GET);
         request.start();
     }
 
 
-    void getJSFile(JSDownloaded jsDownloaded) {
+    void fetchJSFile(JSDownloaded jsDownloaded) {
         ResponseCallBack responseCallBack = embedResponse -> {
             for (String i : PLAYER_REGEXS) {
                 Pattern pattern = Pattern.compile(i);
-                Matcher matcher = pattern.matcher(embedResponse);
+                Matcher matcher = pattern.matcher(embedResponse.getResponse());
                 if (matcher.find()) {
                     String player_url = matcher.group(1);
                     player_url = player_url==null?"":player_url.replaceAll("\"", "");
@@ -349,10 +350,10 @@ public class YouTube extends Extractor {
                     HttpRequest request = new HttpRequest(YT_URL+player_url,getDialogueInterface(),response -> {
                         for (String j : FUNCTION_REGEX) {
                             Pattern funPattern = Pattern.compile(j);
-                            Matcher funMatcher = funPattern.matcher(response);
+                            Matcher funMatcher = funPattern.matcher(response.getResponse());
                             if (funMatcher.find()) {
                                 jsFunctionName = funMatcher.group(1);
-                                jsCode = response;
+                                jsCode = response.getResponse();
                                 jsDownloaded.onDone();
                                 break;
                             }

@@ -18,9 +18,6 @@
 package com.mugames.vidsnap.ui.fragments;
 
 import android.os.Bundle;
-
-import androidx.fragment.app.Fragment;
-
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -30,10 +27,13 @@ import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 
+import androidx.fragment.app.Fragment;
+
 import com.mugames.vidsnap.R;
 import com.mugames.vidsnap.utility.Statics;
 import com.mugames.vidsnap.utility.UtilityInterface;
 
+import java.util.HashMap;
 
 
 /**
@@ -53,6 +53,8 @@ public class LoginFragment extends Fragment {
     UtilityInterface.CookiesInterface cookiesInterface;
     String cookies;
 
+    HashMap<String,String> headers = new HashMap<>();
+
     public LoginFragment() {
         // Required empty public constructor
     }
@@ -68,6 +70,8 @@ public class LoginFragment extends Fragment {
         fragment.cookiesInterface = cookiesInterface;
         return fragment;
     }
+
+
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -87,7 +91,11 @@ public class LoginFragment extends Fragment {
         webView.setWebViewClient(new CustomWebClient());
         WebSettings webSettings=webView.getSettings();
         webSettings.setJavaScriptEnabled(true);
-        webView.loadUrl(mUrl);
+        if(mUrl.contains("instagram") || mUrl.contains("facebook") || mUrl.contains("fb.com")) {
+            webSettings.setUserAgentString("Mozilla/5.0 (Linux; U; Android 2.2; en-gb; VidSnap Build/FRF50) AppleWebKit/533.1 (KHTML, like Gecko) Version/4.0 Mobile Safari/533.1");
+            headers.put("HTTP_X-Requested-With","com.android.chrome");
+            webView.loadUrl(mUrl,headers);
+        }else webView.loadUrl(mUrl);
         return view;
     }
 
@@ -98,15 +106,15 @@ public class LoginFragment extends Fragment {
             super.onPageFinished(view, url);
             Log.d(TAG, "onPageFinished: " + url);
             if (isFinalUrl(url) && !signedIn) {
-                Log.d(TAG, "onPageFinished: InstagramSigned in");
+                Log.d(TAG, "onPageFinished: Website Signed in");
                 String cookies = CookieManager.getInstance().getCookie(url);
-                Log.d(TAG, "All the cookies in a string:" + cookies);
                 while (webView.canGoBack())
                     webView.goBack();
                 cookiesInterface.onReceivedCookies(cookies);
                 signedIn=true;
             }
         }
+
 
         boolean isFinalUrl(String url){
             for (String tURL: loginDoneUrls) {

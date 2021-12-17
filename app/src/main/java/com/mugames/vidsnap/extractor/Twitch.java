@@ -70,7 +70,7 @@ public class Twitch {
         String data=String.format("{\"query\":\"{clip(slug:\\\"%s\\\"){broadcaster{displayName}createdAt curator{displayName id}durationSeconds id tiny:thumbnailURL(width:86,height:45)small:thumbnailURL(width:260,height:147)medium:thumbnailURL(width:480,height:272)title videoQualities{frameRate quality sourceURL}viewCount}}\"}",id);
         HttpRequest request = new HttpRequest("https://gql.twitch.tv/gql",dialogueInterface,response -> {
             try {
-                JSONObject clip=new JSONObject(response).getJSONObject("data").getJSONObject("clip");
+                JSONObject clip=new JSONObject(response.getResponse()).getJSONObject("data").getJSONObject("clip");
                 formats.thumbNailsURL.add(clip.getString("medium"));
                 JSONArray videoQualities =clip.getJSONArray("videoQualities");
                 formats.title= clip.getString("title");

@@ -25,20 +25,27 @@ public class Statics {
     public static final String DOWNLOAD_SPEED = "dSpeed";
     public static final String ERROR_DOWNLOADING="ERROR";
     public static final String OUTFILE_URI="uriOpUri";
+    public static final String IS_SHARE_ONLY_DOWNLOAD="com.mugames.vidsnap.IS_SHARE_ONLY_DOWNLOAD";
+    public static final String FILE_MIME="com.mugames.vidsnap.MIME";
     public static final String ACTIVE_DOWNLOAD = "Download on progress";
     public static final String FETCH_MESSAGE = "messages from fetch";
+    public static final String TEMP_BUNDLE = "com.mugames.vidsnap.TEMP_BUNDLE";
 
     public static final String RESULT_CODE = "com.mugames.vidsnap.resultCode";
 
     public static final int PROGRESS_UPDATE = 5432;
     public static final int PROGRESS_DONE = 5458;
     public static final int PROGRESS_FAILED = 5756;
+    public static final int PROGRESS_CANCELED = 5113;
     public static final int PROGRESS_UPDATE_MERGING = 1678;
     public static final int PROGRESS_UPDATE_AUDIO = 1456;
     public static final int PROGRESS_UPDATE_VIDEO = 7896;
     public static final int PROGRESS_DEFAULT = 1478;
     public static final int REQUEST_WRITE = 1248;
     public static final int REQUEST_STATUS = 4987;
+
+    public static final String ACTION_CANCEL_DOWNLOAD = "com.mugames.vidsnap.Statics.ACTION_CANCEL_DOWNLOAD";
+    public static final String ID_CANCEL_DOWNLOAD_DETAILS = "com.mugames.vidsnap.Statics.ID_CANCEL_DOWNLOAD_DETAILS";
 
     public static final String COMMUNICATOR = "communicator";
 

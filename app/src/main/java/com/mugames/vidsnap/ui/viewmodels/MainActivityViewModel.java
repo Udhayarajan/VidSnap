@@ -18,6 +18,7 @@
 package com.mugames.vidsnap.ui.viewmodels;
 
 import static com.mugames.vidsnap.firebase.FirebaseCallBacks.UpdateCallbacks;
+import static com.mugames.vidsnap.utility.Statics.OUTFILE_URI;
 
 import android.app.Application;
 import android.app.DownloadManager;
@@ -27,6 +28,7 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.database.Cursor;
 import android.net.Uri;
+import android.os.Bundle;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
@@ -37,6 +39,7 @@ import androidx.lifecycle.MutableLiveData;
 import com.mugames.vidsnap.firebase.FirebaseManager;
 import com.mugames.vidsnap.R;
 import com.mugames.vidsnap.storage.AppPref;
+import com.mugames.vidsnap.storage.FileUtil;
 import com.mugames.vidsnap.utility.bundles.DownloadDetails;
 import com.mugames.vidsnap.utility.DownloadReceiver;
 import com.mugames.vidsnap.utility.Statics;
@@ -53,13 +56,6 @@ public class MainActivityViewModel extends AndroidViewModel implements UtilityIn
     String TAG = Statics.TAG + "MainActivityViewModel";
 
 
-
-    public static final String STATIC_CACHE = ".historyDB";
-    public static final String DYNAMIC_CACHE = ".essential";
-    public static final String LIBRARY_PATH = "libs";
-
-    public static final String db_name = "historyCache";
-
     public FirebaseManager firebaseManager;
 
     public ArrayList<DownloadDetails> tempDetails = new ArrayList<>();
@@ -74,15 +70,17 @@ public class MainActivityViewModel extends AndroidViewModel implements UtilityIn
     public static final ArrayList<DownloadDetails> downloadDetailsList = new ArrayList<>();
     MutableLiveData<ArrayList<DownloadDetails>> downloadDetailsMutableLiveData = new MutableLiveData<>();
 
-
+    boolean isProgressDialogVisible;
+    String progressDialogText;
+    private Bundle tempResultBundle;
 
     Random random = new Random();
 
     public MainActivityViewModel(@NonNull @NotNull Application application) {
         super(application);
         firebaseManager = FirebaseManager.getInstance(application);
-        for (DownloadDetails details :downloadDetailsList) {
-            ((DownloadReceiver)details.receiver).setCallback(this);
+        for (DownloadDetails details : downloadDetailsList) {
+            ((DownloadReceiver) details.receiver).setCallback(this);
         }
         activeDownload.setValue(downloadDetailsList.size());
     }
@@ -130,18 +128,18 @@ public class MainActivityViewModel extends AndroidViewModel implements UtilityIn
         return downloadDetailsMutableLiveData;
     }
 
-    public boolean isAgree() {
-        return AppPref.getInstance(getApplication()).getBooleanValue(R.string.key_terms_con, false);
+    public boolean isNotAgreed() {
+        return !AppPref.getInstance(getApplication()).getBooleanValue(R.string.key_terms_con, false);
     }
 
     public ArrayList<DownloadDetails> getDownloadDetailsList() {
         return downloadDetailsList;
     }
 
-    public int getUniqueDownloadId(){
+    public int getUniqueDownloadId() {
         int ran = random.nextInt();
         for (DownloadDetails details : tempDetails) {
-            while (ran==details.id) ran =random.nextInt();
+            while (ran == details.id) ran = random.nextInt();
         }
         return ran;
     }
@@ -154,24 +152,40 @@ public class MainActivityViewModel extends AndroidViewModel implements UtilityIn
 
     DownloadManager downloadManager;
     long downloadId;
-    boolean downloading = true;
+    private boolean downloading = false;
 
     UtilityInterface.ModuleDownloadCallback moduleDownloadCallback;
 
     public void downloadSO(String url, UtilityInterface.ModuleDownloadCallback callback) {
+        downloading = true;
         moduleDownloadCallback = callback;
         downloadManager = (DownloadManager) getApplication().getSystemService(Context.DOWNLOAD_SERVICE);
         getApplication().registerReceiver(onComplete, new IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE));
 
         Uri uri = Uri.parse(url);
         DownloadManager.Request request = new DownloadManager.Request(uri);
-//        request.setDestinationInExternalFilesDir(getApplication(), LIBRARY_PATH, "lib.zip");
-        request.setDestinationUri(Uri.fromFile(new File(AppPref.getInstance(getApplication()).getCachePath(LIBRARY_PATH)+"lib.zip")));
+        request.setDestinationUri(Uri.fromFile(new File(AppPref.getInstance(getApplication()).getCachePath(AppPref.LIBRARY_PATH) + "lib.zip")));
         downloadId = downloadManager.enqueue(request);
 
         downloadValues();
     }
 
+    public boolean isProgressDialogVisible() {
+        return isProgressDialogVisible;
+    }
+
+    public String getProgressDialogText() {
+        return progressDialogText;
+    }
+
+    public void setProgressDialogState(boolean isVisible, String text) {
+        isProgressDialogVisible = isVisible;
+        progressDialogText = text;
+    }
+
+    public boolean isDownloadingSOFile() {
+        return downloading;
+    }
 
     private void downloadValues() {
         new Thread(() -> {
@@ -234,10 +248,40 @@ public class MainActivityViewModel extends AndroidViewModel implements UtilityIn
     BroadcastReceiver onComplete = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
-            Log.e(TAG, "onReceive: Download completed" );
+            Log.e(TAG, "onReceive: Download completed");
             downloadProgressLiveData.postValue(100);
             downloading = false;
             moduleDownloadCallback.onDownloadEnded();
         }
     };
+
+    public Bundle getTempResultBundle() {
+        return tempResultBundle;
+    }
+
+    public void setTempResultBundle(Bundle tempResultBundle) {
+        this.tempResultBundle = tempResultBundle;
+    }
+
+    public void deleteSharedFile() {
+        Uri uri = Uri.parse(tempResultBundle.getString(OUTFILE_URI));
+        FileUtil.deleteFile(
+                getApplication().getExternalFilesDir(null) + File.separator + uri.getLastPathSegment(),
+                null
+        );
+    }
+
+    public void setDownloadingSOFile(boolean downloadingSOFile) {
+        this.downloading = downloadingSOFile;
+    }
+
+    public static final int NO_SHARE_ONLY_FILES_DOWNLOADING = -1;
+
+    public int shareOnlyDownloadStatus() {
+        for (DownloadDetails details :
+                downloadDetailsList) {
+            if (details.isShareOnlyDownload) return details.id;
+        }
+        return NO_SHARE_ONLY_FILES_DOWNLOADING;
+    }
 }

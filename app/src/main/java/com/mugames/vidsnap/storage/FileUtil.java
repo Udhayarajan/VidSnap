@@ -213,6 +213,7 @@ public final class FileUtil {
      * Can't be used to write. Only for string purpose
      */
     public static String getExternalStoragePublicDirectory(Context context, @Nullable String type) {
+        type = type==null?"":type;
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             StorageManager manager = (StorageManager) context.getSystemService(Context.STORAGE_SERVICE);
 
@@ -303,8 +304,8 @@ public final class FileUtil {
     }
 
 
-    public static boolean isFileExists(String fileDirectory) {
-        return new File(fileDirectory).exists();
+    public static boolean isFileNotExists(String fileDirectory) {
+        return !new File(fileDirectory).exists();
     }
 
     /*-----------------------------------NOTE-------------------------------------------------*
@@ -471,10 +472,10 @@ public final class FileUtil {
 
     /**
      *
-     * @param context
-     * @param parentUri
-     * @param fileName
-     * @param mimeType
+     * @param context application context
+     * @param parentUri parent directory's uri
+     * @param fileName current filename without extensions
+     * @param mimeType mime type of current file
      * @return New uri for a file eg. if file exist name will be file(1)
      */
     public static Uri pathToNewUri(Context context, Uri parentUri, String fileName, String mimeType){

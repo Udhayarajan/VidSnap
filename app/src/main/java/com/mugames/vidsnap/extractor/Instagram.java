@@ -63,7 +63,7 @@ public class Instagram extends Extractor {
                 own_cookie = cookies;
                 HttpRequest request = new HttpRequest(url,getDialogueInterface(),response -> {
                     getDialogueInterface().show("Analysing");
-                    extractInfoShared(response);
+                    extractInfoShared(response.getResponse());
                 });
                 request.setType(HttpRequest.GET);
                 request.start();
@@ -132,7 +132,7 @@ public class Instagram extends Extractor {
                     });
             return;
         }
-        HttpRequest request = new HttpRequest(httpURL,getDialogueInterface(),this::extractInfoShared);
+        HttpRequest request = new HttpRequest(httpURL,getDialogueInterface(),response -> extractInfoShared(response.getResponse()));
         request.setCookies(cookies);
         request.setType(HttpRequest.GET);
         request.start();

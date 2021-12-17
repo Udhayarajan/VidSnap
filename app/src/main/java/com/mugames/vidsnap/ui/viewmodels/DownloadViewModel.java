@@ -38,18 +38,16 @@ import static com.mugames.vidsnap.utility.Statics.RESULT_CODE;
 import static com.mugames.vidsnap.utility.Statics.TOTAL_SIZE;
 import static com.mugames.vidsnap.utility.UtilityClass.formatFileSize;
 
-public class DownloadViewModel extends AndroidViewModel {
+public class DownloadViewModel{
 
-    MutableLiveData<String> downloadProgress = new MutableLiveData<>();
-    MutableLiveData<String> progressPercentage = new MutableLiveData<>();
-    MutableLiveData<String> speed = new MutableLiveData<>();
-    MutableLiveData<String> status = new MutableLiveData<>();
+    final MutableLiveData<String> downloadProgress = new MutableLiveData<>();
+    final MutableLiveData<String> progressPercentage = new MutableLiveData<>();
+    final MutableLiveData<String> speed = new MutableLiveData<>();
+    final MutableLiveData<String> status = new MutableLiveData<>();
 
-    MutableLiveData<Integer> valStr = new MutableLiveData<>();
+    final MutableLiveData<Integer> valStr = new MutableLiveData<>();
 
-    public DownloadViewModel(@NonNull @NotNull Application application) {
-        super(application);
-    }
+    public DownloadViewModel() { }
 
     public LiveData<String> getDownloadProgress() {
         return downloadProgress;

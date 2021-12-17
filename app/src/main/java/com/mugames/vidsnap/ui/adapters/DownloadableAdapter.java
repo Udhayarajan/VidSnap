@@ -50,11 +50,11 @@ import java.util.ArrayList;
 public class DownloadableAdapter extends RecyclerView.Adapter<DownloadableAdapter.ViewHolder> {
 
 
-    Formats formats;
-    Fragment fragment;
+    final Formats formats;
+    final Fragment fragment;
 
-    ArrayList<Integer> selected;
-    MutableLiveData<ArrayList<Integer>> selectedList;
+    final ArrayList<Integer> selected;
+    final MutableLiveData<ArrayList<Integer>> selectedList;
     public boolean selectionStarted;
 
     public DownloadableAdapter(Fragment fragment, Formats formats) {
@@ -131,7 +131,7 @@ public class DownloadableAdapter extends RecyclerView.Adapter<DownloadableAdapte
         });
     }
 
-    OnBackPressedCallback onBackPressedCallback = new OnBackPressedCallback(true) {
+    final OnBackPressedCallback onBackPressedCallback = new OnBackPressedCallback(true) {
         @Override
         public void handleOnBackPressed() {
             if(selectionStarted) {

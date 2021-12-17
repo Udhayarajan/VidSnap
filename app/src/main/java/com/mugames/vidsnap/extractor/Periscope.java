@@ -65,7 +65,7 @@ public class Periscope {
         HttpRequest request = new HttpRequest(String.format("https://api.periscope.tv/api/v2/accessVideoPublic?broadcast_id=%s", id),
                 extractor.getDialogueInterface(),response -> {
             try {
-                JSONObject stream = new JSONObject(response);
+                JSONObject stream = new JSONObject(response.getResponse());
                 JSONObject broadcast = stream.getJSONObject("broadcast");
                 data = extractData(broadcast);
                 ArrayList<String> video_urls = new ArrayList<>();
@@ -116,6 +116,6 @@ public class Periscope {
 
 
     public void Download(String fileName, String path) {
-        //filled later
+        //TODO: Specific video download for periscope
     }
 }

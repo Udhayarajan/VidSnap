@@ -50,10 +50,16 @@ import java.io.File;
  * Helper class to access shared preferences
  */
 public class AppPref {
+
+    public static final String STATIC_CACHE = ".historyDB";
+    public static final String DYNAMIC_CACHE = ".essential";
+    public static final String LIBRARY_PATH = "libs";
+    public static final String db_name = "historyCache";
+
     private static volatile AppPref instance;
 
-    SharedPreferences sharedPreferences;
-    Context context;
+    final SharedPreferences sharedPreferences;
+    final Context context;
 
     String TAG = Statics.TAG+":AppPref";
 
@@ -134,4 +140,16 @@ public class AppPref {
         return context.getExternalFilesDirs(folderName)[index] + "/";
     }
 
+    public void setWhatsAppUri(Intent intent){
+        Uri uri = intent.getData();
+        int flag = intent.getFlags() & Intent.FLAG_GRANT_READ_URI_PERMISSION;
+        context.getContentResolver().takePersistableUriPermission(uri,flag);
+        setStringValue(R.string.whatsappUri,uri.toString());
+    }
+
+    public Uri getWhatsAppUri() {
+        String uri = getStringValue(R.string.whatsappUri,null);
+        if(uri==null) return null;
+        return Uri.parse(uri);
+    }
 }

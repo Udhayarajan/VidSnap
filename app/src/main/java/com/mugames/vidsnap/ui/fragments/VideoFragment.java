@@ -43,8 +43,10 @@ import com.bumptech.glide.Glide;
 import com.bumptech.glide.request.FutureTarget;
 import com.bumptech.glide.request.target.CustomTarget;
 import com.bumptech.glide.request.transition.Transition;
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.firebase.crashlytics.FirebaseCrashlytics;
 import com.mugames.vidsnap.storage.AppPref;
+import com.mugames.vidsnap.utility.MIMEType;
 import com.mugames.vidsnap.utility.UtilityClass;
 import com.mugames.vidsnap.ui.viewmodels.VideoFragmentViewModel;
 import com.mugames.vidsnap.ui.activities.MainActivity;
@@ -71,14 +73,12 @@ public class VideoFragment extends Fragment implements
 
     String TAG = Statics.TAG + ":VideoFragment";
 
+
     MainActivity activity;
 
     Button analysis;
     EditText urlBox;
     Button button;
-
-    DownloadDetails details;
-    Formats formats;
 
 
     RecyclerView list;
@@ -91,6 +91,7 @@ public class VideoFragment extends Fragment implements
     private boolean isPaused;
 
     VideoFragmentViewModel viewModel;
+
 
     private QualityFragment dialogFragment = null;
 
@@ -147,6 +148,8 @@ public class VideoFragment extends Fragment implements
                 hideKeyboard(v);
         });
 
+        viewModel.updateActivityReference(activity);
+
         if (link != null) startProcess(link);
         return view;
 
@@ -154,13 +157,10 @@ public class VideoFragment extends Fragment implements
 
     public void startProcess(String link) {
         urlBox.setText(link);
-        if (dialogFragment != null)
-            dialogFragment.dismiss();
-
-        dialogFragment = null;
+        safeDismissBottomSheet();
         if (viewModel.onClickAnalysis(urlBox.getText().toString(), (MainActivity) getActivity()) == null)
             unLockAnalysis();
-        else linkFor(link);
+        else setCrashCauseLink(link); // Only if it is valid URL it reach here
     }
 
     private void hideKeyboard(View v) {
@@ -174,15 +174,20 @@ public class VideoFragment extends Fragment implements
         }
     }
 
+    void safeDismissBottomSheet() {
+        try {
+            dialogFragment.dismiss();
+        } catch (IllegalArgumentException | NullPointerException e) {
+            Log.e(TAG, "safeDismissBottomSheet: ",e );
+        }
+        dialogFragment = null;
+    }
 
-    void linkFor(String link) {
-        size = 0;
-        if (dialogFragment != null && dialogFragment.isVisible()) dialogFragment.dismiss();
 
+    void setCrashCauseLink(String link) {
         Fragment fragment = activity.getSupportFragmentManager().findFragmentByTag("TAG");
         if (fragment != null)
             ((QualityFragment) fragment).dismiss();
-
         FirebaseCrashlytics.getInstance().setCustomKey("URL", link);
     }
 
@@ -229,22 +234,22 @@ public class VideoFragment extends Fragment implements
 
 
     void actionForSOLOFile() {
-        details = new DownloadDetails();
-        formats = viewModel.getFormats();
+        Formats formats = viewModel.getFormats();
 
         dialogFragment = QualityFragment.newInstance(formats.qualities, formats.videoSizeInString);
         dialogFragment.setRequired(this);
 
-        Glide.with(getContext())
+        Glide.with(requireContext())
                 .asBitmap()
                 .load(Uri.parse(formats.thumbNailsURL.get(0)))
                 .into(new CustomTarget<Bitmap>() {
                     @Override
                     public void onResourceReady(@NonNull Bitmap resource, @Nullable Transition<? super Bitmap> transition) {
-                        details.setThumbNail(getContext(), resource);
+                        viewModel.getDownloadDetails().setThumbNail(getContext(), resource);
                         dialogFragment.setThumbNail(resource);
                         if (!isPaused)
                             dialogFragment.show(activity.getSupportFragmentManager(), "TAG");
+
                     }
 
                     @Override
@@ -259,24 +264,25 @@ public class VideoFragment extends Fragment implements
     public void onPause() {
         super.onPause();
         isPaused = true;
-        if (dialogFragment != null)
-            dialogFragment.dismiss();
+        safeDismissBottomSheet();
     }
 
     @Override
     public void onResume() {
         super.onResume();
         isPaused = false;
-        if (dialogFragment != null) {
-            dialogFragment.show(activity.getSupportFragmentManager(), "TAG");
-        }
+        try {
+            if (viewModel.getFormats() != null && !viewModel.getFormats().isMultipleFile()) {
+                if (dialogFragment == null) actionForSOLOFile();
+                else dialogFragment.show(activity.getSupportFragmentManager(), "TAG");
+            }
+        } catch (IllegalStateException e) {}
 
     }
 
     @Override
     public void onDestroy() {
-        dialogFragment.dismiss();
-        dialogFragment = null;
+        safeDismissBottomSheet();
         super.onDestroy();
     }
 
@@ -326,20 +332,67 @@ public class VideoFragment extends Fragment implements
 
     }
 
-    @Override
-    public void onDownloadButtonPressed(String fileName) {
+    void updateUiOnDownloadPressed(){
+        viewModel.getDownloadDetails().srcUrl = urlBox.getText().toString();
+        safeDismissBottomSheet();
         dialogFragment = null;
         urlBox.setText("");
+    }
 
+    @Override
+    public void onDownloadMP4ButtonPressed(String fileName) {
+        updateUiOnDownloadPressed();
+        downloadVideo(fileName,false);
+
+    }
+
+    void downloadVideo(String fileName, boolean isOnlyShare){
+        viewModel.nullifyFormats();
         ArrayList<DownloadDetails> downloadDetails = new ArrayList<>();
         fileName = removeStuffFromName(fileName);
-        details.fileName = fileName.split("\\.")[0];
-        downloadDetails.add(details);
+        viewModel.getDownloadDetails().isShareOnlyDownload = isOnlyShare;
+        viewModel.getDownloadDetails().fileName = fileName.split("\\.")[0];
+        downloadDetails.add(viewModel.getDownloadDetails());
         activity.download(downloadDetails);
     }
 
     @Override
+    public void onDownloadMP3ButtonPressed(String fileName) {
+        updateUiOnDownloadPressed();
+        ArrayList<DownloadDetails> downloadDetails = new ArrayList<>();
+        if(!viewModel.getFormats().audioURLs.isEmpty()){
+            fileName = removeStuffFromName(fileName+"_mp3 version");
+            viewModel.getDownloadDetails().fileName = fileName.split("\\.")[0];
+            viewModel.getDownloadDetails().fileType = "mp3";
+            viewModel.getDownloadDetails().fileMime = viewModel.getDownloadDetails().mimeAudio;
+            viewModel.getDownloadDetails().audioURL = null;
+            viewModel.getDownloadDetails().videoSize = viewModel.getDownloadDetails().audioSize;
+            viewModel.getDownloadDetails().fileMime = MIMEType.AUDIO_MP4;
+            viewModel.getDownloadDetails().videoURL = viewModel.getFormats().audioURLs.get(0);
+            downloadDetails.add(viewModel.getDownloadDetails());
+            activity.download(downloadDetails);
+        }else {
+            new MaterialAlertDialogBuilder(requireContext())
+                    .setTitle("Under Construction")
+                    .setMessage("Mp3 feature other than YouTube is currently under development.\nStay tuned, cheers")
+                    .setPositiveButton("Good Job!",null)
+                    .setCancelable(true)
+                    .show();
+        }
+        viewModel.nullifyFormats();
+
+    }
+
+    @Override
+    public void onShareButtonPressed(String fileName) {
+        updateUiOnDownloadPressed();
+        downloadVideo(fileName,true);
+    }
+
+    @Override
     public void onSelectedItem(int position, QualityFragment qualityFragment) {
+        DownloadDetails details = viewModel.getDownloadDetails();
+        Formats formats = viewModel.getFormats();
         try {
             details.chunkUrl = formats.chunkUrlList.get(position);
             details.chunkCount = formats.manifest.get(position).size();
@@ -359,6 +412,7 @@ public class VideoFragment extends Fragment implements
         details.videoSize = formats.videoSizes.get(position);
         try {
             details.audioURL = formats.audioURLs.get(0);
+            details.audioSize = formats.audioSizes.get(0);
         } catch (IndexOutOfBoundsException e) {
             details.audioURL = null;
         }

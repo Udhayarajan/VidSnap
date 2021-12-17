@@ -87,7 +87,7 @@ public class Facebook extends Extractor {
 
     private void extractInfo() {
         url = url.replaceAll("://m.facebook\\.com/","://www.facebook.com/");
-        HttpRequest request = new HttpRequest(url,getDialogueInterface(),this::scratchWebPage);
+        HttpRequest request = new HttpRequest(url,getDialogueInterface(),response -> scratchWebPage(response.getResponse()));
         request.setType(HttpRequest.GET);
         request.setHeaders(headers);
         request.start();
@@ -98,7 +98,7 @@ public class Facebook extends Extractor {
         url = url.replaceAll("://www.facebook\\.com/","://en-gb.facebook.com/");
         HttpRequest request = new HttpRequest(url,getDialogueInterface(),response -> {
             tried_with_forceEng = true;
-            scratchWebPage(response);
+            scratchWebPage(response.getResponse());
         });
         request.setType(HttpRequest.GET);
         request.setHeaders(headers);
@@ -119,7 +119,7 @@ public class Facebook extends Extractor {
 
             Object video_data = null;
 
-            if (!isNullOrEmpty(server_js_data)) {
+            if (isNonNullOrEmpty(server_js_data)) {
                 video_data = grab_video_data(new JSONObject(server_js_data).getJSONArray("instances"));
             }
 
@@ -130,12 +130,12 @@ public class Facebook extends Extractor {
                     matcher = Pattern.compile(String.format("bigPipe\\.onPageletArrive\\((\\{.*?id\\s*:\\s*\\\"%s\\\".*?\\})\\);", PAGELET_REGEX)).matcher(webPage);
                     if (matcher.find()) server_js_data = matcher.group(1);
                 }
-                if (!isNullOrEmpty(server_js_data))
-                    video_data = grab_from_jsmods_instance(new JSONObject(server_js_data));
+                if (isNonNullOrEmpty(server_js_data))
+                    video_data = grabFromJSmodsInstance(new JSONObject(server_js_data));
             }
 
             if (video_data == null) {
-                video_data = grab_relay_prefetched_data_search_url(webPage);
+                video_data = grabRelayPrefetchedDataSearchUrl(webPage);
             }
 
             if(video_data == null){
@@ -202,7 +202,11 @@ public class Facebook extends Extractor {
             trySignIn("Facebook requested you to sign-in. Without sign-in video can't be downloaded",
                     "https://www.facebook.com/login/",
                     new String[]{"https://m.facebook.com/login/save-device/?login_source=login#_=_", "https://m.facebook.com/?_rdr",
-                            "https://m.facebook.com/home.php?_rdr", "https://m.facebook.com/home.php"},
+                            "https://m.facebook.com/home.php?_rdr", "https://m.facebook.com/home.php",
+                            "https://m.facebook.com/?ref=dbl&_rdr",
+                            "https://m.facebook.com/?ref=dbl&_rdr#~!/home.php?ref=dbl",
+                            "https://m.facebook.com/?ref=dbl&_rdr#!/home.php?ref=dbl",
+                    },
                     cookies -> {
                         tryWithCookies();
                     });
@@ -211,16 +215,16 @@ public class Facebook extends Extractor {
 
         tried_with_cookies=true;
         getDialogueInterface().show("Adding cookies...");
-        HttpRequest request = new HttpRequest(url,getDialogueInterface(), this::scratchWebPage);
+        HttpRequest request = new HttpRequest(url,getDialogueInterface(), response -> scratchWebPage(response.getResponse()));
         request.setCookies(getUserCookies());
         request.setType(HttpRequest.GET);
         request.setHeaders(headers);
         request.start();
     }
 
-    Object grab_relay_prefetched_data_search_url(String webpage){
+    Object grabRelayPrefetchedDataSearchUrl(String webpage){
         try {
-            JSONObject data = grab_relay_prefetched_data(webpage,new String[]{"\"dash_manifest\"","\"playable_url\""});
+            JSONObject data = grabRelayPrefetchedData(webpage,new String[]{"\"dash_manifest\"","\"playable_url\""});
             if(data!=null) {
                 JSONArray nodes = null;
                 try {
@@ -251,10 +255,10 @@ public class Facebook extends Extractor {
                                 JSONArray ns = getArray_or_Null(UtilityClass.JSONGetter.getObj_or_Null(attachment, "all_subattachments"), "nodes");
                                 if (ns != null) {
                                     for (int l = 0; l < ns.length(); l++) {
-                                        parse_attachment(ns.getJSONObject(l), "media");
+                                        parseAttachment(ns.getJSONObject(l), "media");
                                     }
                                 }
-                                parse_attachment(attachment, "media");
+                                parseAttachment(attachment, "media");
                             } catch (JSONException e) {
                             }
                         }
@@ -266,7 +270,7 @@ public class Facebook extends Extractor {
                 if (edges != null) {
                     for (int j = 0; j < edges.length(); j++) {
                         JSONObject edge = edges.getJSONObject(j);
-                        parse_attachment(edge, "node");
+                        parseAttachment(edge, "node");
                     }
                 }
 
@@ -280,7 +284,7 @@ public class Facebook extends Extractor {
                     }
                     if (attachments != null) {
                         for (int j = 0; j < attachments.length(); j++) {
-                            parse_attachment(attachments.getJSONObject(j), "media");
+                            parseAttachment(attachments.getJSONObject(j), "media");
                         }
                     }
                     if (formats.mainFileURLs.isEmpty()) parse_graphql_video(video);
@@ -293,7 +297,7 @@ public class Facebook extends Extractor {
         return null;
     }
     
-    String grab_relay_data(String webPage,String[] searchWords){
+    String grabRelayData(String webPage, String[] searchWords){
         Matcher m = Pattern.compile("handleWithCustomApplyEach\\(.*?,(.*)\\);").matcher(webPage);
         while (m.find()){
             Matcher m1=Pattern.compile("(\\{.*[^);]\\})\\);").matcher(Objects.requireNonNull(m.group(1)));
@@ -305,9 +309,9 @@ public class Facebook extends Extractor {
         return null;
     }
 
-    JSONObject grab_relay_prefetched_data(String webPage,String[] filter){
-        String jsonString=grab_relay_data(webPage,filter);
-        if(!isNullOrEmpty(jsonString)) {
+    JSONObject grabRelayPrefetchedData(String webPage, String[] filter){
+        String jsonString= grabRelayData(webPage,filter);
+        if(isNonNullOrEmpty(jsonString)) {
             try {
                 JSONArray require = new JSONObject(jsonString).getJSONArray("require");
                 for (int i=0; i < require.length(); i++) {
@@ -322,7 +326,7 @@ public class Facebook extends Extractor {
         return null;
     }
 
-    void parse_attachment(JSONObject attachment,String key){
+    void parseAttachment(JSONObject attachment, String key){
 
         try {
             JSONObject media= UtilityClass.JSONGetter.getObj_or_Null(attachment,key);
@@ -335,7 +339,7 @@ public class Facebook extends Extractor {
 
     void parse_graphql_video(JSONObject media){
         try {
-            String res = null;
+            String res;
             formats.thumbNailsURL.add(media.getJSONObject("thumbnailImage").getString("uri"));
 
             String title= getString_or_Null(media,"name");
@@ -344,7 +348,7 @@ public class Facebook extends Extractor {
 
             String dash_xml = getString_or_Null(media, "dash_manifest");
             if (dash_xml != null) {
-                Extract_From_dash(dash_xml);
+                extractFromDash(dash_xml);
             }
             res = media.get("width") + "x" + media.get("height");
             for (String suffix : new String[]{"", "_quality_hd"}) {
@@ -364,7 +368,7 @@ public class Facebook extends Extractor {
         }catch (JSONException e){}
     }
 
-    void Extract_From_dash(String xml){
+    void extractFromDash(String xml){
         xml=xml.replaceAll("x3C","<");
         xml=xml.replaceAll("\\\\\u003C","<");
 
@@ -412,8 +416,8 @@ public class Facebook extends Extractor {
     }
 
 
-    Object grab_from_jsmods_instance(JSONObject js_data){
-        if(!isNullOrEmpty(String.valueOf(js_data))) {
+    Object grabFromJSmodsInstance(JSONObject js_data){
+        if(isNonNullOrEmpty(String.valueOf(js_data))) {
             try {
                 return grab_video_data(js_data.getJSONObject("jsmods").getJSONArray("instances"));
             } catch (JSONException e) {}
@@ -431,7 +435,7 @@ public class Facebook extends Extractor {
 
                     String dash_xml= getString_or_Null(videoData,"dash_manifest");
                     if(dash_xml!=null){
-                        Extract_From_dash(dash_xml);
+                        extractFromDash(dash_xml);
                     }
 
                     for (String s:new String[]{"hd","sd"}){
@@ -459,7 +463,7 @@ public class Facebook extends Extractor {
     }
 
 
-    boolean isNullOrEmpty(String s){
-        return s==null||s.isEmpty();
+    boolean isNonNullOrEmpty(String s){
+        return s != null && !s.isEmpty();
     }
 }

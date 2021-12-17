@@ -20,6 +20,8 @@ package com.mugames.vidsnap.ui.adapters;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.ViewGroup;
+import android.widget.Button;
+import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.ProgressBar;
 import android.widget.TextView;
@@ -27,12 +29,14 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.Observer;
+import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.DiffUtil;
 import androidx.recyclerview.widget.ListAdapter;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.bumptech.glide.Glide;
 import com.mugames.vidsnap.R;
+import com.mugames.vidsnap.network.Downloader;
 import com.mugames.vidsnap.utility.bundles.DownloadDetails;
 import com.mugames.vidsnap.utility.DownloadReceiver;
 import com.mugames.vidsnap.utility.Statics;
@@ -46,16 +50,12 @@ public class DownloadAdapter extends ListAdapter<DownloadDetails, DownloadAdapte
 
     String TAG = Statics.TAG + ":DownloadAdapter";
 
-    MainActivityViewModel activityViewModel;
-    DownloadViewModel viewModel;
-    Fragment fragment;
+    final Fragment fragment;
 
 
-    public DownloadAdapter(MainActivityViewModel activityViewModel, DownloadViewModel downloadViewModel, Fragment fragment) {
+    public DownloadAdapter(Fragment fragment) {
         super(DIFF_CALLBACK);
         this.fragment = fragment;
-        viewModel = downloadViewModel;
-        this.activityViewModel = activityViewModel;
     }
 
     private static final @NonNull
@@ -84,32 +84,33 @@ public class DownloadAdapter extends ListAdapter<DownloadDetails, DownloadAdapte
         DownloadDetails details = getItem(position);
         holder.downloadText.setText(details.fileName+"."+ details.fileType);
 
+        holder.cancelButton.setOnClickListener(v-> Downloader.cancelDownload(getItem(position).id));
+
         Glide.with(fragment).asBitmap().load(details.getThumbNail()).into(holder.thumbNailView);
 
-        ((DownloadReceiver) details.receiver).getResultBundle().observe(fragment, new Observer<Bundle>() {
-            @Override
-            public void onChanged(Bundle bundle) {
-                viewModel.process(bundle);
-                viewModel.getDownloadProgress().observe(fragment, s -> holder.sizeText.setText(s));
-                viewModel.getProgressPercentage().observe(fragment, s -> holder.progressText.setText(s));
-                viewModel.getSpeed().observe(fragment, s -> holder.speedText.setText(s));
-                viewModel.getStatus().observe(fragment, s -> holder.statusText.setText(s));
-                viewModel.getVal().observe(fragment, holder.progressBar::setProgress);
-            }
+        DownloadViewModel viewModel = new DownloadViewModel();
+
+        ((DownloadReceiver) details.receiver).getResultBundle().observe(fragment, bundle -> {
+            viewModel.process(bundle);
+            viewModel.getDownloadProgress().observe(fragment, holder.sizeText::setText);
+            viewModel.getProgressPercentage().observe(fragment, holder.progressText::setText);
+            viewModel.getSpeed().observe(fragment, holder.speedText::setText);
+            viewModel.getStatus().observe(fragment, holder.statusText::setText);
+            viewModel.getVal().observe(fragment, holder.progressBar::setProgress);
         });
     }
 
 
     static class DownloadViewHolder extends RecyclerView.ViewHolder {
 
-        TextView downloadText;
-        public TextView speedText;
+        final TextView downloadText;
+        public final TextView speedText;
         public final ProgressBar progressBar;
-        public ImageView thumbNailView;
-        public TextView sizeText;
-        public TextView progressText;
-        public TextView statusText;
-
+        public final ImageView thumbNailView;
+        public final TextView sizeText;
+        public final TextView progressText;
+        public final TextView statusText;
+        public final ImageButton cancelButton;
 
         DownloadViewHolder(LayoutInflater layoutInflater, ViewGroup parent) {
             super(layoutInflater.inflate(R.layout.fragment_downloading_item, parent, false));
@@ -121,6 +122,7 @@ public class DownloadAdapter extends ListAdapter<DownloadDetails, DownloadAdapte
             thumbNailView = itemView.findViewById(R.id.download_thumb);
             progressText = itemView.findViewById(R.id.download_progress_text);
             statusText = itemView.findViewById(R.id.download_status);
+            cancelButton = itemView.findViewById(R.id.download_cancel);
         }
 
 

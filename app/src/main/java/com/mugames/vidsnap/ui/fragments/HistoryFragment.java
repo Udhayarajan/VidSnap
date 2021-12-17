@@ -80,21 +80,6 @@ public class HistoryFragment extends Fragment {
                 recyclerView.setAdapter(adapter);
             }
         });
-//        historyViewModel.getAllValues().observe(getViewLifecycleOwner(), new Observer<List<History>>() {
-//            @Override
-//            public void onChanged(List<History> histories) {
-////                if(!histories.isEmpty()){
-////
-////                }else {
-////                    FragmentManager manager = getActivity().getSupportFragmentManager();
-////                    FragmentTransaction trans = manager.beginTransaction();
-////                    trans.remove(HistoryFragment.this );
-////                    trans.commit();
-////                    manager.popBackStack();
-////                    ((MainActivity)getActivity()).replaceFragment(NoRecordFragment.newInstance("There is no download done yet"),NoRecordFragment.class.getName());
-////                }
-//            }
-//        });
         return view;
     }
 

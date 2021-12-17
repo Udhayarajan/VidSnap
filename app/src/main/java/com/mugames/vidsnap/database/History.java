@@ -20,6 +20,7 @@ package com.mugames.vidsnap.database;
 import android.net.Uri;
 import android.text.format.DateFormat;
 
+import androidx.room.ColumnInfo;
 import androidx.room.Entity;
 import androidx.room.PrimaryKey;
 import androidx.room.TypeConverters;
@@ -42,7 +43,8 @@ public class History {
     public String size;
     public String uriString;
     public String image;
-
+    @ColumnInfo(name = "source_url")
+    public String sourceUrl;
     public History() {}
 
 
@@ -53,6 +55,7 @@ public class History {
         this.date = DateConverter.toDate( new Date().getTime());
         this.size = String.valueOf(details.videoSize);
         this.uriString = uri.toString();
+        sourceUrl = details.srcUrl;
         image = UtilityClass.bitmapToString(details.getThumbNail());
     }
 

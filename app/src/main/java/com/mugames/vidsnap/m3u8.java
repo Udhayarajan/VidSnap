@@ -72,21 +72,21 @@ public class m3u8 {
 
     private void real_extract(int index, String url, ChunkCallback chunkCallback) {
         HttpRequest request = new HttpRequest(url, extractor.getDialogueInterface(), response -> {
-            if(response.contains("#EXT-X-FAXS-CM:")){
+            if(response.getResponse().contains("#EXT-X-FAXS-CM:")){
                 extractor.getDialogueInterface().error("Adobe Flash access can't downloaded",null);
                 return;
             }
             Pattern pattern=Pattern.compile("#EXT-X-SESSION-KEY:.*?URI=\"skd://");
-            if(pattern.matcher(response).find()){
+            if(pattern.matcher(response.getResponse()).find()){
                 extractor.getDialogueInterface().error("Apple Fair Play protected can't downloaded",null);
                 return;
             }
-            if(response.contains("#EXT-X-TARGETDURATION")){
+            if(response.getResponse().contains("#EXT-X-TARGETDURATION")){
                 //No playlist
-                extractFromMeta(index,response,url,chunkCallback);
+                extractFromMeta(index,response.getResponse(),url,chunkCallback);
             }
             else {
-                extractFromPlaylist(response,url);
+                extractFromPlaylist(response.getResponse(),url);
             }
         });
         request.setType(HttpRequest.GET);
@@ -131,7 +131,7 @@ public class m3u8 {
                 for (String l:line.split(",")){
                     l=l.trim();
                     if(l.contains("RESOLUTION")) {
-                        extractor.formats.qualities.add(GetValue("RESOLUTION", l));
+                        extractor.formats.qualities.add(getResolution(l));
                     }
                 }
             }
@@ -240,8 +240,8 @@ public class m3u8 {
 
 
 
-    String GetValue(String name,String query){
-        return query.substring(name.length()+1);
+    String getResolution(String query){
+        return query.substring("RESOLUTION".length()+1);
     }
 
 
