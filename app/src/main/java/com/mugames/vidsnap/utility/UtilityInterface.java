@@ -21,13 +21,16 @@ import android.graphics.Bitmap;
 import android.os.Bundle;
 import android.view.MotionEvent;
 
+import com.mugames.vidsnap.network.Response;
 import com.mugames.vidsnap.utility.bundles.Formats;
 import com.mugames.vidsnap.ui.fragments.QualityFragment;
 
 
 public interface UtilityInterface {
     interface DownloadUICallBack {
-        void onDownloadButtonPressed(String fileName);
+        void onDownloadMP4ButtonPressed(String fileName);
+        void onDownloadMP3ButtonPressed(String fileName);
+        void onShareButtonPressed(String fileName);
 
         void onSelectedItem(int position, QualityFragment qualityFragment);
     }
@@ -45,7 +48,7 @@ public interface UtilityInterface {
     }
 
     interface ResponseCallBack {
-        void onReceive(String response);
+        void onReceive(Response response);
     }
 
     interface SignNotifier {

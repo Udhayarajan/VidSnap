@@ -92,20 +92,25 @@ public class QualityFragment extends BottomSheetDialogFragment {
         qualityAdapter adapter = new qualityAdapter(qualityList.size(), qualityList, sizesList);
 
         recyclerView.setAdapter(adapter);
-        Button download = view.findViewById(R.id.download);
+        Button download_mp_4 = view.findViewById(R.id.download_mp4);
+        Button download_mp_3 = view.findViewById(R.id.download_mp3);
+        Button share = view.findViewById(R.id.share);
 
         ImageView imageView = view.findViewById(R.id.thumbnail_img);
         imageView.setImageBitmap(thumbNail);
         editText = view.findViewById(R.id.edit_name);
 
-        download.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                callback.onDownloadButtonPressed(editText.getText().toString());
-                QualityFragment.this.dismiss();
-            }
+        download_mp_4.setOnClickListener(v -> {
+              callback.onDownloadMP4ButtonPressed(editText.getText().toString());
+            QualityFragment.this.dismiss();
         });
 
+        download_mp_3.setOnClickListener(v->{
+            callback.onDownloadMP3ButtonPressed(editText.getText().toString());
+        });
+        share.setOnClickListener(v -> {
+            callback.onShareButtonPressed(editText.getText().toString());
+        });
     }
 
 
@@ -114,10 +119,10 @@ public class QualityFragment extends BottomSheetDialogFragment {
         editText.setText(name);
     }
 
-    @Override
-    public int getTheme() {
-        return R.style.CustomBottomSheetDialog;
-    }
+//    @Override
+//    public int getTheme() {
+//        return R.style.CustomBottomSheetDialog;
+//    }
 
     private class ViewHolder extends RecyclerView.ViewHolder {
 
@@ -159,14 +164,8 @@ public class QualityFragment extends BottomSheetDialogFragment {
             holder.qualityLabel.setText(mQualities.get(position));
             holder.sizeText.setText(String.format("%s MB", mSizes.get(position)));
 
-            View.OnClickListener listener = new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    itemCheckChanged(v);
-                }
-            };
 
-            holder.itemView.setOnClickListener(listener);
+            holder.itemView.setOnClickListener(this::itemCheckChanged);
 
             if (radioButtons.size() == 0) {
                 holder.radioButton.setChecked(true);
@@ -174,7 +173,7 @@ public class QualityFragment extends BottomSheetDialogFragment {
                 selectedItem = 0;
             } else holder.radioButton.setChecked(false);
 
-            holder.radioButton.setOnClickListener(listener);
+            holder.radioButton.setOnClickListener(this::itemCheckChanged);
 
             Object test = null;
 

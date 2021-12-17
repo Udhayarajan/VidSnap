@@ -103,8 +103,6 @@ public class HttpRequest{
 
                 }
 
-//            if(user_agent!=null)
-//                httpsURLConnection.setRequestProperty("User-Agent",user_agent);
 
                 httpsURLConnection.setRequestProperty("Accept-Language", "en-GB");
                 httpsURLConnection.setRequestProperty("Content-Language", "en-GB");
@@ -140,12 +138,12 @@ public class HttpRequest{
                 }
 
                 stream.close();
-                callBack.onReceive(outputStream.toString());
+                callBack.onReceive(new Response(outputStream.toString()));
 
             } catch (IOException e) {
                 e.printStackTrace();
                 if(info_url.toString().contains("youtube") || (info_url.toString().contains("instagram") && !headers.contains("User-Agent")))
-                    callBack.onReceive(null);
+                    callBack.onReceive(new Response(e));
                 else {
                     dialogueInterface.error("Internal error occurred",e);
                 }

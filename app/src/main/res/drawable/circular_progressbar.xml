@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?><!--
+  ~  This file is part of VidSnap.
+  ~
+  ~  VidSnap is free software: you can redistribute it and/or modify
+  ~  it under the terms of the GNU General Public License as published by
+  ~  the Free Software Foundation, either version 3 of the License, or
+  ~  any later version.
+  ~  VidSnap is distributed in the hope that it will be useful,
+  ~  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  ~  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  ~  GNU General Public License for more details.
+  ~  You should have received a copy of the GNU General Public License
+  ~  along with VidSnap.  If not, see <https://www.gnu.org/licenses/>.
+  ~
+  -->
+
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item>
+        <shape
+            android:shape="ring"
+            android:thicknessRatio="16"
+            android:useLevel="false">
+            <solid android:color="#DDD"/>
+        </shape>
+    </item>
+    <item>
+        <rotate android:fromDegrees="270" android:toDegrees="270">
+            <shape
+                android:shape="ring"
+                android:thicknessRatio="16"
+                android:useLevel="true">
+                <solid android:color="?attr/colorAccent"/>
+            </shape>
+        </rotate>
+    </item>
+</layer-list>

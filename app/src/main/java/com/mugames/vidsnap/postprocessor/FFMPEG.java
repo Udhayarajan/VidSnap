@@ -40,7 +40,7 @@ import java.io.IOException;
 import java.nio.channels.FileChannel;
 
 import static com.mugames.vidsnap.utility.Statics.TAG;
-import static com.mugames.vidsnap.ui.viewmodels.MainActivityViewModel.LIBRARY_PATH;
+import static com.mugames.vidsnap.storage.AppPref.LIBRARY_PATH;
 
 public class FFMPEG {
     public static String jniPath;
@@ -75,7 +75,7 @@ public class FFMPEG {
         String libsPath = AppPref.getInstance(context).getCachePath(LIBRARY_PATH);
         if(jniPath==null) jniPath = libsPath + File.separator + "jni" + File.separator;
 
-        if(!FileUtil.isFileExists(jniPath)) {
+        if(FileUtil.isFileNotExists(jniPath)) {
             new Thread(()->{
                 try {
                     FileUtil.unzip(new File(libsPath, "lib.zip"), new File(libsPath), () -> {
@@ -228,5 +228,9 @@ public class FFMPEG {
 
     public FFMPEGInfo getInfo() {
         return info;
+    }
+
+    public void interrupt(){
+        FFmpegKit.cancel();
     }
 }

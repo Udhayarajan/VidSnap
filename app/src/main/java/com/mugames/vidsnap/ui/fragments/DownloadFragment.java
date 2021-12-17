@@ -54,7 +54,6 @@ public class DownloadFragment extends Fragment {
 
 
     MainActivityViewModel activityViewModel;
-    DownloadViewModel downloadViewModel;
 
 
     public DownloadFragment() {
@@ -78,8 +77,6 @@ public class DownloadFragment extends Fragment {
 
         View view;
         activityViewModel = new ViewModelProvider(getActivity(),ViewModelProvider.AndroidViewModelFactory.getInstance(getActivity().getApplication())).get(MainActivityViewModel.class);
-        downloadViewModel = new ViewModelProvider(this).get(DownloadViewModel.class);
-
 
         view = inflater.inflate(R.layout.fragment_downloading, container, false);
 
@@ -88,7 +85,7 @@ public class DownloadFragment extends Fragment {
 
         recyclerView = view.findViewById(R.id.download_recyclerView);
         recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
-        adapter = new DownloadAdapter(activityViewModel, downloadViewModel, this);
+        adapter = new DownloadAdapter( this);
 
         activityViewModel.getDownloadDetailsLiveData().observe(getViewLifecycleOwner(), new Observer<ArrayList<DownloadDetails>>() {
             @Override

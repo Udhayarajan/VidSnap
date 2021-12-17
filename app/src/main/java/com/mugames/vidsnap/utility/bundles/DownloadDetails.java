@@ -27,11 +27,14 @@ import android.os.Parcelable;
 import android.os.ResultReceiver;
 
 
+import androidx.annotation.NonNull;
+
 import com.mugames.vidsnap.storage.FileUtil;
 import com.mugames.vidsnap.storage.AppPref;
 import com.mugames.vidsnap.utility.DownloadReceiver;
 import com.mugames.vidsnap.utility.UtilityClass;
-import com.mugames.vidsnap.ui.viewmodels.MainActivityViewModel;
+
+import org.jetbrains.annotations.NotNull;
 
 import java.io.File;
 import java.util.Random;
@@ -47,8 +50,9 @@ public class DownloadDetails implements Parcelable {
     public Uri pathUri;
     public String fileName;
     public String fileType;
-    public String originalUrl;
+    public String srcUrl;
     public String src;
+    public int videoQualityIndex;
 
     public String videoURL;
     public String audioURL;
@@ -68,8 +72,11 @@ public class DownloadDetails implements Parcelable {
 
     public ResultReceiver receiver;
 
+    public boolean isShareOnlyDownload;
 
-    public DownloadDetails() {}
+
+    public DownloadDetails() {
+    }
 
     protected DownloadDetails(Parcel in) {
         id = in.readInt();
@@ -77,8 +84,9 @@ public class DownloadDetails implements Parcelable {
         pathUri = Uri.parse(in.readString());
         fileName = in.readString();
         fileType = in.readString();
-        originalUrl = in.readString();
+        srcUrl = in.readString();
         src = in.readString();
+        videoQualityIndex = in.readInt();
 
         videoURL = in.readString();
         audioURL = in.readString();
@@ -97,6 +105,8 @@ public class DownloadDetails implements Parcelable {
         thumbHeight = in.readInt();
 
         receiver = in.readParcelable(DownloadReceiver.class.getClassLoader());
+
+        isShareOnlyDownload = in.readByte() != 0;
     }
 
     @Override
@@ -106,8 +116,9 @@ public class DownloadDetails implements Parcelable {
         dest.writeString(pathUri.toString());
         dest.writeString(fileName);
         dest.writeString(fileType);
-        dest.writeString(originalUrl);
+        dest.writeString(srcUrl);
         dest.writeString(src);
+        dest.writeInt(videoQualityIndex);
 
         dest.writeString(videoURL);
         dest.writeString(audioURL);
@@ -125,7 +136,9 @@ public class DownloadDetails implements Parcelable {
         dest.writeInt(thumbWidth);
         dest.writeInt(thumbHeight);
 
-        dest.writeParcelable(receiver,flags);
+        dest.writeParcelable(receiver, flags);
+
+        dest.writeByte((byte) (isShareOnlyDownload ? 1 : 0));
     }
 
     @Override
@@ -146,27 +159,28 @@ public class DownloadDetails implements Parcelable {
     };
 
     public Bitmap getThumbNail() {
-        return UtilityClass.bytesToBitmap(FileUtil.loadImage(thumbNailPath.getPath()),thumbWidth,thumbHeight);
+        return UtilityClass.bytesToBitmap(FileUtil.loadImage(thumbNailPath.getPath()), thumbWidth, thumbHeight);
     }
 
     public void setThumbNail(Context context, Bitmap resource) {
         Random random = new Random();
-        String path = FileUtil.getValidFile(AppPref.getInstance(context).getCachePath(MainActivityViewModel.DYNAMIC_CACHE), String.valueOf(random.nextLong()),"jpg");
-        FileUtil.saveFile(path,UtilityClass.bitmapToBytes(resource),null);
+        String path = FileUtil.getValidFile(AppPref.getInstance(context).getCachePath(AppPref.DYNAMIC_CACHE), String.valueOf(random.nextLong()), "jpg");
+        FileUtil.saveFile(path, UtilityClass.bitmapToBytes(resource), null);
         thumbNailPath = Uri.fromFile(new File(path));
         thumbWidth = resource.getWidth();
         thumbHeight = resource.getHeight();
     }
 
     public void deleteThumbnail() {
-        FileUtil.deleteFile(thumbNailPath.getPath(),null);
+        FileUtil.deleteFile(thumbNailPath.getPath(), null);
     }
 
+    @NonNull
     public static DownloadDetails findDetails(int id) {
         for (DownloadDetails details :
                 downloadDetailsList) {
             if (details.id == id) return details;
         }
-        return null;
+        throw new IllegalArgumentException("id: "+id+" has no details");
     }
 }

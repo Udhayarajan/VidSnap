@@ -18,9 +18,13 @@
 package com.mugames.vidsnap.utility;
 
 import static com.mugames.vidsnap.utility.Statics.ERROR_DOWNLOADING;
+import static com.mugames.vidsnap.utility.Statics.IS_SHARE_ONLY_DOWNLOAD;
 import static com.mugames.vidsnap.utility.Statics.OUTFILE_URI;
+import static com.mugames.vidsnap.utility.Statics.PROGRESS;
+import static com.mugames.vidsnap.utility.Statics.PROGRESS_CANCELED;
 import static com.mugames.vidsnap.utility.Statics.PROGRESS_DONE;
 import static com.mugames.vidsnap.utility.Statics.PROGRESS_FAILED;
+import static com.mugames.vidsnap.utility.Statics.PROGRESS_UPDATE;
 import static com.mugames.vidsnap.utility.Statics.RESULT_CODE;
 import static com.mugames.vidsnap.utility.UtilityInterface.DownloadCallback;
 
@@ -32,6 +36,7 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Parcelable;
 import android.os.ResultReceiver;
+import android.util.Log;
 import android.webkit.MimeTypeMap;
 
 import androidx.core.app.NotificationCompat;
@@ -56,21 +61,21 @@ import java.util.Random;
  */
 public class DownloadReceiver extends ResultReceiver implements Parcelable {
 
-    String TAG = Statics.TAG + ":DownloadReceiver";
-    Context context;
+    final String TAG = Statics.TAG + ":DownloadReceiver";
+    final Context context;
     UtilityInterface.DialogueInterface dialogInterface;
 
-    MutableLiveData<Bundle> resultBundle = new MutableLiveData<>();
+    final MutableLiveData<Bundle> resultBundle = new MutableLiveData<>();
 
 
-    int id;
+    final int id;
     DownloadCallback callback;
 
     public DownloadReceiver(Handler handler, Context context, UtilityInterface.DialogueInterface dialogueInterface, int id, DownloadCallback callback) {
         super(handler);
         this.context = context.getApplicationContext();
         this.callback = callback;
-        this.dialogInterface =dialogueInterface;
+        this.dialogInterface = dialogueInterface;
         this.id = id;
     }
 
@@ -81,14 +86,7 @@ public class DownloadReceiver extends ResultReceiver implements Parcelable {
     public void setCallback(DownloadCallback callback) {
         this.callback = callback;
     }
-    //    public void viewHolderToUI(DownloadViewHolder viewHolder) {
-//        this.progressBar = viewHolder.progressBar;
-//        this.progressText = viewHolder.progressText;
-//        this.speedText = viewHolder.speedText;
-//        this.downloadText = viewHolder.sizeText;
-//        this.statusText = viewHolder.statusText;
-//        this.card = viewHolder.itemView;
-//    }
+
 
     public LiveData<Bundle> getResultBundle() {
         return resultBundle;
@@ -98,7 +96,13 @@ public class DownloadReceiver extends ResultReceiver implements Parcelable {
     protected void onReceiveResult(int resultCode, Bundle resultData) {
         super.onReceiveResult(resultCode, resultData);
 
-        resultData.putInt(RESULT_CODE,resultCode);
+        if (resultCode == PROGRESS_CANCELED) {
+            DownloadDetails.findDetails(id).deleteThumbnail();
+            cancelDownload();
+            return;
+        }
+
+        resultData.putInt(RESULT_CODE, resultCode);
 
         resultBundle.setValue(resultData);
 
@@ -107,16 +111,19 @@ public class DownloadReceiver extends ResultReceiver implements Parcelable {
             return;
         }
         if (resultCode == PROGRESS_DONE) {
-            Uri outputUri = Uri.parse(resultData.getString(OUTFILE_URI, null));
-            DownloadDetails details = DownloadDetails.findDetails(id);
-            if(details==null) return;
-            File file = new File(FileUtil.uriToPath(context,outputUri));
-            details.fileName = file.getName().split("\\.")[0];
-            details.fileType = file.getName().split("\\.")[1];
-            details.fileMime = MimeTypeMap.getSingleton().getMimeTypeFromExtension(details.fileType);
-            scan(outputUri.toString());
+            if (!resultData.getBoolean(IS_SHARE_ONLY_DOWNLOAD)) {
+                Uri outputUri = Uri.parse(resultData.getString(OUTFILE_URI, null));
+                DownloadDetails details = DownloadDetails.findDetails(id);
+                File file = new File(FileUtil.uriToPath(context, outputUri));
+                details.fileName = file.getName().split("\\.")[0];
+                details.fileType = file.getName().split("\\.")[1];
+                details.fileMime = MimeTypeMap.getSingleton().getMimeTypeFromExtension(details.fileType);
+                scan(outputUri.toString());
+            } else {
+                callback.onDownloadCompleted(id);
+                ((MainActivity) dialogInterface).shareDownloadedVideo(resultData);
+            }
         }
-
     }
 
     void scan(String fileUri) {
@@ -125,7 +132,6 @@ public class DownloadReceiver extends ResultReceiver implements Parcelable {
 
     void notificationSetup(Uri uri) {
         DownloadDetails details = DownloadDetails.findDetails(id);
-        if(details==null) return;
         History history = new History(details, uri);
 
 
@@ -140,7 +146,7 @@ public class DownloadReceiver extends ResultReceiver implements Parcelable {
         PendingIntent pendingIntent = PendingIntent.getActivity(context, 10, play_Intent, 0);
         builder.setPriority(NotificationCompat.PRIORITY_HIGH)
                 .setContentTitle("Download Completed")
-                .setContentText(details.fileName + details.fileType)
+                .setContentText(details.fileName + "." + details.fileType)
                 .setSmallIcon(R.drawable.ic_notification_icon)
                 .setAutoCancel(true)
                 .setContentIntent(pendingIntent);
@@ -156,28 +162,36 @@ public class DownloadReceiver extends ResultReceiver implements Parcelable {
         pref.setStringValue(R.string.key_clear_history_cache, "Cache is there");
     }
 
+    void cancelDownload() {
+        callback.onDownloadCompleted(id);
+    }
+
     void notificationFailed(Bundle resultData) {
         DownloadDetails details = DownloadDetails.findDetails(id);
+        details.deleteThumbnail();
 
-        Intent play_Intent = new Intent(context, MainActivity.class);
+        String failReason;
+        if(resultData.getString(ERROR_DOWNLOADING).contains("REQUEST_NOT_SUCCESSFUL"))
+            failReason = "Download Link expired/broken. It cannot be resumed";
+        else failReason = "Sorry!! for inconvenience try changing name and re-download or change download location";
+
+        Intent browserIntent = new Intent(Intent.ACTION_VIEW, Uri.parse(details.srcUrl));
 
         NotificationCompat.Builder builder = new NotificationCompat.Builder(context, VidSnapApp.NOTIFY_DOWNLOADED);
         NotificationManagerCompat managerCompat = NotificationManagerCompat.from(context);
 
-        PendingIntent pendingIntent = PendingIntent.getActivity(context, 10, play_Intent, 0);
+        PendingIntent pendingIntent = PendingIntent.getActivity(context, 110, browserIntent, 0);
         builder.setPriority(NotificationCompat.PRIORITY_HIGH)
                 .setContentTitle("Download Failed")
-                .setContentText(details.fileName + details.fileType)
+                .setContentText(details.fileName + "." + details.fileType)
                 .setSmallIcon(R.drawable.ic_notification_icon)
                 .setAutoCancel(true)
                 .setContentIntent(pendingIntent);
         managerCompat.notify(new Random().nextInt(), builder.build());
-        dialogInterface.error("Sorry!! for inconvenience try changing name and re-download or change download location",
+        dialogInterface.error(failReason,
                 new Exception(resultData.getString(ERROR_DOWNLOADING)));
         callback.onDownloadCompleted(id);
     }
-
-
 
 
 }

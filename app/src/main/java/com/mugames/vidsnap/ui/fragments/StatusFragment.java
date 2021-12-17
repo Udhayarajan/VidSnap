@@ -20,6 +20,7 @@ import static android.Manifest.permission.READ_EXTERNAL_STORAGE;
 
 import static com.mugames.vidsnap.utility.Statics.TAG;
 
+import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
@@ -34,12 +35,15 @@ import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
 import androidx.core.content.ContextCompat;
+import androidx.documentfile.provider.DocumentFile;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import android.os.Environment;
+import android.os.storage.StorageManager;
+import android.provider.DocumentsContract;
 import android.provider.OpenableColumns;
 import android.provider.Settings;
 import android.util.Log;
@@ -58,13 +62,16 @@ import com.bumptech.glide.Glide;
 import com.bumptech.glide.request.FutureTarget;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.mugames.vidsnap.R;
+import com.mugames.vidsnap.extractor.status.WhatsApp;
 import com.mugames.vidsnap.storage.AppPref;
+import com.mugames.vidsnap.storage.FileUtil;
 import com.mugames.vidsnap.utility.bundles.DownloadDetails;
 import com.mugames.vidsnap.utility.UtilityInterface;
 import com.mugames.vidsnap.ui.activities.MainActivity;
 import com.mugames.vidsnap.ui.adapters.DownloadableAdapter;
 import com.mugames.vidsnap.ui.viewmodels.StatusFragmentViewModel;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.concurrent.ExecutionException;
 
@@ -116,11 +123,11 @@ public class StatusFragment extends Fragment implements AdapterView.OnItemSelect
             permissionLauncher = registerForActivityResult(
                     new ActivityResultContracts.StartActivityForResult(),
                     result -> {
-                        if (Environment.isExternalStorageManager())
+                        if(result.getResultCode()== Activity.RESULT_OK){
                             viewModel.searchForStatus(null, (MainActivity) getActivity());
-                        else {
-                            Toast.makeText(getContext(), "Permission Denied", Toast.LENGTH_SHORT).show();
-                            socialMediaSpinner.setSelection(0);
+                            if (result.getData() != null) {
+                                AppPref.getInstance(requireContext()).setWhatsAppUri(result.getData());
+                            }
                         }
                     }
             );
@@ -174,10 +181,10 @@ public class StatusFragment extends Fragment implements AdapterView.OnItemSelect
 
     void checkPermissionForWhatsApp() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            if (!Environment.isExternalStorageManager())
+            if (AppPref.getInstance(requireContext()).getWhatsAppUri()==null)
                 getPermissionRandAbove();
             else viewModel.searchForStatus(null, (MainActivity) getActivity());
-        } else if (ContextCompat.checkSelfPermission(getContext(), READ_EXTERNAL_STORAGE) == PackageManager.PERMISSION_DENIED)
+        } else if (ContextCompat.checkSelfPermission(requireContext(), READ_EXTERNAL_STORAGE) == PackageManager.PERMISSION_DENIED)
             permissionResult.launch(READ_EXTERNAL_STORAGE);
         else viewModel.searchForStatus(null, (MainActivity) getActivity());
     }
@@ -185,14 +192,14 @@ public class StatusFragment extends Fragment implements AdapterView.OnItemSelect
 
     @RequiresApi(api = Build.VERSION_CODES.R)
     private void getPermissionRandAbove() {
-        Intent intent = new Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION);
-        intent.addCategory(Intent.CATEGORY_DEFAULT);
-        intent.setData(Uri.parse(String.format("package:%s", getContext().getPackageName())));
-        MaterialAlertDialogBuilder dialogBuilder = new MaterialAlertDialogBuilder(getContext());
-        dialogBuilder.setMessage("Your device version requires special storage permission to access WhatsApp's folder. Allow us to proceed towards Status Saving")
+        Intent intent = ((StorageManager)requireContext().getSystemService(Context.STORAGE_SERVICE)).getPrimaryStorageVolume().createOpenDocumentTreeIntent();
+        Uri uri = DocumentsContract.buildDocumentUri("com.android.externalstorage.documents","primary:"+WhatsApp.WHATSAPP+"/WhatsApp/"+WhatsApp.SUFFIX_PATH);
+        intent.putExtra(DocumentsContract.EXTRA_INITIAL_URI,uri);
+        MaterialAlertDialogBuilder dialogBuilder = new MaterialAlertDialogBuilder(requireContext());
+        dialogBuilder.setMessage("Your device version requires special storage permission to access WhatsApp's folder. Allow us to proceed towards Status Saving\n\nClick USE THIS FOLDER->ALLOW from prompt")
                 .setTitle("Permission Required!")
-                .setPositiveButton("Allow", (dialogInterface, i) -> permissionLauncher.launch(intent))
-                .setNegativeButton("Deny", (dialogInterface, i) -> {
+                .setPositiveButton("Open", (dialogInterface, i) -> permissionLauncher.launch(intent))
+                .setNegativeButton("Cancel", (dialogInterface, i) -> {
                     Toast.makeText(getContext(), "Permission Denied", Toast.LENGTH_SHORT).show();
                     socialMediaSpinner.setSelection(0);
                 })

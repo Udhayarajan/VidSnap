@@ -10,6 +10,7 @@ import com.mugames.vidsnap.extractor.Instagram;
 import com.mugames.vidsnap.extractor.Twitter;
 import com.mugames.vidsnap.extractor.YouTube;
 import com.mugames.vidsnap.extractor.Extractor;
+import com.mugames.vidsnap.utility.bundles.DownloadDetails;
 import com.mugames.vidsnap.utility.bundles.Formats;
 import com.mugames.vidsnap.utility.UtilityInterface;
 import com.mugames.vidsnap.ui.activities.MainActivity;
@@ -23,10 +24,13 @@ public class VideoFragmentViewModel extends AndroidViewModel implements UtilityI
 
     public static final String URL_KEY = "com.mugames.vidsnap.ui.ViewModels.VideoFragmentViewModel.URL_KEY";
 
+
     ArrayList<Integer> selected = new ArrayList<>();
     UtilityInterface.AnalyzeUICallback analyzeUICallback;
 
     Formats formats;
+    DownloadDetails details;
+    Extractor extractor;
 
     public VideoFragmentViewModel(@NonNull @NotNull Application application) {
         super(application);
@@ -34,7 +38,7 @@ public class VideoFragmentViewModel extends AndroidViewModel implements UtilityI
     
     
     public Extractor onClickAnalysis(String url,MainActivity activity){
-        Extractor extractor;
+        formats = new Formats();
         if (url.contains("youtu")) {
             extractor = new YouTube();
         } else if (url.contains("instagram")) {
@@ -49,10 +53,9 @@ public class VideoFragmentViewModel extends AndroidViewModel implements UtilityI
         }
         if(extractor!=null) {
             extractor.setContext(getApplication());
-            extractor.setLoginHelper(activity);
-            extractor.setDialogueInterface(activity);
             extractor.setAnalyzeCallback(this);
             extractor.setLink(url);
+            updateActivityReference(activity);
             extractor.start();
         }
         return extractor;
@@ -70,6 +73,21 @@ public class VideoFragmentViewModel extends AndroidViewModel implements UtilityI
 
     public Formats getFormats() {
         return formats;
+    }
+
+    public void nullifyFormats(){
+        formats = null;
+    }
+
+    public DownloadDetails getDownloadDetails(){
+        if (details==null) details = new DownloadDetails();
+        return details;
+    }
+
+    public void updateActivityReference(MainActivity activity){
+        if(extractor==null) return;
+        extractor.setLoginHelper(activity);
+        extractor.setDialogueInterface(activity);
     }
 
 

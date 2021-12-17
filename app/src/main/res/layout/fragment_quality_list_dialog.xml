@@ -15,11 +15,13 @@
   ~
   -->
 
-<LinearLayout  xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:orientation="vertical"
     android:layout_height="wrap_content"
     android:layout_width="match_parent"
+    app:layout_behavior="@string/bottom_sheet_behavior"
     tools:showIn="bottomSheet">
     <LinearLayout
         android:orientation="horizontal"
@@ -42,10 +44,10 @@
             <EditText
                 android:maxLines="1"
                 android:inputType="text"
+                android:hint="Video Name..."
                 android:id="@+id/edit_name"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"/>
-
         </LinearLayout>
 
     </LinearLayout>
@@ -68,11 +70,31 @@
 
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="match_parent">
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/download"
+        android:layout_height="match_parent"
+        android:orientation="vertical">
+        <LinearLayout
+            android:layout_marginHorizontal="8dp"
             android:layout_width="match_parent"
-            android:text="Download"
+            android:layout_height="wrap_content">
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/download_mp4"
+                android:layout_width="match_parent"
+                android:text="Download MP4"
+                android:textAllCaps="false"
+                android:layout_weight="1"
+                android:layout_height="wrap_content"/>
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/download_mp3"
+                android:layout_width="match_parent"
+                android:text="Download MP3"
+                android:textAllCaps="false"
+                android:layout_weight="1"
+                android:layout_height="wrap_content"/>
+        </LinearLayout>
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/share"
+            android:layout_width="match_parent"
+            android:text="Share"
             android:textAllCaps="false"
             android:layout_height="wrap_content"/>
     </LinearLayout>

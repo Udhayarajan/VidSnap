@@ -90,8 +90,8 @@ public class Twitter extends Extractor {
         getDialogueInterface().show("Getting Token");
         HttpRequest request = new HttpRequest(base_url+"guest/activate.json",getDialogueInterface(),response -> {
             try {
-                Log.d(TAG, "onReceive: " + new JSONObject(response).getString("guest_token"));
-                headers.put("x-guest-token", new JSONObject(response).getString("guest_token"));
+                Log.d(TAG, "onReceive: " + new JSONObject(response.getResponse()).getString("guest_token"));
+                headers.put("x-guest-token", new JSONObject(response.getResponse()).getString("guest_token"));
                 if (httpURL.contains("status")) extractVideo();
                 if (httpURL.contains("broadcasts")) extractBroadcasts();
 
@@ -105,7 +105,7 @@ public class Twitter extends Extractor {
     }
 
     void extractVideo() {
-        HttpRequest request = new HttpRequest(base_url+"statuses/show/"+tweetID+".json"+query,getDialogueInterface(),this::identifyDownloader);
+        HttpRequest request = new HttpRequest(base_url+"statuses/show/"+tweetID+".json"+query,getDialogueInterface(),response -> identifyDownloader(response.getResponse()));
         request.setType(HttpRequest.GET);
         request.setHeaders(headers);
         request.start();
@@ -180,7 +180,8 @@ public class Twitter extends Extractor {
 
     private void fromVMap(String url) {
 
-        HttpRequest request = new HttpRequest(url,getDialogueInterface(),response -> {
+        HttpRequest request = new HttpRequest(url,getDialogueInterface(),res -> {
+            String response = res.getResponse();
             Pattern pattern = Pattern.compile("(?<=<tw:videoVariants>)[\\s\\S]*(?=</tw:videoVariants>)");
             Matcher matcher = pattern.matcher(response);
             if (matcher.find()) {
@@ -258,7 +259,7 @@ public class Twitter extends Extractor {
     }
 
     void extractBroadcasts() {
-        HttpRequest request = new HttpRequest(String.format(base_url + "broadcasts/show.json?ids=%s", tweetID),getDialogueInterface(),this::parseBroadcastResponse);
+        HttpRequest request = new HttpRequest(String.format(base_url + "broadcasts/show.json?ids=%s", tweetID),getDialogueInterface(),response -> parseBroadcastResponse(response.getResponse()));
         request.setHeaders(headers);
         request.setType(HttpRequest.GET);
         request.start();
@@ -270,7 +271,8 @@ public class Twitter extends Extractor {
             info = extractInfo(broadcasts);
             String mediaKey = broadcasts.getString("media_key");
 
-            HttpRequest request = new HttpRequest(String.format(base_url + "live_video_stream/status/%s", mediaKey),getDialogueInterface(),response1 -> {
+            HttpRequest request = new HttpRequest(String.format(base_url + "live_video_stream/status/%s", mediaKey),getDialogueInterface(),res1 -> {
+                String response1 = res1.getResponse();
                 Pattern pattern = Pattern.compile("\\{[\\s\\S]+\\}");
                 Matcher matcher = pattern.matcher(response1);
                 matcher.find();

@@ -17,14 +17,19 @@
 
 package com.mugames.vidsnap.network;
 
+import static com.mugames.vidsnap.utility.Statics.ACTION_CANCEL_DOWNLOAD;
 import static com.mugames.vidsnap.utility.Statics.ACTIVE_DOWNLOAD;
 import static com.mugames.vidsnap.utility.Statics.COMMUNICATOR;
 import static com.mugames.vidsnap.utility.Statics.DOWNLOADED;
 import static com.mugames.vidsnap.utility.Statics.DOWNLOAD_SPEED;
 import static com.mugames.vidsnap.utility.Statics.ERROR_DOWNLOADING;
 import static com.mugames.vidsnap.utility.Statics.FETCH_MESSAGE;
+import static com.mugames.vidsnap.utility.Statics.FILE_MIME;
+import static com.mugames.vidsnap.utility.Statics.ID_CANCEL_DOWNLOAD_DETAILS;
+import static com.mugames.vidsnap.utility.Statics.IS_SHARE_ONLY_DOWNLOAD;
 import static com.mugames.vidsnap.utility.Statics.OUTFILE_URI;
 import static com.mugames.vidsnap.utility.Statics.PROGRESS;
+import static com.mugames.vidsnap.utility.Statics.PROGRESS_CANCELED;
 import static com.mugames.vidsnap.utility.Statics.PROGRESS_DEFAULT;
 import static com.mugames.vidsnap.utility.Statics.PROGRESS_DONE;
 import static com.mugames.vidsnap.utility.Statics.PROGRESS_FAILED;
@@ -45,18 +50,23 @@ import android.os.Bundle;
 import android.os.IBinder;
 import android.os.ResultReceiver;
 import android.util.Log;
+import android.webkit.MimeTypeMap;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.core.app.NotificationCompat;
 import androidx.core.app.NotificationManagerCompat;
+import androidx.core.content.FileProvider;
 
+import com.mugames.vidsnap.BuildConfig;
+import com.mugames.vidsnap.VidSnapApp;
 import com.mugames.vidsnap.postprocessor.FFMPEG;
 import com.mugames.vidsnap.postprocessor.FFMPEGInfo;
 import com.mugames.vidsnap.postprocessor.ReflectionInterfaces;
 import com.mugames.vidsnap.R;
 import com.mugames.vidsnap.storage.AppPref;
+import com.mugames.vidsnap.utility.CancelDownloadReceiver;
 import com.mugames.vidsnap.utility.bundles.DownloadDetails;
 import com.mugames.vidsnap.storage.FileUtil;
 import com.mugames.vidsnap.utility.Statics;
@@ -70,6 +80,7 @@ import com.tonyodev.fetch2.Request;
 import com.tonyodev.fetch2core.FetchObserver;
 import com.tonyodev.fetch2core.MutableExtras;
 import com.tonyodev.fetch2core.Reason;
+import com.tonyodev.fetch2okhttp.OkHttpDownloader;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -77,41 +88,56 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.channels.FileChannel;
+import java.sql.Time;
+import java.util.ArrayList;
 import java.util.Random;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import okhttp3.OkHttpClient;
+
 public class Downloader extends Service {
-    String TAG = Statics.TAG + ":Downloader";
+    final String TAG = Statics.TAG + ":Downloader";
     volatile int activeDownload;
+    volatile static ArrayList<RealDownloader> downloaders = new ArrayList<>();
 
-
-    @Override
-    public void onCreate() {
-        super.onCreate();
+    private static PendingIntent getActivityOpenerIntent(Context context) {
+        Intent intent = new Intent(context, MainActivity.class);
+        intent.putExtra(ACTIVE_DOWNLOAD, true);
+        return PendingIntent.getActivity(context, 10, intent, 0);
     }
+
+    public static synchronized void cancelDownload(int detailsId) {
+        for (RealDownloader downloader : downloaders) {
+            if (downloader.details.id == detailsId) {
+                downloader.cancelDownload();
+                break;
+            }
+        }
+    }
+
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        try {
-            synchronized (Downloader.class) {
-                activeDownload += 1;
-                RealDownloader downloader = new RealDownloader(getApplicationContext(), intent, startId);
-            }
-        } catch (Exception e) {
-            Log.e(TAG, "onStartCommand: ", e);
-            Toast.makeText(getApplicationContext(), "Download failed", Toast.LENGTH_LONG).show();
+        synchronized (Downloader.class) {
+            activeDownload += 1;
+            NotificationCompat.Builder builder = new NotificationCompat.Builder(getApplicationContext(), VidSnapApp.NOTIFY_DOWNLOADER_SERVICE)
+                    .setPriority(NotificationCompat.PRIORITY_LOW)
+                    .setOngoing(true)
+                    .setContentTitle("Running in background")
+                    .setContentText(String.format("%s Video(s) downloading in background",activeDownload))
+                    .setSmallIcon(R.drawable.ic_notification_icon)
+                    .setContentIntent(getActivityOpenerIntent(getApplicationContext()));
+            startForeground(10, builder.build());
+            RealDownloader downloader = new RealDownloader(getApplicationContext(), intent, startId);
+            downloaders.add(downloader);
         }
 
         return START_NOT_STICKY;
     }
 
-
-    @Override
-    public void onDestroy() {
-        super.onDestroy();
-    }
 
     @Nullable
     @Override
@@ -124,6 +150,9 @@ public class Downloader extends Service {
         String TEMP_AUDIO_NAME = "MUaudio";
         String TEMP_RESULT_NAME = "final";
 
+        Thread currentThread;
+        boolean isCanceled = false;
+
         int PROCESS = 0;
 
         String path;
@@ -135,12 +164,13 @@ public class Downloader extends Service {
         NotificationManagerCompat manager;
 
 
+
         DownloadDetails details;
 
         int ran;
         long file_size;
 
-        int startId;
+        final int startId;
 
         long passed = 0;
 
@@ -150,8 +180,13 @@ public class Downloader extends Service {
 
         Timer notificationTimer;
 
-        Context context;
-        Intent intent;
+        final Context context;
+        final Intent intent;
+
+        FFMPEG ffmpegInstance;
+
+        Request request;
+        Fetch fetch;
 
         public RealDownloader(Context context, Intent intent, int startId) {
             this.context = context;
@@ -166,9 +201,9 @@ public class Downloader extends Service {
 
             path = AppPref.getInstance(context).getCachePath("");
 
-            TEMP_VIDEO_NAME = FileUtil.getValidFile(path, ran + "Video", "muvideo");
-            TEMP_AUDIO_NAME = FileUtil.getValidFile(path, ran + "Audio", "muaudio");
-            TEMP_RESULT_NAME = FileUtil.getValidFile(path, ran + "FullVideo", "muout");
+            TEMP_VIDEO_NAME = FileUtil.getValidFile(path, ran + "Video", "mp4");
+            TEMP_AUDIO_NAME = FileUtil.getValidFile(path, ran + "Audio", "mp3");
+            TEMP_RESULT_NAME = FileUtil.getValidFile(path, ran + "FullVideo", "mp4");
 
             details = intent.getParcelableExtra(COMMUNICATOR);
 
@@ -177,21 +212,23 @@ public class Downloader extends Service {
             file_size = details.videoSize;
             PROCESS = PROGRESS_UPDATE;
 
-            Intent intent = new Intent(context, MainActivity.class);
-            intent.putExtra(ACTIVE_DOWNLOAD, true);
-            PendingIntent downloading_PendingIntent = PendingIntent.getActivity(getBaseContext(), 10, intent, 0);
+
+            Intent cancelIntent = new Intent(context, CancelDownloadReceiver.class);
+            cancelIntent.putExtra(ID_CANCEL_DOWNLOAD_DETAILS, details.id);
+
+            PendingIntent cancelPendingIntent = PendingIntent.getBroadcast(context, ran, cancelIntent, PendingIntent.FLAG_ONE_SHOT);
+
 
             builder = new NotificationCompat.Builder(context, NOTIFY_DOWNLOADING);
             builder.setPriority(NotificationCompat.PRIORITY_LOW)
                     .setOngoing(true)
+                    .addAction(R.drawable.ic_cancel, "Cancel", cancelPendingIntent)
                     .setProgress(100, 0, false)
                     .setSmallIcon(R.drawable.ic_notification_icon)
-                    .setContentIntent(downloading_PendingIntent);
+                    .setContentIntent(getActivityOpenerIntent(context));
 
-            startForeground(ran, builder.build());
-
-
-            new Thread(() -> {
+            manager.notify(ran,builder.build());
+            currentThread = new Thread(() -> {
 
                 builder.setContentTitle("Downloading " + details.fileName + details.fileType);
 
@@ -206,18 +243,34 @@ public class Downloader extends Service {
                 }
 
 
-            }).start();
+            });
+            currentThread.start();
+        }
+
+        public void cancelDownload() {
+            isCanceled = true;
+            fetch.remove(request.getId());
+            new Thread(() -> FileUtil.deleteFile(TEMP_AUDIO_NAME, null)).start();
+            new Thread(() -> FileUtil.deleteFile(TEMP_VIDEO_NAME, null)).start();
+            if (ffmpegInstance != null) {
+                ffmpegInstance.interrupt();
+                Log.e(TAG, "cancelDownload: " + ffmpegInstance.getInfo().localOutputPath);
+                new Thread(() -> FileUtil.deleteFile(ffmpegInstance.getInfo().localOutputPath, null)).start();
+            }
+            removeDownloader();
+            sendBundle(PROGRESS_CANCELED, null);
+            currentThread.interrupt();
         }
 
         void downloadChunk(FFMPEG ffmpeg) {
             AtomicInteger got = new AtomicInteger();
-            final Timer notifyTimer = notifyProgress();
+            notificationTimer = notifyProgress();
             ffmpeg.setExecuteCallback(session -> {
                 Bundle progressData = new Bundle();
                 onDoneDownload(ffmpeg.getInfo().localOutputPath, ffmpeg.getInfo().localOutputMime);
                 progressData.putInt(PROGRESS, 100);
                 sendBundle(PROGRESS_UPDATE_MERGING, progressData);
-                notifyTimer.cancel();
+                notificationTimer.cancel();
             });
 
             ffmpeg.downloadHLS(log -> {
@@ -272,25 +325,24 @@ public class Downloader extends Service {
 
         synchronized void onDownloadFailed(Bundle data) {
             sendBundle(PROGRESS_FAILED, data);
+            removeDownloader();
+        }
+
+        synchronized void removeDownloader() {
             manager.cancel(ran);
             activeDownload -= 1;
+            notificationTimer.cancel();
+            downloaders.remove(this);
             if (activeDownload == 0)
                 stopForeground(true);
         }
 
         synchronized void onDoneDownload(String finalPath, String finalMime) {
+            if (isCanceled) return;
             if (finalPath == null) finalPath = TEMP_VIDEO_NAME;
             if (finalMime == null) finalMime = details.fileMime;
             copyVideoToDestination(finalPath, finalMime);
-            Bundle bundle = new Bundle();
-            bundle.putString(OUTFILE_URI, outputUri.toString());
-
-            sendBundle(PROGRESS_DONE, bundle);
-            manager.cancel(ran);
-            activeDownload -= 1;
-            Log.d(TAG, "onDoneDownload: " + activeDownload);
-            if (activeDownload == 0)
-                stopForeground(true);
+            removeDownloader();
         }
 
         void mergeFiles(FFMPEG ffmpeg) {
@@ -320,9 +372,22 @@ public class Downloader extends Service {
         }
 
         void copyVideoToDestination(String localFile, String localMime) {
+            Bundle bundle = new Bundle();
+            if (details.isShareOnlyDownload) {
+                bundle.putString(
+                        OUTFILE_URI,
+                        FileProvider.getUriForFile(
+                                context,
+                                BuildConfig.APPLICATION_ID + ".provider",
+                                new File(localFile)).toString()
+                );
+                bundle.putBoolean(IS_SHARE_ONLY_DOWNLOAD, true);
+                bundle.putString(FILE_MIME, localMime);
+                sendBundle(PROGRESS_DONE, bundle);
+                return;
+            }
             outputUri = FileUtil.pathToNewUri(context, details.pathUri, details.fileName, localMime);
             try {
-
                 FileChannel inChannel = new FileInputStream(localFile).getChannel();
                 FileChannel outChannel;
 
@@ -339,14 +404,14 @@ public class Downloader extends Service {
                 Log.e(TAG, "copyVideoToDestination: ", e);
                 sendErrorBundle(e.toString());
             }
-            new Thread(() -> FileUtil.deleteFile(localFile, null)).start();
-            new Thread(() -> FileUtil.deleteFile(TEMP_AUDIO_NAME, null)).start();
-            new Thread(() -> FileUtil.deleteFile(TEMP_VIDEO_NAME, null)).start();
+            bundle.putString(OUTFILE_URI, outputUri.toString());
+            sendBundle(PROGRESS_DONE, bundle);
         }
 
-        ReflectionInterfaces.SOLoadCallbacks mergeSOCallback = new ReflectionInterfaces.SOLoadCallbacks() {
+        final ReflectionInterfaces.SOLoadCallbacks mergeSOCallback = new ReflectionInterfaces.SOLoadCallbacks() {
             @Override
             public void onSOLoadingSuccess(FFMPEG ffmpeg) {
+                ffmpegInstance = ffmpeg;
                 mergeFiles(ffmpeg);
             }
 
@@ -356,10 +421,11 @@ public class Downloader extends Service {
             }
         };
 
-        ReflectionInterfaces.SOLoadCallbacks hlsSoLoadCallbacks = new ReflectionInterfaces.SOLoadCallbacks() {
+        final ReflectionInterfaces.SOLoadCallbacks hlsSoLoadCallbacks = new ReflectionInterfaces.SOLoadCallbacks() {
             @Override
-            public void onSOLoadingSuccess(FFMPEG ffmpegInstance) {
-                downloadChunk(ffmpegInstance);
+            public void onSOLoadingSuccess(FFMPEG ffmpeg) {
+                ffmpegInstance = ffmpeg;
+                downloadChunk(ffmpeg);
             }
 
             @Override
@@ -373,17 +439,16 @@ public class Downloader extends Service {
             notificationTimer = notifyProgress();
 
             FetchConfiguration fetchConfiguration = new FetchConfiguration.Builder(context)
-                    .setHttpDownloader(new HttpUrlConnectionDownloader(com.tonyodev.fetch2core.Downloader.FileDownloaderType.PARALLEL))
+                    .setHttpDownloader(getOkHttpDownloader())
                     .setDownloadConcurrentLimit(3)
                     .enableRetryOnNetworkGain(true)
                     .build();
 
-            Fetch fetch = Fetch.Impl.getInstance(fetchConfiguration);
-
+            fetch = Fetch.Impl.getInstance(fetchConfiguration);
 
             url = url.replace("http://", "https://");
 
-            Request request = new Request(url, outPath);
+            request = new Request(url, outPath);
             MutableExtras extra = new MutableExtras();
             extra.putInt(PROGRESS, whatDownloading);
             request.setExtras(extra);
@@ -427,7 +492,9 @@ public class Downloader extends Service {
             return timer;
         }
 
-        void sendBundle(int resultCode, Bundle progressData) {
+        void sendBundle(int resultCode, @Nullable Bundle progressData) {
+            if (progressData != null)
+                progressData.putBoolean(IS_SHARE_ONLY_DOWNLOAD, details.isShareOnlyDownload);
             Log.d(TAG, "UpdateUI: " + resultCode);
             receiver.send(resultCode, progressData);
         }
@@ -439,16 +506,24 @@ public class Downloader extends Service {
             } else if (download.getDownloadedBytesPerSecond() != -1) {
                 notificationVal = download.getProgress();
                 passed = download.getDownloaded();
-                speed = download.getDownloadedBytesPerSecond()/2;
+                speed = download.getDownloadedBytesPerSecond() / 2;
                 uiSpeed();
             } else if (reason == Reason.DOWNLOAD_ERROR) {
                 sendErrorBundle(String.valueOf(download.getError()));
                 Log.e(TAG, "onChanged: " + download.getError());
-            } else if(reason != Reason.DOWNLOAD_PROGRESS_CHANGED) {
+            } else if (reason != Reason.DOWNLOAD_PROGRESS_CHANGED) {
                 Bundle bundle = new Bundle();
                 bundle.putString(FETCH_MESSAGE, reason.toString());
                 sendBundle(PROGRESS_DEFAULT, bundle);
             }
+        }
+
+        private OkHttpDownloader getOkHttpDownloader() {
+            OkHttpClient okHttpClient = new OkHttpClient.Builder()
+                    .readTimeout(20000, TimeUnit.MILLISECONDS)
+                    .connectTimeout(20000, TimeUnit.MILLISECONDS)
+                    .build();
+            return new OkHttpDownloader(okHttpClient, com.tonyodev.fetch2core.Downloader.FileDownloaderType.PARALLEL);
         }
     }
 }
