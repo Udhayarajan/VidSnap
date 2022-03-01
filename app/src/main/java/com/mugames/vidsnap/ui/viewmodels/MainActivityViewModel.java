@@ -38,6 +38,7 @@ import androidx.lifecycle.MutableLiveData;
 
 import com.mugames.vidsnap.firebase.FirebaseManager;
 import com.mugames.vidsnap.R;
+import com.mugames.vidsnap.network.Response;
 import com.mugames.vidsnap.storage.AppPref;
 import com.mugames.vidsnap.storage.FileUtil;
 import com.mugames.vidsnap.utility.bundles.DownloadDetails;
@@ -65,6 +66,8 @@ public class MainActivityViewModel extends AndroidViewModel implements UtilityIn
     //Shared Object downloading progress
     MutableLiveData<Integer> downloadProgressLiveData = new MutableLiveData<>();
     MutableLiveData<String> downloadStatusLiveData = new MutableLiveData<>();
+
+    MutableLiveData<Response> downloadResponse = new MutableLiveData<>();
 
 
     public static final ArrayList<DownloadDetails> downloadDetailsList = new ArrayList<>();
@@ -116,8 +119,7 @@ public class MainActivityViewModel extends AndroidViewModel implements UtilityIn
     }
 
 
-    synchronized void removeDownloadDetails(int id) {
-        downloadDetailsList.remove(DownloadDetails.findDetails(id));
+    synchronized void removeDownloadDetails() {
         downloadDetailsMutableLiveData.postValue(downloadDetailsList);
         activeDownload.postValue(downloadDetailsList.size());
 
@@ -144,9 +146,31 @@ public class MainActivityViewModel extends AndroidViewModel implements UtilityIn
         return ran;
     }
 
+    MutableLiveData<Bundle> shareOnlyDownloadLiveData = new MutableLiveData<>();
+
     @Override
-    public void onDownloadCompleted(int id) {
-        removeDownloadDetails(id);
+    public void onDownloadCompleted(DownloadDetails downloadDetails) {
+        if (downloadDetails.isShareOnlyDownload) {
+            shareOnlyDownloadLiveData.setValue(((DownloadReceiver) downloadDetails.receiver).getResultBundle().getValue());
+        }
+        removeDownloadDetails();
+    }
+
+    public LiveData<Bundle> getShareOnlyDownloadLiveData() {
+        return shareOnlyDownloadLiveData;
+    }
+
+    @Override
+    public void onDownloadFailed(String reason, Exception e) {
+        removeDownloadDetails();
+        if (e == null) return;
+        Response response = new Response(e);
+        response.setResponse(reason);
+        downloadResponse.setValue(response);
+    }
+
+    public LiveData<Response> getDownloadFailedResponseLiveData() {
+        return downloadResponse;
     }
 
 
@@ -283,5 +307,13 @@ public class MainActivityViewModel extends AndroidViewModel implements UtilityIn
             if (details.isShareOnlyDownload) return details.id;
         }
         return NO_SHARE_ONLY_FILES_DOWNLOADING;
+    }
+
+    @Override
+    protected void onCleared() {
+        super.onCleared();
+        for (DownloadDetails details : downloadDetailsList) {
+            ((DownloadReceiver) details.receiver).setCallback(null);
+        }
     }
 }

@@ -78,7 +78,7 @@ import java.util.concurrent.ExecutionException;
 /**
  * A fragment that is opened when user selected status from {@link HomeFragment}
  */
-public class StatusFragment extends Fragment implements AdapterView.OnItemSelectedListener, UtilityInterface.AnalyzeUICallback {
+public class StatusFragment extends Fragment implements AdapterView.OnItemSelectedListener {
 
     LinearLayout urlLayout;
     Button saveButton;
@@ -141,7 +141,9 @@ public class StatusFragment extends Fragment implements AdapterView.OnItemSelect
         View view = inflater.inflate(R.layout.fragment_status_list, container, false);
 
         viewModel = new ViewModelProvider(this).get(StatusFragmentViewModel.class);
-        viewModel.setAnalyzeUICallback(this);
+        viewModel.getFormatsLiveData().observe(getViewLifecycleOwner(),formats -> {
+            onAnalyzeCompleted();
+        });
 
         Context context = view.getContext();
         recyclerView = view.findViewById(R.id.status_recycler);
@@ -212,10 +214,9 @@ public class StatusFragment extends Fragment implements AdapterView.OnItemSelect
 
     }
 
-    @Override
-    public void onAnalyzeCompleted(boolean isMultipleFile) {
+    public void onAnalyzeCompleted() {
         adapter = new DownloadableAdapter(this, viewModel.getFormats());
-        adapter.getSelectedList().observe(this, this::selectedListChanged);
+        adapter.getSelectedList().observe(getViewLifecycleOwner(), this::selectedListChanged);
         recyclerView.setAdapter(adapter);
     }
 

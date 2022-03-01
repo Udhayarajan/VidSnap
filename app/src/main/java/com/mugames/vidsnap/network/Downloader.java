@@ -46,11 +46,13 @@ import android.content.Context;
 import android.content.Intent;
 import android.media.MediaPlayer;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.os.ResultReceiver;
 import android.util.Log;
 import android.webkit.MimeTypeMap;
+import android.webkit.WebView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
@@ -90,6 +92,7 @@ import java.io.IOException;
 import java.nio.channels.FileChannel;
 import java.sql.Time;
 import java.util.ArrayList;
+import java.util.Objects;
 import java.util.Random;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -106,6 +109,9 @@ public class Downloader extends Service {
     private static PendingIntent getActivityOpenerIntent(Context context) {
         Intent intent = new Intent(context, MainActivity.class);
         intent.putExtra(ACTIVE_DOWNLOAD, true);
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                return PendingIntent.getActivity(context, 10, intent, PendingIntent.FLAG_IMMUTABLE);
+            }
         return PendingIntent.getActivity(context, 10, intent, 0);
     }
 
@@ -216,8 +222,12 @@ public class Downloader extends Service {
             Intent cancelIntent = new Intent(context, CancelDownloadReceiver.class);
             cancelIntent.putExtra(ID_CANCEL_DOWNLOAD_DETAILS, details.id);
 
-            PendingIntent cancelPendingIntent = PendingIntent.getBroadcast(context, ran, cancelIntent, PendingIntent.FLAG_ONE_SHOT);
-
+            PendingIntent cancelPendingIntent;
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                cancelPendingIntent =  PendingIntent.getActivity(context, 10, intent, PendingIntent.FLAG_IMMUTABLE);
+            }else{
+                cancelPendingIntent = PendingIntent.getBroadcast(context, ran, cancelIntent, PendingIntent.FLAG_ONE_SHOT);
+            }
 
             builder = new NotificationCompat.Builder(context, NOTIFY_DOWNLOADING);
             builder.setPriority(NotificationCompat.PRIORITY_LOW)
@@ -250,6 +260,7 @@ public class Downloader extends Service {
         public void cancelDownload() {
             isCanceled = true;
             fetch.remove(request.getId());
+            fetch.cancel(request.getId());
             new Thread(() -> FileUtil.deleteFile(TEMP_AUDIO_NAME, null)).start();
             new Thread(() -> FileUtil.deleteFile(TEMP_VIDEO_NAME, null)).start();
             if (ffmpegInstance != null) {
@@ -384,6 +395,7 @@ public class Downloader extends Service {
                 bundle.putBoolean(IS_SHARE_ONLY_DOWNLOAD, true);
                 bundle.putString(FILE_MIME, localMime);
                 sendBundle(PROGRESS_DONE, bundle);
+                FileUtil.deleteFile(TEMP_AUDIO_NAME,null);
                 return;
             }
             outputUri = FileUtil.pathToNewUri(context, details.pathUri, details.fileName, localMime);
@@ -399,6 +411,9 @@ public class Downloader extends Service {
                 inChannel.transferTo(0, inChannel.size(), outChannel);
                 inChannel.close();
                 outChannel.close();
+                FileUtil.deleteFile(localFile,null);
+                FileUtil.deleteFile(TEMP_VIDEO_NAME,null);
+                FileUtil.deleteFile(TEMP_AUDIO_NAME,null);
 
             } catch (IOException e) {
                 Log.e(TAG, "copyVideoToDestination: ", e);
@@ -452,6 +467,9 @@ public class Downloader extends Service {
             MutableExtras extra = new MutableExtras();
             extra.putInt(PROGRESS, whatDownloading);
             request.setExtras(extra);
+            request.addHeader("User-Agent", "Mozilla/5.0 (Linux; Android 4.0.4; Galaxy Nexus Build/IMM76B)" +
+                    "AppleWebKit/535.19 (KHTML, like Gecko)" +
+                    "Chrome/18.0.1025.133 Mobile Safari/535.19");
 
 
             fetch.attachFetchObserversForDownload(request.getId(), this).enqueue(request, result -> {

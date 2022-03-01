@@ -88,7 +88,11 @@ public class Twitter extends Extractor {
 
     private void getToken() {
         getDialogueInterface().show("Getting Token");
-        HttpRequest request = new HttpRequest(base_url+"guest/activate.json",getDialogueInterface(),response -> {
+        HttpRequest request = new HttpRequest(base_url+"guest/activate.json",response -> {
+            if (response.getException() != null){
+                getDialogueInterface().error(response.getResponse(),response.getException());
+                return;
+            }
             try {
                 Log.d(TAG, "onReceive: " + new JSONObject(response.getResponse()).getString("guest_token"));
                 headers.put("x-guest-token", new JSONObject(response.getResponse()).getString("guest_token"));
@@ -105,7 +109,13 @@ public class Twitter extends Extractor {
     }
 
     void extractVideo() {
-        HttpRequest request = new HttpRequest(base_url+"statuses/show/"+tweetID+".json"+query,getDialogueInterface(),response -> identifyDownloader(response.getResponse()));
+        HttpRequest request = new HttpRequest(base_url+"statuses/show/"+tweetID+".json"+query,response ->{
+            if (response.getException() != null){
+                getDialogueInterface().error(response.getResponse(),response.getException());
+                return;
+            }
+            identifyDownloader(response.getResponse());
+        });
         request.setType(HttpRequest.GET);
         request.setHeaders(headers);
         request.start();
@@ -180,7 +190,11 @@ public class Twitter extends Extractor {
 
     private void fromVMap(String url) {
 
-        HttpRequest request = new HttpRequest(url,getDialogueInterface(),res -> {
+        HttpRequest request = new HttpRequest(url,res -> {
+            if (res.getException() != null){
+                getDialogueInterface().error(res.getResponse(),res.getException());
+                return;
+            }
             String response = res.getResponse();
             Pattern pattern = Pattern.compile("(?<=<tw:videoVariants>)[\\s\\S]*(?=</tw:videoVariants>)");
             Matcher matcher = pattern.matcher(response);
@@ -259,7 +273,13 @@ public class Twitter extends Extractor {
     }
 
     void extractBroadcasts() {
-        HttpRequest request = new HttpRequest(String.format(base_url + "broadcasts/show.json?ids=%s", tweetID),getDialogueInterface(),response -> parseBroadcastResponse(response.getResponse()));
+        HttpRequest request = new HttpRequest(String.format(base_url + "broadcasts/show.json?ids=%s", tweetID),response -> {
+            if (response.getException() != null){
+                getDialogueInterface().error(response.getResponse(),response.getException());
+                return;
+            }
+            parseBroadcastResponse(response.getResponse());
+        });
         request.setHeaders(headers);
         request.setType(HttpRequest.GET);
         request.start();
@@ -271,7 +291,11 @@ public class Twitter extends Extractor {
             info = extractInfo(broadcasts);
             String mediaKey = broadcasts.getString("media_key");
 
-            HttpRequest request = new HttpRequest(String.format(base_url + "live_video_stream/status/%s", mediaKey),getDialogueInterface(),res1 -> {
+            HttpRequest request = new HttpRequest(String.format(base_url + "live_video_stream/status/%s", mediaKey),res1 -> {
+                if (res1.getException() != null){
+                    getDialogueInterface().error(res1.getResponse(),res1.getException());
+                    return;
+                }
                 String response1 = res1.getResponse();
                 Pattern pattern = Pattern.compile("\\{[\\s\\S]+\\}");
                 Matcher matcher = pattern.matcher(response1);

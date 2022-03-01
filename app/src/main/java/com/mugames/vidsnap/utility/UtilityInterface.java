@@ -22,30 +22,20 @@ import android.os.Bundle;
 import android.view.MotionEvent;
 
 import com.mugames.vidsnap.network.Response;
+import com.mugames.vidsnap.utility.bundles.DownloadDetails;
 import com.mugames.vidsnap.utility.bundles.Formats;
 import com.mugames.vidsnap.ui.fragments.QualityFragment;
 
 
 public interface UtilityInterface {
-    interface DownloadUICallBack {
-        void onDownloadMP4ButtonPressed(String fileName);
-        void onDownloadMP3ButtonPressed(String fileName);
-        void onShareButtonPressed(String fileName);
-
-        void onSelectedItem(int position, QualityFragment qualityFragment);
+    interface DownloadClickedCallback {
+        void onDownloadButtonPressed();
     }
 
     interface JSInterface {
-
         Object resf(Object[] values);
-
     }
 
-    interface MiniExecutorCallBack {
-        void onBitmapReceive(Bitmap image);
-
-        void onSizeReceived(long size, int position);
-    }
 
     interface ResponseCallBack {
         void onReceive(Response response);
@@ -64,16 +54,14 @@ public interface UtilityInterface {
     }
 
     interface DownloadCallback {
-        void onDownloadCompleted(int id);
+        void onDownloadCompleted(DownloadDetails downloadDetails);
+        void onDownloadFailed(String reason, Exception e);
     }
 
     interface AnalyzeCallback {
         void onAnalyzeCompleted(Formats formats);
     }
 
-    interface AnalyzeUICallback {
-        void onAnalyzeCompleted(boolean isMultipleFile);
-    }
 
 
     interface TouchCallback {
@@ -101,7 +89,7 @@ public interface UtilityInterface {
     }
 
     interface LoginHelper{
-        void signInNeeded(String reason, String loginURL, String[] loginDoneUrl, int cookiesKey, UtilityInterface.LoginIdentifier identifier);
+        void signInNeeded(UtilityClass.LoginDetailsProvider loginDetailsProvider);
         String getCookies(int cookiesKey);
     }
 }

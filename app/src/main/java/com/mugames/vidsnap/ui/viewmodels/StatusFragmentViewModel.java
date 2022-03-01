@@ -20,6 +20,8 @@ import android.app.Application;
 
 import androidx.annotation.NonNull;
 import androidx.lifecycle.AndroidViewModel;
+import androidx.lifecycle.LiveData;
+import androidx.lifecycle.MutableLiveData;
 
 import com.mugames.vidsnap.extractor.Extractor;
 import com.mugames.vidsnap.extractor.status.WhatsApp;
@@ -34,14 +36,14 @@ public class StatusFragmentViewModel extends AndroidViewModel implements Utility
     Formats formats;
     ArrayList<Integer> selectedList;
 
-    UtilityInterface.AnalyzeUICallback analyzeUICallback;
+    MutableLiveData<Formats> formatsLiveData = new MutableLiveData<>();
 
     public StatusFragmentViewModel(@NonNull Application application) {
         super(application);
     }
 
-    public void setAnalyzeUICallback(UtilityInterface.AnalyzeUICallback analyzeUICallback) {
-        this.analyzeUICallback = analyzeUICallback;
+    public LiveData<Formats> getFormatsLiveData() {
+        return formatsLiveData;
     }
 
     public void searchForStatus(String url, MainActivity activity){
@@ -60,7 +62,7 @@ public class StatusFragmentViewModel extends AndroidViewModel implements Utility
     @Override
     public void onAnalyzeCompleted(Formats formats) {
         this.formats =formats;
-        analyzeUICallback.onAnalyzeCompleted(formats.isMultipleFile());
+        formatsLiveData.setValue(formats);
     }
 
     public Formats getFormats() {

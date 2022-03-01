@@ -213,7 +213,7 @@ public final class FileUtil {
      * Can't be used to write. Only for string purpose
      */
     public static String getExternalStoragePublicDirectory(Context context, @Nullable String type) {
-        type = type==null?"":type;
+        type = type == null ? "" : type;
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             StorageManager manager = (StorageManager) context.getSystemService(Context.STORAGE_SERVICE);
 
@@ -274,13 +274,18 @@ public final class FileUtil {
         name = name.replaceAll("[@#~\\n\\t]", "");
         if (name.length() > 45) {
             int i = 45;
-            while (unicode(name, i)) i++;
-            name = name.substring(0, i);
+            while (unicode(name, i) && i < name.length()) i++;
+            if (i == name.length() - 1 && unicode(name, name.length() + 1)) {
+                while (unicode(name, i)) i--;
+            }
+            if (i != 0) name = name.substring(0, i);
+            else name = "Placeholder Title";
         }
         return name;
     }
 
     private static boolean unicode(String s, int i) {
+        if (s.length()<=i) return false;
         s = s.substring(0, i);
         char c = s.charAt(i - 1);
         return Character.UnicodeBlock.of(c) != Character.UnicodeBlock.BASIC_LATIN;
@@ -290,14 +295,14 @@ public final class FileUtil {
         int num = 1;
 
         if (path == null) {
-            return name +"."+ extension;
+            return name + "." + extension;
         }
-        path = path + name.replaceAll("[\\|\\\\\\?\\*<>\":\n]+", "_")+"." + extension;
+        path = path + name.replaceAll("[\\|\\\\\\?\\*<>\":\n]+", "_") + "." + extension;
 
         File file = new File(path);
 
         while (file.exists()) {
-            path = file.getParent() + "/" + name + "(" + (num++) + ")" +"."+ extension;
+            path = file.getParent() + "/" + name + "(" + (num++) + ")" + "." + extension;
             file = new File(path);
         }
         return path;
@@ -437,16 +442,16 @@ public final class FileUtil {
         }
     }
 
-    public static void moveFile(Context context,File src, File dest, FileStreamCallback fileStreamCallback) {
+    public static void moveFile(Context context, File src, File dest, FileStreamCallback fileStreamCallback) {
         if (src.isDirectory()) {
-            copyFolder(context,src, dest);
+            copyFolder(context, src, dest);
             return;
         }
 
         if (src.getName().endsWith(".muout") || src.getName().endsWith(".muvideo") || src.getName().endsWith(".muaudio"))
             return;
 
-        copyFile(context,Uri.fromFile(src), Uri.fromFile(src), fileStreamCallback);
+        copyFile(context, Uri.fromFile(src), Uri.fromFile(src), fileStreamCallback);
         deleteFile(src.getAbsolutePath(), null);
         if (fileStreamCallback != null) fileStreamCallback.onFileOperationDone();
     }
@@ -456,9 +461,9 @@ public final class FileUtil {
         try {
             FileChannel inChannel = ((FileInputStream) context.getContentResolver().openInputStream(src)).getChannel();
             FileChannel outChannel;
-            try{
-                outChannel = new FileOutputStream(context.getContentResolver().openFileDescriptor(dest,"w").getFileDescriptor()).getChannel();
-            }catch (FileNotFoundException e){
+            try {
+                outChannel = new FileOutputStream(context.getContentResolver().openFileDescriptor(dest, "w").getFileDescriptor()).getChannel();
+            } catch (FileNotFoundException e) {
                 outChannel = new FileOutputStream(dest.getPath()).getChannel();
             }
             inChannel.transferTo(0, inChannel.size(), outChannel);
@@ -471,26 +476,25 @@ public final class FileUtil {
     }
 
     /**
-     *
-     * @param context application context
+     * @param context   application context
      * @param parentUri parent directory's uri
-     * @param fileName current filename without extensions
-     * @param mimeType mime type of current file
+     * @param fileName  current filename without extensions
+     * @param mimeType  mime type of current file
      * @return New uri for a file eg. if file exist name will be file(1)
      */
-    public static Uri pathToNewUri(Context context, Uri parentUri, String fileName, String mimeType){
+    public static Uri pathToNewUri(Context context, Uri parentUri, String fileName, String mimeType) {
         DocumentFile directory;
         try {
             directory = DocumentFile.fromTreeUri(context, parentUri);
             DocumentFile file = directory.createFile(mimeType, fileName);
             return file.getUri();
-        } catch (IllegalArgumentException|NullPointerException e) {
+        } catch (IllegalArgumentException | NullPointerException e) {
             return Uri.fromFile(new File(FileUtil.getValidFile(parentUri.getPath() + File.separator, fileName, MimeTypeMap.getSingleton().getExtensionFromMimeType(mimeType))));
         }
     }
 
 
-    public static synchronized void scanMedia(Context context, String fileUri, MediaScannerConnection.OnScanCompletedListener listener){
+    public static synchronized void scanMedia(Context context, String fileUri, MediaScannerConnection.OnScanCompletedListener listener) {
         Uri uri = Uri.parse(fileUri);
 
         String path = FileUtil.uriToPath(context, uri);
@@ -499,9 +503,9 @@ public final class FileUtil {
         MediaScannerConnection.scanFile(context, new String[]{path}, null, new MediaScannerConnection.OnScanCompletedListener() {
             @Override
             public void onScanCompleted(String path, Uri uri) {
-                if(uri == null)
-                    uri = FileProvider.getUriForFile(context,context.getPackageName()+".provider",new File(path));
-                listener.onScanCompleted(path,uri);
+                if (uri == null)
+                    uri = FileProvider.getUriForFile(context, context.getPackageName() + ".provider", new File(path));
+                listener.onScanCompleted(path, uri);
             }
         });
     }

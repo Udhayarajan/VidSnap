@@ -33,6 +33,9 @@ import java.net.URL;
 import java.net.URLDecoder;
 import java.nio.ByteBuffer;
 import java.text.DecimalFormat;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -98,7 +101,7 @@ public class UtilityClass {
         return "{" + parsed.toString() + "}";
     }
 
-    public static String removeQuotes(String s) {
+    public static synchronized String removeQuotes(String s) {
         if (s == null || s.isEmpty()) return "";
         if (s.length() < 2) return s;
         for (char c : new char[]{'\'', '"'}) {
@@ -109,7 +112,7 @@ public class UtilityClass {
         return s;
     }
 
-    public static char[] joinArray(char[] a, char[] b) {
+    public static synchronized char[] joinArray(char[] a, char[] b) {
         if (a[0] == '"' && a[1] == '"') return b;
         char[] s = new char[a.length + b.length];
         System.arraycopy(a, 0, s, 0, a.length);
@@ -117,7 +120,7 @@ public class UtilityClass {
         return s;
     }
 
-    public static String charArrayToSting(char[] chars) {
+    public static synchronized String charArrayToSting(char[] chars) {
         StringBuilder s = new StringBuilder();
         for (char c : chars) {
             if (c == '[' || c == ']' || c == ' ' || c == ',') {
@@ -128,7 +131,7 @@ public class UtilityClass {
         return s.toString();
     }
 
-    public static char[] popCharArray(char[] chars, int index) {
+    public static synchronized char[] popCharArray(char[] chars, int index) {
         if (chars == null || index < 0 || index > chars.length) return chars;
         char[] x = new char[chars.length - 1];
         System.arraycopy(chars, 0, x, 0, index);
@@ -136,7 +139,7 @@ public class UtilityClass {
         return x;
     }
 
-    public static char[] stringToCharArray(String s) {
+    public static synchronized char[] stringToCharArray(String s) {
         char[] chars = new char[s.length()];
         for (int i = 0; i < s.length(); i++) {
             char c = s.charAt(i);
@@ -148,7 +151,7 @@ public class UtilityClass {
         return chars;
     }
 
-    public static char[] reverse(char[] a) {
+    public synchronized static char[] reverse(char[] a) {
         char[] b = new char[a.length];
         int j = a.length;
         for (int i = 0; i < a.length; i++, j--) {
@@ -157,6 +160,21 @@ public class UtilityClass {
         return b;
     }
 
+    public synchronized static ArrayList<Character> convertCharArrayToCharacterList(char[] array) {
+        ArrayList<Character> list = new ArrayList<>();
+        for (char c : array) {
+            list.add(c);
+        }
+        return list;
+    }
+
+    public synchronized static char[] convertObjectListToCharArray(ArrayList<Object> list){
+        char[] chars = new char[list.size()];
+        for (int i = 0; i < list.size(); i++) {
+            chars[i] = (char) list.get(i);
+        }
+        return chars;
+    }
 
     private static String Escape_regex(String fileName) {
         StringBuilder builder = new StringBuilder();
@@ -309,5 +327,39 @@ public class UtilityClass {
 
     }
 
+    public static class LoginDetailsProvider{
+        String reason;
+        String loginURL;
+        String[] loginDoneUrl;
+        int cookiesKey;
+        UtilityInterface.LoginIdentifier identifier;
 
+        public LoginDetailsProvider(String reason, String loginURL, String[] loginDoneUrl, int cookiesKey, UtilityInterface.LoginIdentifier identifier) {
+            this.reason = reason;
+            this.loginURL = loginURL;
+            this.loginDoneUrl = loginDoneUrl;
+            this.cookiesKey = cookiesKey;
+            this.identifier = identifier;
+        }
+
+        public String getReason() {
+            return reason;
+        }
+
+        public String getLoginURL() {
+            return loginURL;
+        }
+
+        public String[] getLoginDoneUrl() {
+            return loginDoneUrl;
+        }
+
+        public int getCookiesKey() {
+            return cookiesKey;
+        }
+
+        public UtilityInterface.LoginIdentifier getIdentifier() {
+            return identifier;
+        }
+    }
 }

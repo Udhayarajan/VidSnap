@@ -68,7 +68,11 @@ public class Twitch {
         headers.put("Content-Type","text/plain;charset=UTF-8");
         headers.put("Client-ID","kimne78kx3ncx6brgo4mv6wki5h1ko");
         String data=String.format("{\"query\":\"{clip(slug:\\\"%s\\\"){broadcaster{displayName}createdAt curator{displayName id}durationSeconds id tiny:thumbnailURL(width:86,height:45)small:thumbnailURL(width:260,height:147)medium:thumbnailURL(width:480,height:272)title videoQualities{frameRate quality sourceURL}viewCount}}\"}",id);
-        HttpRequest request = new HttpRequest("https://gql.twitch.tv/gql",dialogueInterface,response -> {
+        HttpRequest request = new HttpRequest("https://gql.twitch.tv/gql",response -> {
+            if (response.getException() != null){
+                dialogueInterface.error(response.getResponse(),response.getException());
+                return;
+            }
             try {
                 JSONObject clip=new JSONObject(response.getResponse()).getJSONObject("data").getJSONObject("clip");
                 formats.thumbNailsURL.add(clip.getString("medium"));

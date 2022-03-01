@@ -181,6 +181,6 @@ public class DownloadDetails implements Parcelable {
                 downloadDetailsList) {
             if (details.id == id) return details;
         }
-        throw new IllegalArgumentException("id: "+id+" has no details");
+        throw new IllegalArgumentException("id: "+id+" has no details\nAvailable are"+downloadDetailsList);
     }
 }

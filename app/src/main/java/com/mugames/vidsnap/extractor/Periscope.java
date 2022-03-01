@@ -62,8 +62,11 @@ public class Periscope {
         extractor.getDialogueInterface().show("Periscope video");
 
         manifest = new ArrayList<ArrayList<String>>();
-        HttpRequest request = new HttpRequest(String.format("https://api.periscope.tv/api/v2/accessVideoPublic?broadcast_id=%s", id),
-                extractor.getDialogueInterface(),response -> {
+        HttpRequest request = new HttpRequest(String.format("https://api.periscope.tv/api/v2/accessVideoPublic?broadcast_id=%s", id),response -> {
+            if (response.getException() != null){
+                extractor.getDialogueInterface().error(response.getResponse(),response.getException());
+                return;
+            }
             try {
                 JSONObject stream = new JSONObject(response.getResponse());
                 JSONObject broadcast = stream.getJSONObject("broadcast");

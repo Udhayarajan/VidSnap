@@ -76,7 +76,10 @@ public class DownloadFragment extends Fragment {
 
 
         View view;
-        activityViewModel = new ViewModelProvider(getActivity(),ViewModelProvider.AndroidViewModelFactory.getInstance(getActivity().getApplication())).get(MainActivityViewModel.class);
+        activityViewModel = new ViewModelProvider(
+                requireActivity(),
+                (ViewModelProvider.Factory) ViewModelProvider.AndroidViewModelFactory.getInstance(requireActivity().getApplication())
+        ).get(MainActivityViewModel.class);
 
         view = inflater.inflate(R.layout.fragment_downloading, container, false);
 
@@ -95,7 +98,7 @@ public class DownloadFragment extends Fragment {
             }
         });
         if (!activityViewModel.getDownloadDetailsList().isEmpty()) {
-            recyclerView.setBackgroundColor(ContextCompat.getColor(getActivity(), R.color.list_background));
+            recyclerView.setBackgroundColor(ContextCompat.getColor(requireContext(), R.color.list_background));
         }
         adapter.submitList(activityViewModel.getDownloadDetailsList());
         recyclerView.setAdapter(adapter);

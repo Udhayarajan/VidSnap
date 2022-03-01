@@ -19,9 +19,11 @@ package com.mugames.vidsnap.ui.activities;
 
 import android.Manifest;
 import android.app.Activity;
+import android.app.PendingIntent;
 import android.content.ActivityNotFoundException;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.IntentSender;
 import android.content.pm.PackageManager;
 import android.media.MediaScannerConnection;
 import android.net.Uri;
@@ -53,6 +55,7 @@ import androidx.drawerlayout.widget.DrawerLayout;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentManager;
 import androidx.fragment.app.FragmentTransaction;
+import androidx.lifecycle.Observer;
 import androidx.lifecycle.ViewModelProvider;
 
 
@@ -71,6 +74,7 @@ import com.mugames.vidsnap.Terms;
 import com.mugames.vidsnap.network.Downloader;
 import com.mugames.vidsnap.network.MiniExecute;
 import com.mugames.vidsnap.storage.AppPref;
+import com.mugames.vidsnap.utility.VideoSharedBroadcast;
 import com.mugames.vidsnap.utility.bundles.DownloadDetails;
 import com.mugames.vidsnap.utility.DownloadReceiver;
 import com.mugames.vidsnap.storage.FileUtil;
@@ -145,7 +149,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
 
         activityViewModel = new ViewModelProvider(this).get(MainActivityViewModel.class);
-        activityViewModel.getActiveDownload().observe(this,this::setupBadge);
+        activityViewModel.getActiveDownload().observe(this, this::setupBadge);
 
         String[] themes = getResources().getStringArray(R.array.theme_values);
         String theme = getStringValue(R.string.key_Theme, themes[0]);
@@ -161,9 +165,8 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         storageSwitcher = new StorageSwitcher(this);
 
 
-        for (DownloadDetails details : activityViewModel.getDownloadDetailsList()) {
-            ((DownloadReceiver) details.receiver).setDialogInterface(this);
-        }
+        activityViewModel.getDownloadFailedResponseLiveData().observe(this, result ->
+                error(result.getResponse(), result.getException()));
 
         locationResultLauncher = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(),
                 new ActivityResultCallback<ActivityResult>() {
@@ -171,7 +174,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                     public void onActivityResult(ActivityResult result) {
                         if (result.getResultCode() == Activity.RESULT_OK) {
                             setPath(result.getData());
-                        }else {
+                        } else {
                             activityViewModel.tempDetails.clear();
                         }
                     }
@@ -226,7 +229,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             gotIntent(getIntent());
         }
 
-        if(activityViewModel.isProgressDialogVisible()){
+        if (activityViewModel.isProgressDialogVisible()) {
             dialog.show(activityViewModel.getProgressDialogText());
         }
 
@@ -248,8 +251,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     void gotIntent(Intent intent) {
         if (intent == null) return;
         String content = MainActivityViewModel.intentString(intent);
-
-
+//        content = "https://youtu.be/rpOjFiV0X6k";
         if (content != null)
             replaceFragment(VideoFragment.newInstance(content), VideoFragment.class.getName());
 
@@ -354,7 +356,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         boolean isRunning = manager.popBackStackImmediate(tag, 0);
         Fragment runningFragment = manager.findFragmentByTag(tag);
 
-        if(isInstanceof(runningFragment,fragment,StatusFragment.class))
+        if (isInstanceof(runningFragment, fragment, StatusFragment.class))
             manager.popBackStack();
 
 
@@ -429,15 +431,16 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         }
     }
 
-    void safeDismissPopUp(){
-        if(dialog!=null)
+    void safeDismissPopUp() {
+        activityViewModel.setProgressDialogState(false, null);
+        if (dialog != null)
             dialog.dismiss();
     }
 
     @Override
     protected void onDestroy() {
         safeDismissPopUp();
-        if(circularProgressDialog!=null) circularProgressDialog.dismiss();
+        if (circularProgressDialog != null) circularProgressDialog.dismiss();
         circularProgressDialog = null;
         dialog = null;
         super.onDestroy();
@@ -455,8 +458,8 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
     @Override
     public void show(String text) {
-        activityViewModel.setProgressDialogState(true,text);
-        if(dialog==null) dialog = new PopUpDialog(this);
+        activityViewModel.setProgressDialogState(true, text);
+        if (dialog == null) dialog = new PopUpDialog(this);
         dialog.show(text);
     }
 
@@ -503,7 +506,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
     @Override
     public void dismiss() {
-        activityViewModel.setProgressDialogState(false,null);
+        activityViewModel.setProgressDialogState(false, null);
         safeDismissPopUp();
     }
 
@@ -663,7 +666,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
     private void downloadAdditionalModule(long size, String url) {
         safeDismissPopUp();
-        if(!activityViewModel.isDownloadingSOFile()){
+        if (!activityViewModel.isDownloadingSOFile()) {
             MaterialAlertDialogBuilder dialogBuilder = new MaterialAlertDialogBuilder(this);
             dialogBuilder.setTitle("Additional required");
             dialogBuilder.setMessage(String.format("Additional file (%s) needed to be download to use %s downloader. Would you like to download it ?", UtilityClass.formatFileSize(size, false), activityViewModel.tempDetails.get(0).src));
@@ -676,7 +679,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                 activityViewModel.tempDetails.clear();
             });
             dialogBuilder.create().show();
-        }else {
+        } else {
             addDownloadListener();
         }
     }
@@ -695,10 +698,10 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     private void addDownloadListener() {
         circularProgressDialog = new CircularProgressDialog(this);
         activityViewModel.getDownloadProgressLiveData().observe(this, integer -> {
-            if(circularProgressDialog!=null) circularProgressDialog.setProgress(integer);
+            if (circularProgressDialog != null) circularProgressDialog.setProgress(integer);
         });
-        activityViewModel.getDownloadStatusLiveData().observe(this,s -> {
-            if(circularProgressDialog!=null) circularProgressDialog.setStatusTxt(s);
+        activityViewModel.getDownloadStatusLiveData().observe(this, s -> {
+            if (circularProgressDialog != null) circularProgressDialog.setStatusTxt(s);
         });
     }
 
@@ -716,9 +719,9 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
     private void realDownload() {
         safeDismissPopUp();
-        for (DownloadDetails details:activityViewModel.tempDetails) {
+        for (DownloadDetails details : activityViewModel.tempDetails) {
             Intent download = detailsToIntent(details);
-            if(details.isShareOnlyDownload){
+            if (details.isShareOnlyDownload) {
                 addShareOnlyListener();
             }
             ContextCompat.startForegroundService(this, download);
@@ -742,7 +745,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         details.id = id;
 
         details.receiver = new DownloadReceiver(new Handler(Looper.getMainLooper()),
-                this, this,
+                this,
                 id, activityViewModel);
 
 
@@ -755,17 +758,17 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
 
     @Override
-    public void signInNeeded(String reason, String loginURL, String[] loginDoneUrl, int cookiesKey, UtilityInterface.LoginIdentifier identifier) {
+    public void signInNeeded(UtilityClass.LoginDetailsProvider loginDetailsProvider) {
 
         runOnUiThread(() -> {
             safeDismissPopUp();
             MaterialAlertDialogBuilder dialog = new MaterialAlertDialogBuilder(this)
                     .setTitle("Seems to be Private Video!")
                     .setCancelable(false)
-                    .setMessage(reason)
-                    .setPositiveButton("Sign-in", (dialog1, which) -> openWebPage(loginURL, loginDoneUrl, null, cookies -> {
-                        setStringValue(cookiesKey, cookies);
-                        identifier.loggedIn(cookies);
+                    .setMessage(loginDetailsProvider.getReason())
+                    .setPositiveButton("Sign-in", (dialog1, which) -> openWebPage(loginDetailsProvider.getLoginURL(), loginDetailsProvider.getLoginDoneUrl(), null, cookies -> {
+                        setStringValue(loginDetailsProvider.getCookiesKey(), cookies);
+                        loginDetailsProvider.getIdentifier().loggedIn(cookies);
                     }))
                     .setNegativeButton("No,Thanks", (dialog12, which) -> error("URL invalid or Login Permission Dined", null));
             dialog.show();
@@ -824,7 +827,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
 
     public void logOutInsta(ConfigurationCallback configurationCallback) {
-        openWebPage("https://instagram.com/accounts/logout/", new String[]{"https://www.instagram.com/"}, getStringValue(R.string.key_instagram, null), new UtilityInterface.CookiesInterface() {
+        openWebPage("https://instagram.com/accounts/logout/", new String[]{"https://www.instagram.com/", "https://www.instagram.com/accounts/login/?next=/accounts/logout/"}, getStringValue(R.string.key_instagram, null), new UtilityInterface.CookiesInterface() {
             @Override
             public void onReceivedCookies(String cookies) {
                 Toast.makeText(MainActivity.this, "Logout Successful", Toast.LENGTH_SHORT).show();
@@ -842,38 +845,57 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                 });
     }
 
-    public void updateShareDownloadProgress(int progress, String msg){
-        if(circularProgressDialog ==null) return;
+    public void updateShareDownloadProgress(int progress, String msg) {
+        if (circularProgressDialog == null) return;
         circularProgressDialog.setProgress(progress);
-        Log.e(TAG, "updateShareDownloadProgress: "+msg );
+        Log.e(TAG, "updateShareDownloadProgress: " + msg);
         circularProgressDialog.setStatusTxt(msg);
     }
 
-    public void shareDownloadedVideo(Bundle resultData) {
-        if(circularProgressDialog!=null)circularProgressDialog.dismiss();
+    private void shareDownloadedVideo(Bundle resultData) {
+        if (circularProgressDialog != null) circularProgressDialog.dismiss();
         circularProgressDialog = null;
         activityViewModel.setTempResultBundle(resultData);
         Intent intent = new Intent(Intent.ACTION_SEND);
         intent.setType(resultData.getString(FILE_MIME));
         intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
         intent.putExtra(Intent.EXTRA_STREAM, Uri.parse(resultData.getString(OUTFILE_URI)));
-        shareResultLauncher.launch(Intent.createChooser(intent, "Select Social Media"));
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP_MR1) {
+            Intent receiver = new Intent(this, VideoSharedBroadcast.class);
+            receiver.putExtra(VideoSharedBroadcast.RESULT_BUNDLE, resultData);
+            PendingIntent pendingIntent;
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S)
+                pendingIntent = PendingIntent.getBroadcast(this, 0, receiver, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_MUTABLE);
+            else
+                pendingIntent = PendingIntent.getBroadcast(this, 0, receiver, PendingIntent.FLAG_UPDATE_CURRENT);
+            startActivity(Intent.createChooser(intent, "Choose application to share", pendingIntent.getIntentSender()));
+        } else {
+            shareResultLauncher.launch(Intent.createChooser(intent, "Choose application to share"));
+        }
     }
 
     private void addShareOnlyListener() {
         int id = activityViewModel.shareOnlyDownloadStatus();
-        if(id == MainActivityViewModel.NO_SHARE_ONLY_FILES_DOWNLOADING){
+        if (id == MainActivityViewModel.NO_SHARE_ONLY_FILES_DOWNLOADING) {
             return;
         }
+        Observer<Bundle> observer = new Observer<Bundle>() {
+            @Override
+            public void onChanged(Bundle bundle) {
+                shareDownloadedVideo(bundle);
+                activityViewModel.getShareOnlyDownloadLiveData().removeObserver(this);
+            }
+        };
+        activityViewModel.getShareOnlyDownloadLiveData().observe(this, observer);
         circularProgressDialog = new CircularProgressDialog(this);
-        ((DownloadReceiver)DownloadDetails.findDetails(id).receiver).getResultBundle().observe(this,bundle -> {
+        ((DownloadReceiver) DownloadDetails.findDetails(id).receiver).getResultBundle().observe(this, bundle -> {
             String msg;
             int resultCode = bundle.getInt(RESULT_CODE);
-            if (resultCode == PROGRESS_UPDATE_AUDIO) msg="Downloading Audio";
-            else if (resultCode == PROGRESS_UPDATE_VIDEO) msg="Downloading Video";
-            else if (resultCode == PROGRESS_UPDATE_MERGING) msg="Merging";
+            if (resultCode == PROGRESS_UPDATE_AUDIO) msg = "Downloading Audio";
+            else if (resultCode == PROGRESS_UPDATE_VIDEO) msg = "Downloading Video";
+            else if (resultCode == PROGRESS_UPDATE_MERGING) msg = "Merging";
             else msg = bundle.getString(FETCH_MESSAGE);
-            updateShareDownloadProgress(bundle.getInt(PROGRESS),msg);
+            updateShareDownloadProgress(bundle.getInt(PROGRESS), msg);
         });
     }
 }

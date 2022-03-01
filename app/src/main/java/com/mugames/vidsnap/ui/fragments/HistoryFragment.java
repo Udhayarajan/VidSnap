@@ -60,7 +60,11 @@ public class HistoryFragment extends Fragment {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        historyViewModel = new ViewModelProvider(this,ViewModelProvider.AndroidViewModelFactory.getInstance(getActivity().getApplication())).get(HistoryViewModel.class);
+        historyViewModel = new ViewModelProvider(this,
+                (ViewModelProvider.Factory) ViewModelProvider
+                        .AndroidViewModelFactory
+                        .getInstance(requireActivity().getApplication())
+        ).get(HistoryViewModel.class);
     }
 
     @Override
@@ -72,7 +76,7 @@ public class HistoryFragment extends Fragment {
         Context context = view.getContext();
         RecyclerView recyclerView = (RecyclerView) view;
         recyclerView.setLayoutManager(new LinearLayoutManager(context));
-        recyclerView.setBackgroundColor(ContextCompat.getColor(getActivity(), R.color.list_background));
+        recyclerView.setBackgroundColor(ContextCompat.getColor(requireContext(), R.color.list_background));
         historyViewModel.getAllValues().observe(getViewLifecycleOwner(), new Observer<List<History>>() {
             @Override
             public void onChanged(List<History> histories) {

@@ -51,6 +51,7 @@ import androidx.annotation.Nullable;
 import com.mugames.vidsnap.R;
 import com.mugames.vidsnap.network.MiniExecute;
 import com.mugames.vidsnap.ui.activities.MainActivity;
+import com.mugames.vidsnap.utility.UtilityClass;
 import com.mugames.vidsnap.utility.bundles.Formats;
 import com.mugames.vidsnap.utility.Statics;
 import com.mugames.vidsnap.utility.UtilityInterface;
@@ -76,9 +77,9 @@ public abstract class Extractor extends Thread {
 
     public Formats formats;
 
-    boolean isVideoSizeReady;
-    boolean isAudioSizeReady;
-    boolean isManifestReady;
+    volatile boolean isVideoSizeReady;
+    volatile boolean isAudioSizeReady;
+    volatile boolean isManifestReady;
     String url;
 
 
@@ -127,14 +128,14 @@ public abstract class Extractor extends Thread {
     }
 
     private void safeAnalyze() {
-        if(isNetworkAvailable()){
-            try{
+        if (isNetworkAvailable()) {
+            try {
                 analyze(url);
-            }catch (Exception e){
-                getDialogueInterface().error("Internal error occurred try with different link",e);
+            } catch (Exception e) {
+                getDialogueInterface().error("Internal error occurred try with different link", e);
             }
-        }else {
-            getDialogueInterface().error("No network available :)",null);
+        } else {
+            getDialogueInterface().error("No network available :)", null);
         }
     }
 
@@ -231,7 +232,7 @@ public abstract class Extractor extends Thread {
             formats.videoSizes.set(index, size);
             DecimalFormat decimalFormat = new DecimalFormat("#.##");
             formats.videoSizeInString.set(index, decimalFormat.format(size / Math.pow(10, 6)));
-            formats.mainFileURLs.set(index,filterURLs(formats.mainFileURLs.get(index)));
+            formats.mainFileURLs.set(index, filterURLs(formats.mainFileURLs.get(index)));
         }
         isVideoSizeReady = true;
         checkForCompletion();
@@ -249,7 +250,7 @@ public abstract class Extractor extends Thread {
         ArrayList<MiniExecute> miniExecutes = new ArrayList<>();
 
         for (int i = 0; i < formats.audioURLs.size(); i++) {
-            if(formats.audioURLs.get(i)==null) {
+            if (formats.audioURLs.get(i) == null) {
                 formats.audioSizes.add(0L);
                 countDownLatch.countDown();
                 continue;
@@ -270,7 +271,7 @@ public abstract class Extractor extends Thread {
             int index = miniExecute.getBundle().getInt(EXTRA_INDEX);
             long size = miniExecute.getSize();
             formats.audioSizes.set(index, size);
-            formats.audioURLs.set(index,filterURLs(formats.audioURLs.get(index)));
+            formats.audioURLs.set(index, filterURLs(formats.audioURLs.get(index)));
         }
         isAudioSizeReady = true;
         checkForCompletion();
@@ -294,10 +295,15 @@ public abstract class Extractor extends Thread {
         return -1;
     }
 
-    public void trySignIn(String notificationTxt, String url, String[] validDoneURLS, UtilityInterface.LoginIdentifier loginIdentifier) {
+    public void trySignIn(String notificationTxt, String url, String[] validDoneURLS,
+                          UtilityInterface.LoginIdentifier loginIdentifier) {
         String cookies = loginHelper.getCookies(getCookiesKey());
         if (cookies == null)
-            loginHelper.signInNeeded(notificationTxt, url, validDoneURLS, getCookiesKey(), loginIdentifier);
+            loginHelper.signInNeeded(
+                    new UtilityClass.LoginDetailsProvider(
+                            notificationTxt, url, validDoneURLS, getCookiesKey(), loginIdentifier
+                    )
+            );
         else loginIdentifier.loggedIn(cookies);
     }
 
@@ -307,7 +313,7 @@ public abstract class Extractor extends Thread {
         if (isManifestReady) completed();
     }
 
-    private void checkForCompletion() {
+    private synchronized void checkForCompletion() {
         if (isAudioSizeReady && isVideoSizeReady)
             completed();
     }
@@ -335,24 +341,30 @@ public abstract class Extractor extends Thread {
         @Override
         public void onAnalyzeCompleted(Formats formats) {
             wrappedDialogueInterface.dismiss();
-            new Handler(applicationContext.getMainLooper()).post(()-> analyzeCallback.onAnalyzeCompleted(formats));
+            new Handler(applicationContext.getMainLooper()).post(() -> analyzeCallback.onAnalyzeCompleted(formats));
         }
     };
 
     DialogueInterface wrappedDialogueInterface = new DialogueInterface() {
         @Override
         public void show(String text) {
-            new Handler(applicationContext.getMainLooper()).post(()-> dialogueInterface.show(text));
+            new Handler(applicationContext.getMainLooper()).post(() -> {
+                if (dialogueInterface != null)
+                    dialogueInterface.show(text);
+            });
         }
 
         @Override
         public void error(String message, Exception e) {
-            new Handler(applicationContext.getMainLooper()).post(()-> dialogueInterface.error(message,e));
+            new Handler(applicationContext.getMainLooper()).post(() -> {
+                if (dialogueInterface != null)
+                    dialogueInterface.error(message, e);
+            });
         }
 
         @Override
         public void dismiss() {
-            new Handler(applicationContext.getMainLooper()).post(()-> dialogueInterface.dismiss());
+            new Handler(applicationContext.getMainLooper()).post(() -> dialogueInterface.dismiss());
         }
     };
 
@@ -360,31 +372,33 @@ public abstract class Extractor extends Thread {
         this.url = url;
     }
 
-    boolean isNetworkAvailable(){
+    boolean isNetworkAvailable() {
         ConnectivityManager connectivityManager = (ConnectivityManager) getContext().getSystemService(Context.CONNECTIVITY_SERVICE);
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
-            Network network  = connectivityManager.getActiveNetwork();
-            if(network==null) return false;
+            Network network = connectivityManager.getActiveNetwork();
+            if (network == null) return false;
             NetworkCapabilities networkCapabilities = connectivityManager.getNetworkCapabilities(network);
-            if(networkCapabilities==null) return false;
-            if(networkCapabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI)) return true;
-            if(networkCapabilities.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR)) return true;
+            if (networkCapabilities == null) return false;
+            if (networkCapabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI)) return true;
+            if (networkCapabilities.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR))
+                return true;
             return networkCapabilities.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET);
-        }else {
+        } else {
             NetworkInfo networkInfo = connectivityManager.getActiveNetworkInfo();
             int type = networkInfo.getType();
-            switch (type){
+            switch (type) {
                 case TYPE_WIFI:
                 case TYPE_ETHERNET:
                 case TYPE_MOBILE:
                     return true;
-                default: return false;
+                default:
+                    return false;
             }
         }
 
     }
 
-    String filterURLs(String url){
+    String filterURLs(String url) {
         return url.replaceAll("\\\\", "");
     }
 }

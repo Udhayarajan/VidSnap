@@ -12,45 +12,54 @@
 
     <application
         android:name=".VidSnapApp"
+        android:allowBackup="true"
         android:extractNativeLibs="true"
-        android:largeHeap="true"
-        android:preserveLegacyExternalStorage="true"
-        android:requestLegacyExternalStorage="true"
         android:hardwareAccelerated="true"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
+        android:largeHeap="true"
+        android:preserveLegacyExternalStorage="true"
+        android:requestLegacyExternalStorage="true"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.YouTubeDownloader"
-        android:allowBackup="true"
         tools:targetApi="R">
-        <activity android:name=".ui.activities.ContactActivity"
-            android:theme="@style/Theme.YouTubeDownloader.NoActionBar"
-            android:screenOrientation="portrait"/>
-        <activity android:name=".ui.activities.ReportActivity"
-            android:theme="@style/Theme.YouTubeDownloader.NoActionBar"
-            android:screenOrientation="portrait"/>
-        <activity android:name=".ui.activities.CheckUpdateActivity"
-            android:theme="@style/Theme.YouTubeDownloader.NoActionBar"
-            android:screenOrientation="portrait"/>
+        <receiver
+            android:name=".utility.VideoSharedBroadcast"
+            android:enabled="true"
+            android:exported="false"></receiver>
 
-        <activity android:name=".ui.activities.ShareActivity"
+        <activity
+            android:name=".ui.activities.ContactActivity"
             android:screenOrientation="portrait"
-            android:exported="true">
+            android:theme="@style/Theme.YouTubeDownloader.NoActionBar" />
+        <activity
+            android:name=".ui.activities.ReportActivity"
+            android:screenOrientation="portrait"
+            android:theme="@style/Theme.YouTubeDownloader.NoActionBar" />
+        <activity
+            android:name=".ui.activities.CheckUpdateActivity"
+            android:screenOrientation="portrait"
+            android:theme="@style/Theme.YouTubeDownloader.NoActionBar" />
+        <activity
+            android:name=".ui.activities.ShareActivity"
+            android:exported="true"
+            android:screenOrientation="portrait">
             <intent-filter>
                 <action android:name="android.intent.action.SEND" />
+
                 <category android:name="android.intent.category.DEFAULT" />
+
                 <data android:mimeType="text/plain" />
             </intent-filter>
         </activity>
-
         <activity
             android:name=".ui.activities.MainActivity"
+            android:exported="true"
             android:label="@string/app_name"
             android:launchMode="singleTop"
             android:screenOrientation="portrait"
-            android:theme="@style/Theme.YouTubeDownloader.NoActionBar"
-            android:exported="true">
+            android:theme="@style/Theme.YouTubeDownloader.NoActionBar">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
@@ -58,9 +67,9 @@
             </intent-filter>
         </activity>
 
-        <service android:name=".network.Downloader"/>
+        <service android:name=".network.Downloader" />
 
-        <receiver android:name=".utility.CancelDownloadReceiver"/>
+        <receiver android:name=".utility.CancelDownloadReceiver" />
 
         <provider
             android:name="androidx.core.content.FileProvider"
