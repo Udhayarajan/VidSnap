@@ -376,6 +376,7 @@ public class VideoFragment extends Fragment implements
             details.videoSize = viewModel.getFormats().videoSizes.get(index);
             details.videoURL = viewModel.getFormats().mainFileURLs.get(index);
             viewModel.getFormats().title = removeStuffFromName(viewModel.getFormats().title);
+            details.fileMime = viewModel.getFormats().fileMime.get(index);
 
             FutureTarget<Bitmap> target = Glide.with(requireContext())
                     .asBitmap()
