@@ -52,16 +52,24 @@ import com.bumptech.glide.request.transition.Transition;
 import com.google.firebase.crashlytics.FirebaseCrashlytics;
 import com.mugames.vidsnap.R;
 import com.mugames.vidsnap.storage.AppPref;
+import com.mugames.vidsnap.storage.FileUtil;
 import com.mugames.vidsnap.ui.activities.MainActivity;
 import com.mugames.vidsnap.ui.adapters.DownloadableAdapter;
-import com.mugames.vidsnap.ui.viewmodels.VideoFragmentViewModel;
+import com.mugames.vidsnap.ui.viewmodels.VideoFragmentViewModelKt;
 import com.mugames.vidsnap.utility.Statics;
 import com.mugames.vidsnap.utility.UtilityClass;
+import com.mugames.vidsnap.utility.UtilityInterface;
 import com.mugames.vidsnap.utility.bundles.DownloadDetails;
 import com.mugames.vidsnap.utility.bundles.Formats;
+import com.mugames.vidsnapkit.dataholders.Error;
+import com.mugames.vidsnapkit.dataholders.ProgressState;
+import com.mugames.vidsnapkit.dataholders.Result;
 
 import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.ExecutionException;
+
+import javax.net.ssl.SSLProtocolException;
 
 /**
  * A fragment that is opened when user selected video from {@link HomeFragment}
@@ -88,7 +96,7 @@ public class VideoFragment extends Fragment implements
 
     boolean isRecreated;
 
-    VideoFragmentViewModel viewModel;
+    VideoFragmentViewModelKt viewModel;
     String link;
 
 
@@ -115,11 +123,37 @@ public class VideoFragment extends Fragment implements
 
         isRecreated = savedInstanceState != null;
 
-        viewModel = new ViewModelProvider(requireActivity()).get(VideoFragmentViewModel.class);
+        viewModel = new ViewModelProvider(requireActivity()).get(VideoFragmentViewModelKt.class);
         viewModel.getFormatsLiveData().observe(getViewLifecycleOwner(), formats -> {
             if (!isRecreated)
                 onAnalyzeCompleted(formats);
             isRecreated = false;
+        });
+
+        viewModel.getResultLiveData().observe(getViewLifecycleOwner(), result -> {
+            if (result instanceof Result.Success) {
+                List<com.mugames.vidsnapkit.dataholders.Formats> formats = ((Result.Success) result).getFormats();
+                onAnalyzeCompleted(formats);
+            } else if (result instanceof Result.Failed) {
+                Error error = ((Result.Failed) result).getError();
+                if (error instanceof Error.LoginInRequired ||
+                        error instanceof Error.InvalidCookies)
+                    viewModel.onClickAnalysisWithCookies(urlBox.getText().toString(), activity);
+                else if (error instanceof Error.InternalError && error.getE() instanceof SSLProtocolException)
+                    startProcess(link);
+                else if (error instanceof Error.Instagram404Error
+                        && !((Error.Instagram404Error) error).isCookiesUsed())
+                    viewModel.onClickAnalysisWithCookies(urlBox.getText().toString(), activity);
+                else
+                    activity.error(error.getMessage(), error.getE());
+            } else {
+                ProgressState state = ((Result.Progress) result).getProgressState();
+                if (state instanceof ProgressState.End) {
+                    ((UtilityInterface.DialogueInterface) activity).show("Almost done!!");
+                }else {
+                    ((UtilityInterface.DialogueInterface) activity).show("Analysing");
+                }
+            }
         });
 
 
@@ -176,17 +210,19 @@ public class VideoFragment extends Fragment implements
         }
         this.link = link;
         safeDismissBottomSheet();
+        if (activity != null)
+            ((UtilityInterface.DialogueInterface) activity).show("Analysing");
         if (viewModel != null) {
-            if (viewModel.onClickAnalysis(link, (MainActivity) getActivity()) == null)
+            if (viewModel.onClickAnalysis(link, (MainActivity) requireActivity()) == null)
                 unLockAnalysis();
             else {
+                viewModel.getDownloadDetails().srcUrl = link;
+                viewModel.clearDetails();
                 // Only if it is valid URL it reach here
                 viewModel.getLoginDetailsProviderLiveData().observe(getViewLifecycleOwner(), new Observer<UtilityClass.LoginDetailsProvider>() {
                             @Override
                             public void onChanged(UtilityClass.LoginDetailsProvider loginDetailsProvider) {
                                 if (loginDetailsProvider == null) return;
-
-                                viewModel.getDownloadDetails().srcUrl = link;
                                 safeDismissBottomSheet();
                                 urlBox.setText("");
 
@@ -243,6 +279,7 @@ public class VideoFragment extends Fragment implements
         if (viewModel.isRecreated() && !isNewLink()) return;
         viewModel.nullifyExtractor();
         if (formats.isMultipleFile()) {
+            ((UtilityInterface.DialogueInterface) activity).dismiss();
             adapter = new DownloadableAdapter(this, viewModel.getFormats());
             adapter.getSelectedList().observe(getViewLifecycleOwner(), this::selectedItemChanged);
             list.setLayoutManager(new GridLayoutManager(activity, 2));
@@ -250,6 +287,15 @@ public class VideoFragment extends Fragment implements
         } else {
             actionForSOLOFile(formats);
         }
+    }
+
+    private void onAnalyzeCompleted(List<com.mugames.vidsnapkit.dataholders.Formats> formats) {
+        unLockAnalysis();
+        if (viewModel.isRecreated() && !isNewLink()) return;
+        viewModel.nullifyExtractor();
+        viewModel.reset();
+        viewModel.setKtFormats(formats);
+        onAnalyzeCompleted(viewModel.getFormats());
     }
 
     void selectedItemChanged(ArrayList<Integer> selectedValue) {
@@ -286,6 +332,7 @@ public class VideoFragment extends Fragment implements
                         viewModel.getDownloadDetails().setThumbNail(getContext(), resource);
                         dialogFragment.setThumbNail(resource);
                         VideoFragment.this.dialogFragment = dialogFragment;
+                        ((UtilityInterface.DialogueInterface) activity).dismiss();
                         dialogFragment.show(requireActivity().getSupportFragmentManager(), "TAG");
                     }
 
@@ -301,6 +348,7 @@ public class VideoFragment extends Fragment implements
         super.onDestroy();
         if (viewModel != null)
             viewModel.removeActivityReference();
+        requireActivity().getViewModelStore().clear();
         activity.setTouchCallback(null);
         Log.e(TAG, "onDestroy: called");
         dialogFragment = null;

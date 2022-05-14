@@ -20,6 +20,7 @@ package com.mugames.vidsnap.ui.activities;
 import androidx.appcompat.app.AppCompatActivity;
 
 import android.content.Intent;
+import android.net.Uri;
 import android.os.Bundle;
 
 import com.mugames.vidsnap.R;
@@ -36,16 +37,20 @@ public class ShareActivity extends AppCompatActivity {
         setContentView(R.layout.activity_share);
         Intent intent = new Intent(this, MainActivity.class);
         String content = MainActivityViewModel.intentString(getIntent());
-        if(content ==null){
+        Uri editFileUri = MainActivityViewModel.intentUriForEditing(getIntent());
+        if (content != null) {
+            intent.putExtra(Intent.EXTRA_TEXT, content);
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
             startActivity(intent);
             finish();
-            return;
+        } else if (editFileUri != null) {
+            intent.putExtra(Intent.EXTRA_STREAM, editFileUri);
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            startActivity(intent);
+            finish();
+        } else {
+            startActivity(intent);
+            finish();
         }
-        intent.putExtra(Intent.EXTRA_TEXT,content);
-        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-        startActivity(intent);
-        finish();
-
-
     }
 }

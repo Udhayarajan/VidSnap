@@ -29,6 +29,7 @@ import com.arthenica.ffmpegkit.LogCallback;
 import com.arthenica.ffmpegkit.NativeLoader;
 import com.arthenica.ffmpegkit.Session;
 import com.arthenica.ffmpegkit.StatisticsCallback;
+import com.mugames.vidsnap.R;
 import com.mugames.vidsnap.storage.AppPref;
 import com.mugames.vidsnap.storage.FileUtil;
 import com.mugames.vidsnap.utility.MIMEType;
@@ -42,6 +43,8 @@ import java.nio.channels.FileChannel;
 import static com.mugames.vidsnap.utility.Statics.TAG;
 import static com.mugames.vidsnap.storage.AppPref.LIBRARY_PATH;
 
+import org.jetbrains.annotations.NotNull;
+
 public class FFMPEG {
     public static String jniPath;
     public static String filesDir;
@@ -52,16 +55,19 @@ public class FFMPEG {
     ExecuteCallback executeCallback;
     FFMPEGInfo info;
 
+    Context context;
 
-    public static synchronized void newFFMPEGInstance(FFMPEGInfo ffmpegInfo, Context context, ReflectionInterfaces.SOLoadCallbacks soLoadCallbacks){
+
+    public static synchronized void newFFMPEGInstance(FFMPEGInfo ffmpegInfo, Context context, ReflectionInterfaces.SOLoadCallbacks soLoadCallbacks) {
         INSTANCE_COUNT++;
-        new FFMPEG(ffmpegInfo,context,soLoadCallbacks);
+        new FFMPEG(ffmpegInfo, context, soLoadCallbacks);
     }
+
     ExecuteCallback wrappedExecuteCallback = new ExecuteCallback() {
         @Override
         public void apply(Session session) {
             deleteLibs();
-            if(executeCallback!=null)
+            if (executeCallback != null)
                 executeCallback.apply(session);
         }
     };
@@ -69,19 +75,22 @@ public class FFMPEG {
 
     public FFMPEG(FFMPEGInfo ffmpegInfo, Context context, ReflectionInterfaces.SOLoadCallbacks soLoadCallbacks) {
         this.info = ffmpegInfo;
+        this.context = context;
 
-        if(soLoadCallbacks==null) return;// No need to perform anything because library is loaded statically
+        if (soLoadCallbacks == null)
+            return;// No need to perform anything because library is loaded statically
 
         String libsPath = AppPref.getInstance(context).getCachePath(LIBRARY_PATH);
-        if(jniPath==null) jniPath = libsPath + File.separator + "jni" + File.separator;
+        if (jniPath == null) jniPath = libsPath + "jni" + File.separator;
 
-        if(FileUtil.isFileNotExists(jniPath)) {
-            new Thread(()->{
+        if (FileUtil.isFileNotExists(jniPath)) {
+            new Thread(() -> {
                 try {
                     FileUtil.unzip(new File(libsPath, "lib.zip"), new File(libsPath), () -> {
-                        new Handler(context.getMainLooper()).post(()->{
-                            if(filesDir==null) filesDir = context.getFilesDir().getAbsolutePath() + File.separator;
-                            loadSOFiles(jniPath,soLoadCallbacks);
+                        new Handler(context.getMainLooper()).post(() -> {
+                            if (filesDir == null)
+                                filesDir = context.getFilesDir().getAbsolutePath() + File.separator;
+                            loadSOFiles(jniPath, soLoadCallbacks);
                         });
                     });
                 } catch (IOException e) {
@@ -89,9 +98,10 @@ public class FFMPEG {
                     e.printStackTrace();
                 }
             }).start();
-        }else {
-            if(filesDir==null) filesDir = context.getFilesDir().getAbsolutePath() + File.separator;
-            loadSOFiles(jniPath,soLoadCallbacks);
+        } else {
+            if (filesDir == null)
+                filesDir = context.getFilesDir().getAbsolutePath() + File.separator;
+            loadSOFiles(jniPath, soLoadCallbacks);
         }
 
     }
@@ -102,13 +112,13 @@ public class FFMPEG {
     }
 
 
-    static synchronized void deleteLibs(){
+    static synchronized void deleteLibs() {
         INSTANCE_COUNT--;
-        Log.e(TAG, "deleteLibs: "+INSTANCE_COUNT);
-        if(INSTANCE_COUNT==0)
-            new Thread(()->{
-                FileUtil.deleteFile(jniPath,null);
-            }).start();
+        Log.e(TAG, "deleteLibs: " + INSTANCE_COUNT);
+        if (INSTANCE_COUNT <= 0) {
+            INSTANCE_COUNT = 0;
+            new Thread(() -> FileUtil.deleteFile(jniPath, null)).start();
+        }
     }
 
 
@@ -127,9 +137,8 @@ public class FFMPEG {
     }
 
 
-
     public void loadSOFiles(String jniPath, ReflectionInterfaces.SOLoadCallbacks callbacks) {
-        if(isLibLoaded){
+        if (isLibLoaded) {
             callbacks.onSOLoadingSuccess(this);
             return;
         }
@@ -173,7 +182,7 @@ public class FFMPEG {
                 isLibLoaded = true;
                 callbacks.onSOLoadingSuccess(this);
             }
-        } catch (IOException e) {
+        } catch (IOException | UnsatisfiedLinkError e) {
             e.printStackTrace();
             callbacks.onSOLoadingFailed(e);
         }
@@ -186,21 +195,57 @@ public class FFMPEG {
     }
 
 
+    public void splitVideo(@NotNull Duration duration, StatisticsCallback statisticsCallback) {
+        String cmd = findCommand(FFMPEGType.TRIM_VIDEO);
+        cmd = String.format(cmd, info.videoPath, duration.getHours(),
+                duration.getMinutes(),
+                duration.getSeconds());
+        FFmpegKitConfig.enableStatisticsCallback(statisticsCallback);
+        FFmpegKit.executeAsync(cmd, wrappedExecuteCallback);
+    }
+
     String findCommand(String type) {
         File file = new File(info.localOutputPath);
-        info.localOutputPath = file.getParent() + File.separator+ file.getName().split("\\.")[0];
+        info.localOutputPath = file.getParent() + File.separator + file.getName().split("\\.")[0];
         switch (type) {
             case FFMPEGType.MERGE:
                 return findEncodeType();
             case FFMPEGType.HLS_DOWNLOAD:
                 info.localOutputMime = MIMEType.VIDEO_MP4;
-                info.localOutputPath+=".mp4";
-                return "-i \""+info.hlsURL+"\" -codec copy "+info.localOutputPath;
+                info.localOutputPath += ".mp4";
+                return "-i \"" + info.hlsURL + "\" -codec copy " + info.localOutputPath;
+            case FFMPEGType.TRIM_VIDEO:
+                return "-i \"%s\" -c copy -map 0 -segment_time %s:%s:%s -f segment -reset_timestamps 1 " + info.localOutputPath + "/%%03d" + ".mp4";
+            case FFMPEGType.RE_ENCODE_AS_MP3:
+                return "-i \"%s\" -c:a libmp3lame -q:a 8 \"%s\".mp3";
+            // FIXME: 19-04-2022 I'm not worthy to recode entire VP9 webm as H264 MP4 :(
+            case FFMPEGType.RE_ENCODE_AS_MP4:
+                return "-i \"%s\".webm \"%s\".mp4";
         }
         return null;
     }
 
-    private  String findEncodeType() {
+    public void reEncodeToMp3(StatisticsCallback statisticsCallback) {
+        File audioFile = new File(info.videoPath);
+        String name = audioFile.getName().split("\\.")[0];
+        String cmd = findCommand(FFMPEGType.RE_ENCODE_AS_MP3);
+        name = audioFile.getParent() + "/" + name;
+        cmd = String.format(cmd, name, name);
+        FFmpegKitConfig.enableStatisticsCallback(statisticsCallback);
+        FFmpegKit.executeAsync(cmd, wrappedExecuteCallback);
+    }
+
+    public void reEncodeToMp4(StatisticsCallback statisticsCallback) {
+        File videoFile = new File(info.videoPath);
+        String name = videoFile.getName().split("\\.")[0];
+        String cmd = findCommand(FFMPEGType.RE_ENCODE_AS_MP4);
+        name = videoFile.getParent() + "/" + name;
+        cmd = String.format(cmd, name, name);
+        FFmpegKitConfig.enableStatisticsCallback(statisticsCallback);
+        FFmpegKit.executeAsync(cmd, wrappedExecuteCallback);
+    }
+
+    private String findEncodeType() {
         if (MIMEType.AUDIO_WEBM.equals(info.audioMime) && MIMEType.VIDEO_WEBM.equals(info.videoMime)) {
             info.localOutputPath += ".webm";
             info.localOutputMime = MIMEType.VIDEO_WEBM;
@@ -221,16 +266,19 @@ public class FFMPEG {
         return null;
     }
 
-    public void downloadHLS(LogCallback logCallback){
+
+    public void downloadHLS(LogCallback logCallback) {
         String command = findCommand(FFMPEGType.HLS_DOWNLOAD);
-        FFmpegKit.executeAsync(command, wrappedExecuteCallback, logCallback,null);
+        FFmpegKit.executeAsync(command, wrappedExecuteCallback, logCallback, null);
     }
 
     public FFMPEGInfo getInfo() {
         return info;
     }
 
-    public void interrupt(){
+    public void interrupt() {
         FFmpegKit.cancel();
     }
+
+
 }

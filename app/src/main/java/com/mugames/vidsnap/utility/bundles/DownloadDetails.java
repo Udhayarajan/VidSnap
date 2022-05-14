@@ -28,6 +28,7 @@ import android.os.ResultReceiver;
 
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 
 import com.mugames.vidsnap.storage.FileUtil;
 import com.mugames.vidsnap.storage.AppPref;
@@ -182,5 +183,15 @@ public class DownloadDetails implements Parcelable {
             if (details.id == id) return details;
         }
         throw new IllegalArgumentException("id: "+id+" has no details\nAvailable are"+downloadDetailsList);
+    }
+
+    @Nullable
+    public static DownloadDetails findDetailsOrNull(int id){
+        try{
+            return findDetails(id);
+        }catch (IllegalArgumentException e){
+            e.printStackTrace();
+            return null;
+        }
     }
 }

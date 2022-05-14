@@ -18,7 +18,6 @@
 package com.mugames.vidsnap.ui.viewmodels;
 
 import static com.mugames.vidsnap.firebase.FirebaseCallBacks.UpdateCallbacks;
-import static com.mugames.vidsnap.utility.Statics.OUTFILE_URI;
 
 import android.app.Application;
 import android.app.DownloadManager;
@@ -35,12 +34,13 @@ import androidx.annotation.NonNull;
 import androidx.lifecycle.AndroidViewModel;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
+import androidx.lifecycle.Observer;
 
 import com.mugames.vidsnap.firebase.FirebaseManager;
 import com.mugames.vidsnap.R;
 import com.mugames.vidsnap.network.Response;
 import com.mugames.vidsnap.storage.AppPref;
-import com.mugames.vidsnap.storage.FileUtil;
+import com.mugames.vidsnap.utility.VideoSharedBroadcast;
 import com.mugames.vidsnap.utility.bundles.DownloadDetails;
 import com.mugames.vidsnap.utility.DownloadReceiver;
 import com.mugames.vidsnap.utility.Statics;
@@ -75,7 +75,7 @@ public class MainActivityViewModel extends AndroidViewModel implements UtilityIn
 
     boolean isProgressDialogVisible;
     String progressDialogText;
-    private Bundle tempResultBundle;
+    private Intent tempResultIntent;
 
     Random random = new Random();
 
@@ -112,6 +112,10 @@ public class MainActivityViewModel extends AndroidViewModel implements UtilityIn
         }
     }
 
+    public static Uri intentUriForEditing(Intent intent){
+        return intent.getParcelableExtra(Intent.EXTRA_STREAM);
+    }
+
     public void addDownloadDetails(DownloadDetails details) {
         downloadDetailsList.add(details);
         activeDownload.setValue(downloadDetailsList.size());
@@ -122,7 +126,6 @@ public class MainActivityViewModel extends AndroidViewModel implements UtilityIn
     synchronized void removeDownloadDetails() {
         downloadDetailsMutableLiveData.postValue(downloadDetailsList);
         activeDownload.postValue(downloadDetailsList.size());
-
     }
 
 
@@ -161,11 +164,10 @@ public class MainActivityViewModel extends AndroidViewModel implements UtilityIn
     }
 
     @Override
-    public void onDownloadFailed(String reason, Exception e) {
+    public void onDownloadFailed(String reason, Throwable e) {
         removeDownloadDetails();
         if (e == null) return;
-        Response response = new Response(e);
-        response.setResponse(reason);
+        Response response = new Response(e, reason);
         downloadResponse.setValue(response);
     }
 
@@ -279,20 +281,18 @@ public class MainActivityViewModel extends AndroidViewModel implements UtilityIn
         }
     };
 
-    public Bundle getTempResultBundle() {
-        return tempResultBundle;
+    public Intent getTempResultIntent() {
+        Intent temp = tempResultIntent;
+        tempResultIntent = null;
+        return temp;
     }
 
-    public void setTempResultBundle(Bundle tempResultBundle) {
-        this.tempResultBundle = tempResultBundle;
+    public void setTempResultIntent(Intent tempResultIntent) {
+        this.tempResultIntent = tempResultIntent;
     }
 
     public void deleteSharedFile() {
-        Uri uri = Uri.parse(tempResultBundle.getString(OUTFILE_URI));
-        FileUtil.deleteFile(
-                getApplication().getExternalFilesDir(null) + File.separator + uri.getLastPathSegment(),
-                null
-        );
+        VideoSharedBroadcast.delete(getApplication(), tempResultIntent);
     }
 
     public void setDownloadingSOFile(boolean downloadingSOFile) {
@@ -315,5 +315,10 @@ public class MainActivityViewModel extends AndroidViewModel implements UtilityIn
         for (DownloadDetails details : downloadDetailsList) {
             ((DownloadReceiver) details.receiver).setCallback(null);
         }
+    }
+
+    public void removeShareOnlyDownloadListener(Observer<Bundle> bundleObserver) {
+        shareOnlyDownloadLiveData.removeObserver(bundleObserver);
+        shareOnlyDownloadLiveData = new MutableLiveData<>();
     }
 }

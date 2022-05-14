@@ -14,33 +14,11 @@
  *
  */
 
-package com.mugames.vidsnap.network;
+package com.mugames.vidsnap.postprocessor
 
-public class Response {
-    String response;
-    Exception exception;
-
-    public Response(Exception exception) {
-        this.exception = exception;
-    }
-
-    public Response(String response) {
-        this.response = response;
-    }
-
-    public String getResponse() {
-        return response;
-    }
-
-    public void setResponse(String response) {
-        this.response = response;
-    }
-
-    public Exception getException() {
-        return exception;
-    }
-
-    public void setException(Exception exception) {
-        this.exception = exception;
-    }
-}
+data class Duration(
+    val hours: Int,
+    val minutes: Int,
+    val seconds: Int,
+    val milliSeconds: Int,
+)

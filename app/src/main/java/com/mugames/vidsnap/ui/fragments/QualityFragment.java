@@ -37,6 +37,7 @@ import com.mugames.vidsnap.R;
 import com.mugames.vidsnap.storage.AppPref;
 import com.mugames.vidsnap.ui.activities.MainActivity;
 import com.mugames.vidsnap.ui.viewmodels.VideoFragmentViewModel;
+import com.mugames.vidsnap.ui.viewmodels.VideoFragmentViewModelKt;
 import com.mugames.vidsnap.utility.MIMEType;
 import com.mugames.vidsnap.utility.Statics;
 import com.mugames.vidsnap.utility.UtilityInterface;
@@ -72,8 +73,10 @@ public class QualityFragment extends BottomSheetDialogFragment {
     EditText editText;
 
     Formats formats;
-    VideoFragmentViewModel viewModel;
+    VideoFragmentViewModelKt viewModel;
     UtilityInterface.DownloadClickedCallback downloadClickedCallback;
+
+    private boolean isButtonClickDismiss;
 
 
     public QualityFragment() {
@@ -93,7 +96,7 @@ public class QualityFragment extends BottomSheetDialogFragment {
 
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
-        viewModel = new ViewModelProvider(requireActivity()).get(VideoFragmentViewModel.class);
+        viewModel = new ViewModelProvider(requireActivity()).get(VideoFragmentViewModelKt.class);
 
         formats = viewModel.getFormats();
 
@@ -117,13 +120,16 @@ public class QualityFragment extends BottomSheetDialogFragment {
         editText = view.findViewById(R.id.edit_name);
 
         download_mp_4.setOnClickListener(v -> {
+            isButtonClickDismiss = true;
             downloadVideo(editText.getText().toString(), false);
         });
 
         download_mp_3.setOnClickListener(v -> {
+            isButtonClickDismiss = true;
             downloadMp3(editText.getText().toString());
         });
         share.setOnClickListener(v -> {
+            isButtonClickDismiss = true;
             downloadVideo(editText.getText().toString(), true);
         });
     }
@@ -134,9 +140,11 @@ public class QualityFragment extends BottomSheetDialogFragment {
         dismiss();
         ArrayList<DownloadDetails> downloadDetails = new ArrayList<>();
         viewModel.getDownloadDetails().isShareOnlyDownload = isOnlyShare;
+        viewModel.isShareOnly = isOnlyShare;
         viewModel.getDownloadDetails().fileName = removeStuffFromName(fileName);
         downloadDetails.add(viewModel.getDownloadDetails());
         ((MainActivity) requireActivity()).download(downloadDetails);
+        viewModel.clearDetails();
     }
 
 
@@ -255,7 +263,7 @@ public class QualityFragment extends BottomSheetDialogFragment {
             holder.itemView.setTag(position);
             holder.radioButton.setTag(position);
             holder.qualityLabel.setText(mQualities.get(position));
-            holder.sizeText.setText(String.format("%s MB", mSizes.get(position)));
+            holder.sizeText.setText(mSizes.get(position));
 
 
             holder.itemView.setOnClickListener(this::itemCheckChanged);
@@ -297,5 +305,13 @@ public class QualityFragment extends BottomSheetDialogFragment {
             radioButtons.get(selectedItem).setChecked(true);
             onSelectedItem(selectedItem);
         }
+    }
+
+    @Override
+    public void onDismiss(@NonNull DialogInterface dialog) {
+        super.onDismiss(dialog);
+        if (!isButtonClickDismiss)
+        viewModel.getDownloadDetails().deleteThumbnail();
+        else isButtonClickDismiss = false;
     }
 }

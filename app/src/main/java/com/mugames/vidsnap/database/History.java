@@ -29,6 +29,7 @@ import com.mugames.vidsnap.utility.bundles.DownloadDetails;
 import com.mugames.vidsnap.utility.UtilityClass;
 
 import java.util.Date;
+import java.util.Objects;
 
 @Entity(tableName = "HISTORY")
 @TypeConverters(DateConverter.class)
@@ -45,25 +46,42 @@ public class History {
     public String image;
     @ColumnInfo(name = "source_url")
     public String sourceUrl;
-    public History() {}
+
+    public History() {
+    }
 
 
     public History(DownloadDetails details, Uri uri) {
         this.fileName = details.fileName;
         this.fileType = details.fileType;
         this.source = details.src;
-        this.date = DateConverter.toDate( new Date().getTime());
+        this.date = DateConverter.toDate(new Date().getTime());
         this.size = String.valueOf(details.videoSize);
         this.uriString = uri.toString();
         sourceUrl = details.srcUrl;
         image = UtilityClass.bitmapToString(details.getThumbNail());
     }
 
-    public Uri getUri(){
+    public Uri getUri() {
         return Uri.parse(uriString);
     }
 
     public String getDate() {
         return (String) DateFormat.format("dd-MM-yyyy", date);
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        History history = (History) o;
+        return Objects.equals(fileName, history.fileName) && 
+                Objects.equals(fileType, history.fileType) &&
+                Objects.equals(source, history.source) &&
+                Objects.equals(date, history.date) &&
+                Objects.equals(size, history.size) &&
+                Objects.equals(uriString, history.uriString) &&
+                Objects.equals(image, history.image) &&
+                Objects.equals(sourceUrl, history.sourceUrl);
     }
 }

@@ -68,19 +68,21 @@ public class Formats {
     public ArrayList<String> videoSIGs;
     public ArrayList<String> videoSPs;//to find that link needed to be generate should have sp or sig
 
-    int fileCount=-1;
+    int fileCount = -1;
+
+    Boolean isMultiVideos = null;
 
     public Formats() {
-        mainFileURLs =new ArrayList<>();
+        mainFileURLs = new ArrayList<>();
         qualities = new ArrayList<>();
-        fileMime =new ArrayList<>();
-        audioMime =new ArrayList<>();
-        audioURLs =new ArrayList<>();
+        fileMime = new ArrayList<>();
+        audioMime = new ArrayList<>();
+        audioURLs = new ArrayList<>();
         audioSizes = new ArrayList<>();
-        videoSizes =new ArrayList<>();
-        videoSizeInString =new ArrayList<>();
-        videoSPs =new ArrayList<>();
-        videoSIGs =new ArrayList<>();
+        videoSizes = new ArrayList<>();
+        videoSizeInString = new ArrayList<>();
+        videoSPs = new ArrayList<>();
+        videoSIGs = new ArrayList<>();
         thumbNailsURL = new ArrayList<>();
         thumbNailsBitMap = new ArrayList<>();
         manifest = new ArrayList<>();
@@ -88,18 +90,22 @@ public class Formats {
     }
 
     public int getFileCount() {
-        if(fileCount==-1)
+        if (fileCount == -1)
             fileCount = thumbNailsURL.size();
         return fileCount;
     }
 
-    public void setAsEmptyFile(){
+    public void setAsEmptyFile() {
         fileCount = 0;
     }
 
+    public void setIsMultiVideos(boolean isMultiVideos) {
+        this.isMultiVideos = isMultiVideos;
+    }
 
     public boolean isMultipleFile() {
-        if(mainFileURLs.size()==1 && thumbNailsURL.size()==1)
+        if (isMultiVideos != null) return isMultiVideos;
+        if (mainFileURLs.size() == 1 && thumbNailsURL.size() == 1)
             return false;
         return mainFileURLs.size() == thumbNailsURL.size();
     }

@@ -9,9 +9,12 @@
         <entry key="..\:/PROJECTS/AndroidStudio/VidSnap/app/src/main/res/drawable/ic_arrow_back.xml" value="0.12708333333333333" />
         <entry key="..\:/PROJECTS/AndroidStudio/VidSnap/app/src/main/res/drawable/ic_cancel.xml" value="0.12708333333333333" />
         <entry key="..\:/PROJECTS/AndroidStudio/VidSnap/app/src/main/res/drawable/ic_play_circle.xml" value="0.21851851851851853" />
+        <entry key="..\:/PROJECTS/AndroidStudio/VidSnap/app/src/main/res/drawable/ic_quality_settings.xml" value="0.103" />
+        <entry key="..\:/PROJECTS/AndroidStudio/VidSnap/app/src/main/res/drawable/ic_security.xml" value="0.103" />
+        <entry key="..\:/PROJECTS/AndroidStudio/VidSnap/app/src/main/res/drawable/ic_video.xml" value="0.204" />
         <entry key="..\:/PROJECTS/AndroidStudio/VidSnap/app/src/main/res/layout/activity_contact.xml" value="0.25416666666666665" />
         <entry key="..\:/PROJECTS/AndroidStudio/VidSnap/app/src/main/res/layout/activity_main.xml" value="0.25416666666666665" />
-        <entry key="..\:/PROJECTS/AndroidStudio/VidSnap/app/src/main/res/layout/activity_main_preview.xml" value="0.25416666666666665" />
+        <entry key="..\:/PROJECTS/AndroidStudio/VidSnap/app/src/main/res/layout/activity_main_preview.xml" value="0.2" />
         <entry key="..\:/PROJECTS/AndroidStudio/VidSnap/app/src/main/res/layout/activity_report.xml" value="0.25416666666666665" />
         <entry key="..\:/PROJECTS/AndroidStudio/VidSnap/app/src/main/res/layout/activity_share.xml" value="0.25416666666666665" />
         <entry key="..\:/PROJECTS/AndroidStudio/VidSnap/app/src/main/res/layout/circular_download.xml" value="0.25416666666666665" />
@@ -19,9 +22,10 @@
         <entry key="..\:/PROJECTS/AndroidStudio/VidSnap/app/src/main/res/layout/downloadable_item.xml" value="0.25416666666666665" />
         <entry key="..\:/PROJECTS/AndroidStudio/VidSnap/app/src/main/res/layout/fragment_downloading.xml" value="0.23796296296296296" />
         <entry key="..\:/PROJECTS/AndroidStudio/VidSnap/app/src/main/res/layout/fragment_downloading_item.xml" value="0.264" />
+        <entry key="..\:/PROJECTS/AndroidStudio/VidSnap/app/src/main/res/layout/fragment_edit.xml" value="0.11197916666666667" />
         <entry key="..\:/PROJECTS/AndroidStudio/VidSnap/app/src/main/res/layout/fragment_history.xml" value="0.23796296296296296" />
         <entry key="..\:/PROJECTS/AndroidStudio/VidSnap/app/src/main/res/layout/fragment_history_item.xml" value="0.25416666666666665" />
-        <entry key="..\:/PROJECTS/AndroidStudio/VidSnap/app/src/main/res/layout/fragment_home.xml" value="0.25416666666666665" />
+        <entry key="..\:/PROJECTS/AndroidStudio/VidSnap/app/src/main/res/layout/fragment_home.xml" value="0.12" />
         <entry key="..\:/PROJECTS/AndroidStudio/VidSnap/app/src/main/res/layout/fragment_login.xml" value="0.25416666666666665" />
         <entry key="..\:/PROJECTS/AndroidStudio/VidSnap/app/src/main/res/layout/fragment_no_record.xml" value="0.25416666666666665" />
         <entry key="..\:/PROJECTS/AndroidStudio/VidSnap/app/src/main/res/layout/fragment_quality_list_dialog.xml" value="0.264" />
@@ -36,6 +40,8 @@
         <entry key="..\:/PROJECTS/AndroidStudio/VidSnap/app/src/main/res/layout/storage_switcher.xml" value="0.25416666666666665" />
         <entry key="..\:/PROJECTS/AndroidStudio/VidSnap/app/src/main/res/layout/temp.xml" value="0.25416666666666665" />
         <entry key="..\:/PROJECTS/AndroidStudio/VidSnap/app/src/main/res/layout/terms.xml" value="0.25416666666666665" />
+        <entry key="..\:/PROJECTS/AndroidStudio/VidSnap/app/src/main/res/menu/popup_menu.xml" value="0.25" />
+        <entry key="..\:/PROJECTS/AndroidStudio/VidSnap/app/src/main/res/menu/top_menu.xml" value="0.25" />
         <entry key="..\:/PROJECTS/AndroidStudio/VidSnap/app/src/main/res/xml/root_preferences.xml" value="0.23796296296296296" />
       </map>
     </option>

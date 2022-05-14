@@ -51,6 +51,8 @@
     <string name="key_media_link">shareLinkOnCrash</string>
     <string name="key_terms_con">454513512.c</string>
     <string name="key_force_clear">clearAllData0</string>
+    <string name="key_quality_audio">audioqaulpref</string>
+    <string name="key_quality_video">videoqualpref</string>
 
     <!-- Messages Preferences -->
     <string name="signature_title">Your signature</string>

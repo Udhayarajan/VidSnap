@@ -51,9 +51,23 @@ import java.io.File;
  */
 public class AppPref {
 
+    /**
+     * This is database path
+     */
     public static final String STATIC_CACHE = ".historyDB";
+    /**
+     * Contains temp thumbnails and short time video files
+     */
     public static final String DYNAMIC_CACHE = ".essential";
+    /**
+     * Contains SO files for FFmpeg
+     */
     public static final String LIBRARY_PATH = "libs";
+    /**
+     * Folder to store temporary spliced videos
+     */
+    public static final String SPLICE_PATH = "spliced";
+
     public static final String db_name = "historyCache";
 
     private static volatile AppPref instance;

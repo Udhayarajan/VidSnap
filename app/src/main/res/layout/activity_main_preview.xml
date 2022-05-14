@@ -31,9 +31,9 @@
 
         <androidx.appcompat.widget.Toolbar
             android:id="@+id/toolbar"
-            android:layout_alignParentTop="true"
             android:layout_width="match_parent"
             android:layout_height="?attr/actionBarSize"
+            android:layout_alignParentTop="true"
             android:background="@color/notification_color">
 
             <TextView
@@ -44,15 +44,15 @@
                 android:fontFamily="@font/pattaya"
                 android:text="VidSnap"
                 android:textAppearance="?android:attr/textAppearanceLarge"
-                android:textSize="34dp" />
+                android:textSize="34sp" />
         </androidx.appcompat.widget.Toolbar>
 
         <FrameLayout
-            android:layout_below="@id/toolbar"
             android:id="@+id/fragment_container"
-            android:layout_above="@id/ad_view_container"
             android:layout_width="match_parent"
-            android:layout_height="match_parent">
+            android:layout_height="match_parent"
+            android:layout_above="@id/ad_view_container"
+            android:layout_below="@id/toolbar">
 
         </FrameLayout>
 

@@ -55,8 +55,9 @@ public class JSInterpreterLegacy {
     }
 
     public JSInterface extractFunction(String functionName) {
+        String escapedName = Matcher.quoteReplacement(functionName);
         Pattern pattern = Pattern.compile(String.format("(?:function\\s+%s|[{;,]\\s*%s\\s*=\\s*function|var\\s+%s\\s*=\\s*function)\\s*\\(([^)]*)\\)\\s*\\{([^}]+)\\}"
-                , functionName, functionName, functionName));
+                , escapedName, escapedName, escapedName));
         Matcher func_m = pattern.matcher(code);
         if (func_m.find()) {
             String[] argnames = func_m.group(1).split(",");

@@ -17,44 +17,65 @@
 package com.mugames.vidsnap.utility;
 
 import static com.mugames.vidsnap.utility.Statics.OUTFILE_URI;
+import static com.mugames.vidsnap.utility.Statics.TAG;
 
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
-import android.os.Handler;
-import android.os.Looper;
+import android.os.Parcelable;
 import android.util.Log;
 
-import androidx.lifecycle.ViewModelProvider;
-
 import com.mugames.vidsnap.storage.FileUtil;
-import com.mugames.vidsnap.ui.viewmodels.MainActivityViewModel;
+
+import org.jetbrains.annotations.Nullable;
 
 import java.io.File;
+import java.util.ArrayList;
 import java.util.Timer;
 import java.util.TimerTask;
 
 public class VideoSharedBroadcast extends BroadcastReceiver {
 
-    public static final String RESULT_BUNDLE = "com.mugames.vidsnap.utitlty.VideoSharedBroadcast.RESULT_BUNDLE";
+    public static final String DETAILS_ID="com.mugames.vidsnap.utility.VideoSharedBroadcast.DETAILS_ID";
+    public static void delete(Context context, Intent intent) {
+        if (intent==null) return;
+        Uri uri = intent.getParcelableExtra(Intent.EXTRA_STREAM);
+        if (uri != null) {
+            deleteSharedVideo(context, uri);
+        } else {
+            ArrayList<? extends Parcelable> list = intent.getParcelableArrayListExtra(Intent.EXTRA_STREAM);
+            if (list != null) deleteSharedVideo(context, list);
+        }
+    }
 
     @Override
     public void onReceive(Context context, Intent intent) {
         long waitTime = 30 * 1000;
-        Log.d("MUTube", "onReceive: VideoSharedBroadcast trigreed and media will be deleted with in 30 sec");
-        Bundle tempResultBundle = intent.getBundleExtra(RESULT_BUNDLE);
-        Uri uri = Uri.parse(tempResultBundle.getString(OUTFILE_URI));
+        Log.d("MUTube", "onReceive: VideoSharedBroadcast triggered and media will be deleted with in 30 sec");
+
         new Timer().schedule(new TimerTask() {
             @Override
             public void run() {
-                FileUtil.deleteFile(
-                        context.getExternalFilesDir(null) + File.separator + uri.getLastPathSegment(),
-                        null
-                );
-                Log.d("MUTube", "run: file deleted" + uri);
+                delete(context, intent);
             }
         }, waitTime);
+    }
+
+    static void deleteSharedVideo(Context context, Uri uri) {
+        FileUtil.deleteFile(
+                FileUtil.getPathFromProviderUri(context, uri),
+                null
+        );
+    }
+
+    static void deleteSharedVideo(Context context, ArrayList<? extends Parcelable> list) {
+        for (int i = 0; i < list.size(); i++) {
+            Log.d(TAG, "deleteSharedVideo: " + FileUtil.getPathFromContentUri(context, ((Uri) list.get(i))));
+            Log.d(TAG, "deleteSharedVideo: " + FileUtil.getPathFromProviderUri(context, ((Uri) list.get(i))));
+            String path = FileUtil.getPathFromProviderUri(context, (Uri) list.get(i));
+            FileUtil.deleteFile(path, null);
+        }
     }
 }

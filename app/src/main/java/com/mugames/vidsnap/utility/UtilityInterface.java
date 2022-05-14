@@ -17,14 +17,12 @@
 
 package com.mugames.vidsnap.utility;
 
-import android.graphics.Bitmap;
 import android.os.Bundle;
 import android.view.MotionEvent;
 
 import com.mugames.vidsnap.network.Response;
 import com.mugames.vidsnap.utility.bundles.DownloadDetails;
 import com.mugames.vidsnap.utility.bundles.Formats;
-import com.mugames.vidsnap.ui.fragments.QualityFragment;
 
 
 public interface UtilityInterface {
@@ -55,7 +53,7 @@ public interface UtilityInterface {
 
     interface DownloadCallback {
         void onDownloadCompleted(DownloadDetails downloadDetails);
-        void onDownloadFailed(String reason, Exception e);
+        void onDownloadFailed(String reason, Throwable e);
     }
 
     interface AnalyzeCallback {
@@ -83,7 +81,7 @@ public interface UtilityInterface {
     interface DialogueInterface {
         void show(String text);
 
-        void error(String message, Exception e);
+        void error(String reason, Throwable e);
 
         void dismiss();
     }

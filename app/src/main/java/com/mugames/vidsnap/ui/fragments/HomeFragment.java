@@ -35,8 +35,9 @@ import com.mugames.vidsnap.utility.Statics;
  */
 public class HomeFragment extends Fragment implements View.OnClickListener {
 
-    String TAG= Statics.TAG+":HomeFragment";
+    String TAG = Statics.TAG + ":HomeFragment";
     MainActivity activity;
+
     public HomeFragment() {
         // Required empty public constructor
     }
@@ -54,8 +55,8 @@ public class HomeFragment extends Fragment implements View.OnClickListener {
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
-        View v= inflater.inflate(R.layout.fragment_home, container, false);
-        activity= (MainActivity) getActivity();
+        View v = inflater.inflate(R.layout.fragment_home, container, false);
+        activity = (MainActivity) getActivity();
         v.findViewById(R.id.button_video).setOnClickListener(this);
         v.findViewById(R.id.button_edit).setOnClickListener(this);
         v.findViewById(R.id.button_pic).setOnClickListener(this);
@@ -67,16 +68,18 @@ public class HomeFragment extends Fragment implements View.OnClickListener {
 
     @Override
     public void onClick(View v) {
-        switch (v.getId()){
+        switch (v.getId()) {
             case R.id.button_video:
-                activity.replaceFragment(VideoFragment.newInstance(null),VideoFragment.class.getName());
+                activity.replaceFragment(VideoFragment.newInstance(null), VideoFragment.class.getName());
                 break;
             case R.id.button_status:
-                activity.replaceFragment(StatusFragment.newInstance(),StatusFragment.class.getName());
+                activity.replaceFragment(StatusFragment.newInstance(), StatusFragment.class.getName());
                 break;
             case R.id.button_edit:
+                activity.replaceFragment(new EditFragment(), EditFragment.class.getName());
+                break;
             case R.id.button_pic:
-                Toast.makeText(getActivity(),"Coming Soon",Toast.LENGTH_SHORT).show();
+                Toast.makeText(getActivity(), "Coming Soon", Toast.LENGTH_SHORT).show();
         }
     }
 }

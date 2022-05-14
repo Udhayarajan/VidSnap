@@ -21,6 +21,8 @@ public interface ReflectionInterfaces{
 
     interface SOLoadCallbacks{
         void onSOLoadingSuccess(FFMPEG ffmpegInstance);
-        void onSOLoadingFailed(Exception e);
+        default void onSOLoadingFailed(Throwable e){
+            FFMPEG.deleteLibs();
+        }
     }
 }

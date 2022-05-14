@@ -18,14 +18,19 @@
 package com.mugames.vidsnap.ui.adapters;
 
 import androidx.annotation.NonNull;
+import androidx.documentfile.provider.DocumentFile;
 import androidx.lifecycle.LifecycleOwner;
+import androidx.lifecycle.LiveData;
 import androidx.recyclerview.widget.DiffUtil;
 import androidx.recyclerview.widget.ListAdapter;
 import androidx.recyclerview.widget.RecyclerView;
 
 import android.content.Intent;
+import android.content.IntentSender;
+import android.net.Uri;
 import android.os.Build;
 import android.util.Base64;
+import android.util.Log;
 import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.MenuItem;
@@ -35,9 +40,13 @@ import android.webkit.MimeTypeMap;
 import android.widget.ImageView;
 import android.widget.PopupMenu;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.bumptech.glide.Glide;
+import com.mugames.vidsnap.VidSnapApp;
 import com.mugames.vidsnap.database.History;
+import com.mugames.vidsnap.database.HistoryDatabase;
+import com.mugames.vidsnap.storage.FileUtil;
 import com.mugames.vidsnap.ui.viewmodels.HistoryViewModel;
 import com.mugames.vidsnap.ui.activities.MainActivity;
 import com.mugames.vidsnap.R;
@@ -47,12 +56,12 @@ import org.jetbrains.annotations.NotNull;
 
 import static com.mugames.vidsnap.utility.UtilityClass.formatFileSize;
 
+import java.io.File;
+
 
 public class HistoryRecyclerViewAdapter extends ListAdapter<History, HistoryRecyclerViewAdapter.ViewHolder> {
 
     String TAG = Statics.TAG + ":HistoryRecyclerViewAdapter";
-
-    //    private final ArrayList<HistoryDetails> formats;
 
     MainActivity activity;
     HistoryViewModel historyViewModel;
@@ -67,12 +76,12 @@ public class HistoryRecyclerViewAdapter extends ListAdapter<History, HistoryRecy
     private static final DiffUtil.ItemCallback<History> DIFF_CALLBACK = new DiffUtil.ItemCallback<History>() {
         @Override
         public boolean areItemsTheSame(@NonNull @NotNull History oldItem, @NonNull @NotNull History newItem) {
-            return false;
+            return oldItem.id == newItem.id;
         }
 
         @Override
         public boolean areContentsTheSame(@NonNull @NotNull History oldItem, @NonNull @NotNull History newItem) {
-            return false;
+            return oldItem.equals(newItem);
         }
     };
 
@@ -130,6 +139,20 @@ public class HistoryRecyclerViewAdapter extends ListAdapter<History, HistoryRecy
                                 intent.putExtra(Intent.EXTRA_STREAM, currentHistory.getUri());
                                 activity.startActivity(Intent.createChooser(intent, "Select Social Media"));
                                 return true;
+                            case R.id.menu_original_url:
+                                if (currentHistory.sourceUrl == null) {
+                                    Toast.makeText(activity.getApplicationContext(), "No URL Found :)", Toast.LENGTH_SHORT).show();
+                                    return true;
+                                }
+                                intent = new Intent(Intent.ACTION_VIEW, Uri.parse(currentHistory.sourceUrl));
+                                activity.startActivity(intent);
+                                return true;
+                            case R.id.menu_remove_from_list:
+                                new Thread(() -> HistoryDatabase.getInstance(activity.getApplicationContext()).historyDao().removeItem(currentHistory)).start();
+                                return true;
+                            case R.id.menu_delete:
+                                deleteThis(currentHistory);
+                                return true;
                             default:
                                 return false;
                         }
@@ -142,6 +165,15 @@ public class HistoryRecyclerViewAdapter extends ListAdapter<History, HistoryRecy
 
     }
 
+    private void deleteThis(History currentHistory) {
+        if (!FileUtil.isFileExistsWithFileProviderUri(
+                activity, currentHistory.getUri())) {
+            Toast.makeText(activity, "File not found", Toast.LENGTH_SHORT).show();
+            new Thread(() -> HistoryDatabase.getInstance(activity).historyDao().removeItem(currentHistory)).start();
+            return;
+        }
+        historyViewModel.deleteThisItem(currentHistory);
+    }
 
     static class ViewHolder extends RecyclerView.ViewHolder {
         public final View mView;

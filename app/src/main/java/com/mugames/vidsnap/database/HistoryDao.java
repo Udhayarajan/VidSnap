@@ -19,6 +19,7 @@ package com.mugames.vidsnap.database;
 
 import androidx.lifecycle.LiveData;
 import androidx.room.Dao;
+import androidx.room.Delete;
 import androidx.room.Insert;
 import androidx.room.Query;
 
@@ -38,4 +39,7 @@ public interface HistoryDao {
 
     @Query("SELECT COUNT(1) FROM HISTORY")
     LiveData<Boolean> isEntryAvailable();
+
+    @Delete
+    void removeItem(History history);
 }

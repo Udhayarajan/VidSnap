@@ -22,5 +22,7 @@ public class FFMPEGType {
     static final String TRIM_VIDEO="trim video";
     static final String TRIM_AUDIO="trim audio";
     static final String HLS_DOWNLOAD="download HLS";
+    public static final String RE_ENCODE_AS_MP3 = "as mp3";
+    public static final String RE_ENCODE_AS_MP4 = "as mp4";
 
 }

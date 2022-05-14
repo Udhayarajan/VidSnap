@@ -21,11 +21,9 @@ import static com.mugames.vidsnap.ui.viewmodels.MainActivityViewModel.downloadDe
 import static com.mugames.vidsnap.utility.Statics.ERROR_DOWNLOADING;
 import static com.mugames.vidsnap.utility.Statics.IS_SHARE_ONLY_DOWNLOAD;
 import static com.mugames.vidsnap.utility.Statics.OUTFILE_URI;
-import static com.mugames.vidsnap.utility.Statics.PROGRESS;
 import static com.mugames.vidsnap.utility.Statics.PROGRESS_CANCELED;
 import static com.mugames.vidsnap.utility.Statics.PROGRESS_DONE;
 import static com.mugames.vidsnap.utility.Statics.PROGRESS_FAILED;
-import static com.mugames.vidsnap.utility.Statics.PROGRESS_UPDATE;
 import static com.mugames.vidsnap.utility.Statics.RESULT_CODE;
 import static com.mugames.vidsnap.utility.UtilityInterface.DownloadCallback;
 
@@ -37,7 +35,6 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Parcelable;
 import android.os.ResultReceiver;
-import android.util.Log;
 import android.webkit.MimeTypeMap;
 
 import androidx.core.app.NotificationCompat;
@@ -52,9 +49,9 @@ import com.mugames.vidsnap.storage.AppPref;
 import com.mugames.vidsnap.storage.FileUtil;
 import com.mugames.vidsnap.utility.bundles.DownloadDetails;
 import com.mugames.vidsnap.VidSnapApp;
-import com.mugames.vidsnap.ui.activities.MainActivity;
 
 import java.io.File;
+import java.util.Objects;
 import java.util.Random;
 
 /**
@@ -92,12 +89,13 @@ public class DownloadReceiver extends ResultReceiver implements Parcelable {
         super.onReceiveResult(resultCode, resultData);
 
         if (resultCode == PROGRESS_CANCELED) {
-            DownloadDetails.findDetails(id).deleteThumbnail();
+            Objects.requireNonNull(DownloadDetails.findDetailsOrNull(id)).deleteThumbnail();
             cancelDownload();
             return;
         }
 
         resultData.putInt(RESULT_CODE, resultCode);
+        resultData.putInt(VideoSharedBroadcast.DETAILS_ID, id);
 
         resultBundle.setValue(resultData);
 
@@ -111,14 +109,15 @@ public class DownloadReceiver extends ResultReceiver implements Parcelable {
             if (!resultData.getBoolean(IS_SHARE_ONLY_DOWNLOAD)) {
                 Uri outputUri = Uri.parse(resultData.getString(OUTFILE_URI, null));
                 DownloadDetails details = DownloadDetails.findDetails(id);
-                File file = new File(FileUtil.uriToPath(context, outputUri));
+                File file = new File(FileUtil.getPathFromTreeUri(context, outputUri));
                 details.fileName = file.getName().split("\\.")[0];
                 details.fileType = file.getName().split("\\.")[1];
                 details.fileMime = MimeTypeMap.getSingleton().getMimeTypeFromExtension(details.fileType);
                 downloadDetailsList.remove(DownloadDetails.findDetails(id));
-                scan(outputUri.toString(),downloadDetails);
+                scan(outputUri.toString(), downloadDetails);
             } else {
-                downloadDetailsList.remove(DownloadDetails.findDetails(id));
+                downloadDetails.deleteThumbnail();
+                downloadDetailsList.remove(downloadDetails);
                 createNullSafeCallback(downloadDetails);
             }
         }
@@ -130,7 +129,7 @@ public class DownloadReceiver extends ResultReceiver implements Parcelable {
     }
 
     void scan(String fileUri, DownloadDetails downloadDetails) {
-        FileUtil.scanMedia(context, fileUri, (s, uri1) -> notificationSetup(uri1,downloadDetails));
+        FileUtil.scanMedia(context, fileUri, (s, uri1) -> notificationSetup(uri1, downloadDetails));
     }
 
     void notificationSetup(Uri uri, DownloadDetails details) {
@@ -171,8 +170,9 @@ public class DownloadReceiver extends ResultReceiver implements Parcelable {
     }
 
     void cancelDownload() {
-        if (callback!=null)
-            callback.onDownloadFailed("Canceled",null);
+        downloadDetailsList.remove(DownloadDetails.findDetails(id));
+        if (callback != null)
+            callback.onDownloadFailed("Canceled", null);
     }
 
     void notificationFailed(Bundle resultData) {
@@ -180,7 +180,8 @@ public class DownloadReceiver extends ResultReceiver implements Parcelable {
         details.deleteThumbnail();
 
         String failReason;
-        if (resultData.getString(ERROR_DOWNLOADING).contains("REQUEST_NOT_SUCCESSFUL"))
+        Throwable throwable = (Throwable) resultData.getSerializable(ERROR_DOWNLOADING);
+        if (throwable.toString().contains("REQUEST_NOT_SUCCESSFUL"))
             failReason = "Download Link expired/broken. It cannot be resumed";
         else
             failReason = "Sorry!! for inconvenience try changing name and re-download or change download location";
@@ -199,7 +200,7 @@ public class DownloadReceiver extends ResultReceiver implements Parcelable {
                 .setContentIntent(pendingIntent);
         managerCompat.notify(new Random().nextInt(), builder.build());
         if (callback != null)
-            callback.onDownloadFailed(failReason, new Exception(resultData.getString(ERROR_DOWNLOADING)));
+            callback.onDownloadFailed(failReason, throwable);
     }
 
 

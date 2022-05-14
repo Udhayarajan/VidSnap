@@ -14,17 +14,16 @@
   ~
   -->
 
-<PreferenceScreen
-    xmlns:app="http://schemas.android.com/apk/res-auto">
+<PreferenceScreen xmlns:app="http://schemas.android.com/apk/res-auto">
 
     <PreferenceCategory
         app:icon="@drawable/ic_theme"
         app:title="Theme">
 
         <ListPreference
+            app:defaultValue="def"
             app:entries="@array/theme_entries"
             app:entryValues="@array/theme_values"
-            app:defaultValue="def"
             app:key="@string/key_Theme"
             app:title="Change Theme"
             app:useSimpleSummaryProvider="true" />
@@ -32,43 +31,65 @@
 
     </PreferenceCategory>
 
-    <PreferenceCategory app:title="Storage"
-        app:icon="@drawable/ic_storage">
+    <PreferenceCategory
+        app:icon="@drawable/ic_storage"
+        app:title="Storage">
         <Preference
-            app:key="@string/key_download"
-            app:title="Download Location"
             app:enabled="true"
-            app:summary="Internal/VidSnap/Downloads/"/>
+            app:key="@string/key_download"
+            app:summary="Internal/VidSnap/Downloads/"
+            app:title="Download Location" />
         <DropDownPreference
-            app:key="@string/key_cache_path"
-            app:title="Cache Location"
+            app:defaultValue="internal"
             app:entries="@array/cache_entries"
             app:entryValues="@array/cache_values"
-            app:defaultValue="internal"
-            app:useSimpleSummaryProvider="true"/>
+            app:key="@string/key_cache_path"
+            app:title="Cache Location"
+            app:useSimpleSummaryProvider="true" />
     </PreferenceCategory>
-    <PreferenceCategory app:title="Privacy"
-        app:icon="@drawable/ic_security">
+
+    <PreferenceCategory
+        app:icon="@drawable/ic_quality_settings"
+        app:title="Media &amp; Quality (Experimental)">
         <SwitchPreferenceCompat
-            app:title="Share link on crash"
+            app:key="@string/key_quality_video"
+            app:title="Video Quality preference"
+            app:enabled="false"
+            app:summary=
+                "Optimised for video quality\nNOTE: Video may not be playable in some Video Player"
+            app:summaryOn="Optimised for file support. There may be some video quality loss"/>
+        <SwitchPreferenceCompat
+            app:key="@string/key_quality_audio"
+            app:defaultValue="true"
+            app:title="Audio Quality preference"
+            app:summary=
+                "Optimised for audio quality\nDownloaded file may be M4A"
+            app:summaryOn="Optimised for file support. There may be some audio quality loss"/>
+    </PreferenceCategory>
+    <PreferenceCategory
+        app:icon="@drawable/ic_security"
+        app:title="Privacy">
+        <SwitchPreferenceCompat
             app:key="@string/key_media_link"
             app:summaryOff="Sharing link turned off"
-            app:summaryOn="Media link will be shared to developers" />
-    <PreferenceCategory app:title="Cookies &amp; Cache"
-        app:icon="@drawable/ic_cookie">
-        <Preference
-            app:key="@string/key_instagram"
-            app:title="Instagram"
-            app:summary="Not logged in"/>
-        <Preference
-            app:key="@string/key_facebook"
-            app:title="FaceBook"
-            app:summary="Not logged in" />
-        <Preference
-            app:key="@string/key_clear_history_cache"
-            app:title="Cache"
-            app:summary="Great, No cache Found!!"/>
-    </PreferenceCategory>
+            app:summaryOn="Media link will be shared to developers"
+            app:title="Share link on crash" />
+        <PreferenceCategory
+            app:icon="@drawable/ic_cookie"
+            app:title="Cookies &amp; Cache">
+            <Preference
+                app:key="@string/key_instagram"
+                app:summary="Not logged in"
+                app:title="Instagram" />
+            <Preference
+                app:key="@string/key_facebook"
+                app:summary="Not logged in"
+                app:title="FaceBook" />
+            <Preference
+                app:key="@string/key_clear_history_cache"
+                app:summary="Great, No cache Found!!"
+                app:title="Cache" />
+        </PreferenceCategory>
 
 
     </PreferenceCategory>

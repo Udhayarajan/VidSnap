@@ -15,16 +15,17 @@
   ~
   -->
 
-<menu xmlns:android="http://schemas.android.com/apk/res/android">
-    <item android:id="@+id/menu_play"
-        android:title="Play"/>
-    <item android:id="@+id/menu_share"
-        android:title="Share"/>
-    <item android:id="@+id/menu_original_url"
-        android:title="Open original link"/>
-    <item android:id="@+id/menu_remove_from_list"
-        android:title="Remove from list"/>
-    <item android:id="@+id/menu_delete"
-        android:title="Delete"/>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".ui.fragments.EditFragment">
 
-</menu>
+    <Button
+        android:id="@+id/edit_frag_button"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_centerInParent="true"
+        android:text="Add Video and Trim" />
+
+</RelativeLayout>

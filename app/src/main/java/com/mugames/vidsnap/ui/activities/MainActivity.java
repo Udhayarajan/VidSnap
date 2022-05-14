@@ -19,11 +19,9 @@ package com.mugames.vidsnap.ui.activities;
 
 import android.Manifest;
 import android.app.Activity;
-import android.app.PendingIntent;
 import android.content.ActivityNotFoundException;
 import android.content.DialogInterface;
 import android.content.Intent;
-import android.content.IntentSender;
 import android.content.pm.PackageManager;
 import android.media.MediaScannerConnection;
 import android.net.Uri;
@@ -62,6 +60,7 @@ import androidx.lifecycle.ViewModelProvider;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.navigation.NavigationView;
 import com.google.firebase.crashlytics.FirebaseCrashlytics;
+import com.mugames.vidsnap.BuildConfig;
 import com.mugames.vidsnap.CircularProgressDialog;
 import com.mugames.vidsnap.database.History;
 import com.mugames.vidsnap.database.HistoryDatabase;
@@ -74,6 +73,8 @@ import com.mugames.vidsnap.Terms;
 import com.mugames.vidsnap.network.Downloader;
 import com.mugames.vidsnap.network.MiniExecute;
 import com.mugames.vidsnap.storage.AppPref;
+import com.mugames.vidsnap.ui.fragments.EditFragment;
+import com.mugames.vidsnap.utility.OneTimeShareManager;
 import com.mugames.vidsnap.utility.VideoSharedBroadcast;
 import com.mugames.vidsnap.utility.bundles.DownloadDetails;
 import com.mugames.vidsnap.utility.DownloadReceiver;
@@ -123,6 +124,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
 
     public PopUpDialog dialog;
+    CircularProgressDialog circularProgressDialog;
 
 
     TextView textView_activeDownload;
@@ -135,7 +137,8 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     private NavigationView navigationView;
     private StorageSwitcher storageSwitcher;
     private ActivityResultLauncher<Intent> locationResultLauncher;
-    private ActivityResultLauncher<Intent> shareResultLauncher;
+
+    private OneTimeShareManager oneTimeShareManager;
 
     MainActivityViewModel activityViewModel;
 
@@ -181,10 +184,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                 }
         );
 
-        shareResultLauncher = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> {
-            activityViewModel.deleteSharedFile();
-        });
-
+        oneTimeShareManager = new OneTimeShareManager(this, result -> activityViewModel.deleteSharedFile());
 
         drawer = findViewById(R.id.drawer_layout);
 
@@ -236,6 +236,11 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         addShareOnlyListener();
     }
 
+    @Override
+    protected void onResume() {
+        super.onResume();
+        VideoSharedBroadcast.delete(this, activityViewModel.getTempResultIntent());
+    }
 
     @Override
     protected void onNewIntent(Intent intent) {
@@ -251,11 +256,12 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     void gotIntent(Intent intent) {
         if (intent == null) return;
         String content = MainActivityViewModel.intentString(intent);
-//        content = "https://youtu.be/rpOjFiV0X6k";
+        Uri uri = MainActivityViewModel.intentUriForEditing(intent);
         if (content != null)
             replaceFragment(VideoFragment.newInstance(content), VideoFragment.class.getName());
-
-        else if (intent.getBooleanExtra(ACTIVE_DOWNLOAD, false)) {
+        else if (uri != null) {
+            replaceFragment(EditFragment.newInstance(uri), EditFragment.class.getName());
+        } else if (intent.getBooleanExtra(ACTIVE_DOWNLOAD, false)) {
             replaceFragment(DownloadFragment.newInstance(), DownloadFragment.class.getName());
         }
     }
@@ -464,7 +470,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     }
 
     @Override
-    public void error(String reason, Exception e) {
+    public void error(String reason, Throwable e) {
         safeDismissPopUp();
 //        activityViewModel.setProgressDialogState(true,reason);
         Fragment fragment = getSupportFragmentManager().findFragmentById(R.id.fragment_container);
@@ -484,7 +490,8 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                 .setMessage(reason);
         Log.e(TAG, "error: ", e);
 
-        if (e != null) {
+
+        if (e != null && !BuildConfig.DEBUG) {
             if (AppPref.getInstance(this).getBooleanValue(R.string.key_media_link, true)) {
                 dialogBuilder.setNegativeButton("Go,Back", (dialog, which) -> {
                     FirebaseCrashlytics.getInstance().recordException(e);
@@ -541,7 +548,6 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         DialogInterface.OnClickListener positiveListener = (dialog, which) -> storageSwitcher.pick(locationResultLauncher);
 
         dialogBuilder.setCancelable(false);
-        //TODO Support for Android 12
         if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.R) {
             dialogBuilder.setMessage("No path chosen to download. Default path will be\n(Later you can change it from settings)\n\nInternal Storage\\Download");
             dialogBuilder.setPositiveButton("Change", positiveListener);
@@ -610,7 +616,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         // Skip this for loop if you use static module loading of FFmpeg-kit
         for (DownloadDetails d : activityViewModel.tempDetails)
             if ((d.audioURL != null || d.chunkUrl != null) && FileUtil.isFileNotExists(AppPref.getInstance(this).getCachePath(LIBRARY_PATH) + "lib.zip")) {
-                fetchSOFiles();
+                fetchSOFiles(moduleDownloadCallback);
                 return;
             }
         if (activityViewModel.tempDetails.get(0).src.equals("WhatsApp")) {
@@ -650,7 +656,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
     }
 
-    private void fetchSOFiles() {
+    public void fetchSOFiles(UtilityInterface.ModuleDownloadCallback callback) {
         final String abi = Build.SUPPORTED_ABIS[0];
         dialog.show("Preparing download");
         HashMap<String, String> abiHashMap = new HashMap<>();
@@ -659,20 +665,30 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         abiHashMap.put("x86", "https://raw.githubusercontent.com/Udhayarajan/SOserver/master/x86.zip");
         abiHashMap.put("x86_64", "https://raw.githubusercontent.com/Udhayarajan/SOserver/master/x86_64.zip");
 
-        new MiniExecute(null).getSize(abiHashMap.get(abi), (size, bundle) -> runOnUiThread(() -> downloadAdditionalModule(size, abiHashMap.get(abi))));
+        new MiniExecute(null).getSize(abiHashMap.get(abi), (size, bundle) -> runOnUiThread(() -> downloadAdditionalModule(size, abiHashMap.get(abi), callback)));
 
     }
 
 
-    private void downloadAdditionalModule(long size, String url) {
+    private void downloadAdditionalModule(long size, String url, UtilityInterface.ModuleDownloadCallback moduleDownloadCallback) {
         safeDismissPopUp();
         if (!activityViewModel.isDownloadingSOFile()) {
             MaterialAlertDialogBuilder dialogBuilder = new MaterialAlertDialogBuilder(this);
             dialogBuilder.setTitle("Additional required");
-            dialogBuilder.setMessage(String.format("Additional file (%s) needed to be download to use %s downloader. Would you like to download it ?", UtilityClass.formatFileSize(size, false), activityViewModel.tempDetails.get(0).src));
+            String src;
+            try {
+                src = activityViewModel.tempDetails.get(0).src + " downloader";
+            } catch (IndexOutOfBoundsException e) {
+                src = "Edit Option";
+            }
+            dialogBuilder.setMessage(String.format("Additional file (%s) needed to be download to use %s. Would you like to download it ?", UtilityClass.formatFileSize(size, false), src));
             dialogBuilder.setPositiveButton("Download", (dialog, which) -> {
                 addDownloadListener();
-                activityViewModel.downloadSO(url, moduleDownloadCallback);
+                activityViewModel.downloadSO(url, () -> {
+                    circularProgressDialog.dismiss();
+                    circularProgressDialog = null;
+                    moduleDownloadCallback.onDownloadEnded();
+                });
             });
             dialogBuilder.setNegativeButton("Leave", (dialog, which) -> {
                 Toast.makeText(MainActivity.this, "Download aborted", Toast.LENGTH_SHORT).show();
@@ -687,13 +703,10 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     UtilityInterface.ModuleDownloadCallback moduleDownloadCallback = new UtilityInterface.ModuleDownloadCallback() {
         @Override
         public void onDownloadEnded() {
-            circularProgressDialog.dismiss();
-            circularProgressDialog = null;
             download(null);
         }
     };
 
-    CircularProgressDialog circularProgressDialog;
 
     private void addDownloadListener() {
         circularProgressDialog = new CircularProgressDialog(this);
@@ -855,22 +868,16 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     private void shareDownloadedVideo(Bundle resultData) {
         if (circularProgressDialog != null) circularProgressDialog.dismiss();
         circularProgressDialog = null;
-        activityViewModel.setTempResultBundle(resultData);
         Intent intent = new Intent(Intent.ACTION_SEND);
         intent.setType(resultData.getString(FILE_MIME));
         intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
         intent.putExtra(Intent.EXTRA_STREAM, Uri.parse(resultData.getString(OUTFILE_URI)));
+        intent.putExtra(VideoSharedBroadcast.DETAILS_ID, resultData.getInt(VideoSharedBroadcast.DETAILS_ID));
+        activityViewModel.setTempResultIntent(intent);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP_MR1) {
-            Intent receiver = new Intent(this, VideoSharedBroadcast.class);
-            receiver.putExtra(VideoSharedBroadcast.RESULT_BUNDLE, resultData);
-            PendingIntent pendingIntent;
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S)
-                pendingIntent = PendingIntent.getBroadcast(this, 0, receiver, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_MUTABLE);
-            else
-                pendingIntent = PendingIntent.getBroadcast(this, 0, receiver, PendingIntent.FLAG_UPDATE_CURRENT);
-            startActivity(Intent.createChooser(intent, "Choose application to share", pendingIntent.getIntentSender()));
+            oneTimeShareManager.addReceiver(intent, intent.getParcelableExtra(Intent.EXTRA_STREAM), null);
         } else {
-            shareResultLauncher.launch(Intent.createChooser(intent, "Choose application to share"));
+            oneTimeShareManager.launch(Intent.createChooser(intent, "Choose application to share"));
         }
     }
 
@@ -883,7 +890,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             @Override
             public void onChanged(Bundle bundle) {
                 shareDownloadedVideo(bundle);
-                activityViewModel.getShareOnlyDownloadLiveData().removeObserver(this);
+                activityViewModel.removeShareOnlyDownloadListener(this);
             }
         };
         activityViewModel.getShareOnlyDownloadLiveData().observe(this, observer);

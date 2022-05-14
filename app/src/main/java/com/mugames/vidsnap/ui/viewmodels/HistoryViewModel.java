@@ -18,12 +18,17 @@
 package com.mugames.vidsnap.ui.viewmodels;
 
 import android.app.Application;
+import android.app.RecoverableSecurityException;
+import android.content.IntentSender;
+import android.os.Build;
 
 import androidx.annotation.NonNull;
 import androidx.lifecycle.AndroidViewModel;
 import androidx.lifecycle.LiveData;
+import androidx.lifecycle.MutableLiveData;
 
 import com.mugames.vidsnap.database.History;
+import com.mugames.vidsnap.database.HistoryDatabase;
 import com.mugames.vidsnap.database.HistoryRepository;
 
 import org.jetbrains.annotations.NotNull;
@@ -33,6 +38,9 @@ import java.util.List;
 public class HistoryViewModel extends AndroidViewModel {
     HistoryRepository repository;
     LiveData<List<History>> allValues;
+    History pendingHistory;
+
+    MutableLiveData<IntentSender> intentSenderLiveData = new MutableLiveData<>();
 
     public HistoryViewModel(@NonNull @NotNull Application application) {
         super(application);
@@ -40,11 +48,11 @@ public class HistoryViewModel extends AndroidViewModel {
         allValues = repository.getAllValues();
     }
 
-    public void insert(History history){
+    public void insert(History history) {
         repository.insertItem(history);
     }
 
-    public void delete(){
+    public void clearRepository() {
         repository.clear();
     }
 
@@ -53,4 +61,35 @@ public class HistoryViewModel extends AndroidViewModel {
         return allValues;
     }
 
+    public void deleteThisItem(History currentHistory) {
+        try {
+            getApplication().getContentResolver().delete(
+                    currentHistory.getUri(),
+                    null,
+                    null
+            );
+            new Thread(()-> HistoryDatabase.getInstance(getApplication().getApplicationContext()).historyDao().removeItem(currentHistory)).start();
+        } catch (Exception e) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                if (e instanceof RecoverableSecurityException) {
+                    pendingHistory = currentHistory;
+                    intentSenderLiveData.postValue(((RecoverableSecurityException) e).getUserAction().getActionIntent().getIntentSender());
+                    return;
+                }
+            }
+            throw e;
+        }
+    }
+
+
+    public LiveData<IntentSender> getIntentSender(){
+        return intentSenderLiveData;
+    }
+
+    public void deletePendingUri() {
+        if (pendingHistory != null){
+            deleteThisItem(pendingHistory);
+            pendingHistory = null;
+        }
+    }
 }

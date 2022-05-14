@@ -141,9 +141,7 @@ public class StatusFragment extends Fragment implements AdapterView.OnItemSelect
         View view = inflater.inflate(R.layout.fragment_status_list, container, false);
 
         viewModel = new ViewModelProvider(this).get(StatusFragmentViewModel.class);
-        viewModel.getFormatsLiveData().observe(getViewLifecycleOwner(),formats -> {
-            onAnalyzeCompleted();
-        });
+        viewModel.getFormatsLiveData().observe(getViewLifecycleOwner(),formats -> onAnalyzeCompleted());
 
         Context context = view.getContext();
         recyclerView = view.findViewById(R.id.status_recycler);
@@ -176,7 +174,7 @@ public class StatusFragment extends Fragment implements AdapterView.OnItemSelect
             urlLayout.setVisibility(View.GONE);
             saveButton.setVisibility(View.GONE);
             checkPermissionForWhatsApp();
-        } else {
+        } else if (position ==2){}else {
             urlLayout.setVisibility(View.VISIBLE);
         }
     }
@@ -258,7 +256,7 @@ public class StatusFragment extends Fragment implements AdapterView.OnItemSelect
             downloadDetails.add(details);
         }
         requireActivity().runOnUiThread(()-> {
-            ((MainActivity)getActivity()).download(downloadDetails);
+            ((MainActivity) requireActivity()).download(downloadDetails);
             adapter.clearSelection();
         });
     }
@@ -266,7 +264,7 @@ public class StatusFragment extends Fragment implements AdapterView.OnItemSelect
     private String getFileName(Uri uri) {
         String name = null;
         if(uri.getScheme().equals("content")){
-            Cursor cursor = getActivity().getContentResolver().query(uri,null,null,null,null);
+            Cursor cursor = requireActivity().getContentResolver().query(uri,null,null,null,null);
             if(cursor!=null) {
                 if (cursor.moveToFirst())
                     name = cursor.getString(cursor.getColumnIndexOrThrow(OpenableColumns.DISPLAY_NAME));

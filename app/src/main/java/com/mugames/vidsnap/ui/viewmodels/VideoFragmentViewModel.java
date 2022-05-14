@@ -39,6 +39,8 @@ public class VideoFragmentViewModel extends AndroidViewModel implements UtilityI
 
     String urlLink;
 
+    public boolean isShareOnly = false;
+
     public VideoFragmentViewModel(@NonNull Application application) {
         super(application);
     }
@@ -140,4 +142,7 @@ public class VideoFragmentViewModel extends AndroidViewModel implements UtilityI
     public void clearLoginAlert() {
         loginDetailsProviderMutableLiveData.setValue(null);
     }
+
+    //To prevent same instance of `details` it must be `null`ed before extraction
+    public void clearDetails(){details = null;}
 }

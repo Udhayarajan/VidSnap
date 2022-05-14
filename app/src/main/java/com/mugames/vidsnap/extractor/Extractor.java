@@ -50,7 +50,6 @@ import androidx.annotation.Nullable;
 
 import com.mugames.vidsnap.R;
 import com.mugames.vidsnap.network.MiniExecute;
-import com.mugames.vidsnap.ui.activities.MainActivity;
 import com.mugames.vidsnap.utility.UtilityClass;
 import com.mugames.vidsnap.utility.bundles.Formats;
 import com.mugames.vidsnap.utility.Statics;
@@ -59,7 +58,6 @@ import com.mugames.vidsnap.utility.UtilityInterface.AnalyzeCallback;
 import com.mugames.vidsnap.utility.UtilityInterface.DialogueInterface;
 import com.mugames.vidsnap.utility.UtilityInterface.LoginHelper;
 
-import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.concurrent.CountDownLatch;
 
@@ -196,8 +194,7 @@ public abstract class Extractor extends Thread {
             long oldSize = formats.videoSizes.get(chunkIndex);
             long size = oldSize + miniExecute.getSize();
             formats.videoSizes.set(chunkIndex, size);
-            DecimalFormat decimalFormat = new DecimalFormat("#.##");
-            formats.videoSizeInString.set(chunkIndex, decimalFormat.format(size / Math.pow(10, 6)));
+            formats.videoSizeInString.set(chunkIndex, UtilityClass.formatFileSize(size, false));
         }
         isManifestReady = true;
         checkForManifestCompletion();
@@ -230,8 +227,7 @@ public abstract class Extractor extends Thread {
             int index = miniExecute.getBundle().getInt(EXTRA_INDEX);
             long size = miniExecute.getSize();
             formats.videoSizes.set(index, size);
-            DecimalFormat decimalFormat = new DecimalFormat("#.##");
-            formats.videoSizeInString.set(index, decimalFormat.format(size / Math.pow(10, 6)));
+            formats.videoSizeInString.set(index, UtilityClass.formatFileSize(size, false));
             formats.mainFileURLs.set(index, filterURLs(formats.mainFileURLs.get(index)));
         }
         isVideoSizeReady = true;
@@ -355,10 +351,10 @@ public abstract class Extractor extends Thread {
         }
 
         @Override
-        public void error(String message, Exception e) {
+        public void error(String reason, Throwable e) {
             new Handler(applicationContext.getMainLooper()).post(() -> {
                 if (dialogueInterface != null)
-                    dialogueInterface.error(message, e);
+                    dialogueInterface.error(reason, e);
             });
         }
 
