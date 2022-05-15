@@ -216,8 +216,8 @@ public class VideoFragment extends Fragment implements
             if (viewModel.onClickAnalysis(link, (MainActivity) requireActivity()) == null)
                 unLockAnalysis();
             else {
-                viewModel.getDownloadDetails().srcUrl = link;
                 viewModel.clearDetails();
+                viewModel.getDownloadDetails().srcUrl = link;
                 // Only if it is valid URL it reach here
                 viewModel.getLoginDetailsProviderLiveData().observe(getViewLifecycleOwner(), new Observer<UtilityClass.LoginDetailsProvider>() {
                             @Override

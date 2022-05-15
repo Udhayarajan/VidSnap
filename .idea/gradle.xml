@@ -14,7 +14,6 @@
             <option value="$PROJECT_DIR$/ffmpeg-kit-android-lib" />
           </set>
         </option>
-        <option name="resolveModulePerSourceSet" value="false" />
       </GradleProjectSettings>
     </option>
   </component>
