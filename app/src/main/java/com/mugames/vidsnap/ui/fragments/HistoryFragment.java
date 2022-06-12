@@ -45,6 +45,7 @@ import android.view.ViewGroup;
 import android.widget.Toast;
 
 import com.mugames.vidsnap.database.History;
+import com.mugames.vidsnap.databinding.FragmentHistoryBinding;
 import com.mugames.vidsnap.ui.viewmodels.HistoryViewModel;
 import com.mugames.vidsnap.R;
 import com.mugames.vidsnap.utility.Statics;
@@ -62,7 +63,7 @@ public class HistoryFragment extends Fragment {
 
     HistoryViewModel historyViewModel;
     ActivityResultLauncher<IntentSenderRequest> deleteLauncher;
-
+    FragmentHistoryBinding binding;
 
     public HistoryFragment() {
     }
@@ -88,19 +89,21 @@ public class HistoryFragment extends Fragment {
     }
 
     @Override
-    public View onCreateView(LayoutInflater inflater, ViewGroup container,
+    public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
-        View view;
+        binding = FragmentHistoryBinding.inflate(inflater, container, false);
+        View view = binding.getRoot();
         HistoryRecyclerViewAdapter adapter = new HistoryRecyclerViewAdapter(getViewLifecycleOwner(), historyViewModel);
-        view = inflater.inflate(R.layout.fragment_history, container, false);
+
         Context context = view.getContext();
-        RecyclerView recyclerView = (RecyclerView) view;
+        RecyclerView recyclerView = binding.recyclerView;
         recyclerView.setLayoutManager(new LinearLayoutManager(context));
         recyclerView.setBackgroundColor(ContextCompat.getColor(requireContext(), R.color.list_background));
         recyclerView.setAdapter(adapter);
         historyViewModel.getAllValues().observe(getViewLifecycleOwner(), new Observer<List<History>>() {
             @Override
             public void onChanged(List<History> histories) {
+                swapViewVisibility(!histories.isEmpty());
                 adapter.submitList(histories);
             }
         });
@@ -110,8 +113,19 @@ public class HistoryFragment extends Fragment {
                 deleteLauncher.launch(new IntentSenderRequest.Builder(intentSender).build());
             }
         });
-
+        swapViewVisibility(false);
+        binding.noRecordContainer.errorReason.setText("No old downloads found");
         return view;
     }
-
+    private void swapViewVisibility(boolean hasElement){
+        if (hasElement){
+            binding.recyclerView.setVisibility(View.VISIBLE);
+            binding.recyclerView.setBackgroundColor(ContextCompat.getColor(requireContext(), R.color.list_background));
+            binding.noRecordContainer.noRecordFragmentParent.setVisibility(View.GONE);
+        }else {
+            binding.recyclerView.setVisibility(View.GONE);
+            binding.noRecordContainer.noRecordFragmentParent.setVisibility(View.VISIBLE);
+            binding.getRoot().setBackgroundColor(ContextCompat.getColor(requireContext(), R.color.notification_color));
+        }
+    }
 }
