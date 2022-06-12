@@ -22,6 +22,7 @@ import androidx.lifecycle.viewModelScope
 import com.mugames.vidsnap.R
 import com.mugames.vidsnap.firebase.FirebaseManager
 import com.mugames.vidsnap.ui.activities.MainActivity
+import com.mugames.vidsnap.utility.SingleEventLiveData
 import com.mugames.vidsnap.utility.UtilityClass
 import com.mugames.vidsnapkit.dataholders.Formats
 import com.mugames.vidsnapkit.dataholders.Result
@@ -75,7 +76,7 @@ class VideoFragmentViewModelKt(application: Application) : VideoFragmentViewMode
             }
             field = value
         }
-    val resultLiveData = MutableLiveData<Result>()
+    val resultLiveData = SingleEventLiveData<Result>()
 
     private var cookies: String? = null
     private var extractorKt: Extractor? = null

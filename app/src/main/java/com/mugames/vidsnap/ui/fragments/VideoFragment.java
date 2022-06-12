@@ -131,6 +131,8 @@ public class VideoFragment extends Fragment implements
         });
 
         viewModel.getResultLiveData().observe(getViewLifecycleOwner(), result -> {
+            if (result==null)
+                return;
             if (result instanceof Result.Success) {
                 List<com.mugames.vidsnapkit.dataholders.Formats> formats = ((Result.Success) result).getFormats();
                 onAnalyzeCompleted(formats);
@@ -189,11 +191,6 @@ public class VideoFragment extends Fragment implements
         });
 
         viewModel.updateActivityReference(activity);
-
-        if (link != null && savedInstanceState == null && !link.equals(viewModel.getUrlLink())) {
-            urlBox.setText(link);
-            startProcess(link);
-        }
         return view;
 
     }
@@ -275,6 +272,7 @@ public class VideoFragment extends Fragment implements
 
 
     public void onAnalyzeCompleted(Formats formats) {
+        if (formats == null) return;
         unLockAnalysis();
         if (viewModel.isRecreated() && !isNewLink()) return;
         viewModel.nullifyExtractor();
