@@ -32,6 +32,7 @@ import android.view.ViewGroup;
 
 
 import com.mugames.vidsnap.R;
+import com.mugames.vidsnap.databinding.FragmentDownloadingBinding;
 import com.mugames.vidsnap.utility.bundles.DownloadDetails;
 import com.mugames.vidsnap.utility.Statics;
 import com.mugames.vidsnap.ui.viewmodels.DownloadViewModel;
@@ -54,6 +55,7 @@ public class DownloadFragment extends Fragment {
 
 
     MainActivityViewModel activityViewModel;
+    FragmentDownloadingBinding binding;
 
 
     public DownloadFragment() {
@@ -75,13 +77,13 @@ public class DownloadFragment extends Fragment {
                              Bundle savedInstanceState) {
 
 
-        View view;
+        binding = FragmentDownloadingBinding.inflate(inflater, container, false);
+        View view = binding.getRoot();
         activityViewModel = new ViewModelProvider(
                 requireActivity(),
                 (ViewModelProvider.Factory) ViewModelProvider.AndroidViewModelFactory.getInstance(requireActivity().getApplication())
         ).get(MainActivityViewModel.class);
 
-        view = inflater.inflate(R.layout.fragment_downloading, container, false);
 
         RecyclerView recyclerView;
         DownloadAdapter adapter;
@@ -93,18 +95,31 @@ public class DownloadFragment extends Fragment {
         activityViewModel.getDownloadDetailsLiveData().observe(getViewLifecycleOwner(), new Observer<ArrayList<DownloadDetails>>() {
             @Override
             public void onChanged(ArrayList<DownloadDetails> downloadDetails) {
+                swapViewVisibility(!downloadDetails.isEmpty());
                 adapter.submitList(downloadDetails);
                 recyclerView.setAdapter(adapter);
             }
         });
-        if (!activityViewModel.getDownloadDetailsList().isEmpty()) {
-            recyclerView.setBackgroundColor(ContextCompat.getColor(requireContext(), R.color.list_background));
+        binding.noRecordFragment.errorReason.setText("No active Download");
+        swapViewVisibility(false);
+        if (activityViewModel.getDownloadDetailsList().size()>0){
+            swapViewVisibility(true);
+            adapter.submitList(activityViewModel.getDownloadDetailsList());
+            recyclerView.setAdapter(adapter);
         }
-        adapter.submitList(activityViewModel.getDownloadDetailsList());
-        recyclerView.setAdapter(adapter);
 
 
         return view;
     }
-
+    private void swapViewVisibility(boolean hasElement){
+        if (hasElement){
+            binding.downloadRecyclerView.setVisibility(View.VISIBLE);
+            binding.downloadRecyclerView.setBackgroundColor(ContextCompat.getColor(requireContext(), R.color.list_background));
+            binding.noRecordFragment.noRecordFragmentParent.setVisibility(View.GONE);
+        }else {
+            binding.downloadRecyclerView.setVisibility(View.GONE);
+            binding.noRecordFragment.noRecordFragmentParent.setVisibility(View.VISIBLE);
+            binding.getRoot().setBackgroundColor(ContextCompat.getColor(requireContext(), R.color.notification_color));
+        }
+    }
 }

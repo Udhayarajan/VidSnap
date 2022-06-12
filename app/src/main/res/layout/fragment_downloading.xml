@@ -26,6 +26,8 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         tools:listitem="@layout/fragment_downloading_item"/>
+    <include layout="@layout/fragment_no_record"
+        android:id="@+id/no_record_fragment"/>
 
 
 </RelativeLayout>
