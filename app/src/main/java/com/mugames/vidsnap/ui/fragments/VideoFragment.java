@@ -123,7 +123,7 @@ public class VideoFragment extends Fragment implements
 
         isRecreated = savedInstanceState != null;
 
-        viewModel = new ViewModelProvider(requireActivity()).get(VideoFragmentViewModelKt.class);
+        viewModel = new ViewModelProvider(this).get(VideoFragmentViewModelKt.class);
         viewModel.getFormatsLiveData().observe(getViewLifecycleOwner(), formats -> {
             if (!isRecreated)
                 onAnalyzeCompleted(formats);
@@ -333,7 +333,7 @@ public class VideoFragment extends Fragment implements
                         dialogFragment.setThumbNail(resource);
                         VideoFragment.this.dialogFragment = dialogFragment;
                         ((UtilityInterface.DialogueInterface) activity).dismiss();
-                        dialogFragment.show(requireActivity().getSupportFragmentManager(), "TAG");
+                        dialogFragment.show(getChildFragmentManager(), "TAG");
                     }
 
                     @Override

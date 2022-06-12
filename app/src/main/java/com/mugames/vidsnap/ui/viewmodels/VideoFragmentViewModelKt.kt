@@ -169,7 +169,6 @@ class VideoFragmentViewModelKt(application: Application) : VideoFragmentViewMode
     fun reset() {
         isShareOnly = false
         formats = com.mugames.vidsnap.utility.bundles.Formats()
-
     }
 }
 

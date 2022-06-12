@@ -96,7 +96,7 @@ public class QualityFragment extends BottomSheetDialogFragment {
 
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
-        viewModel = new ViewModelProvider(requireActivity()).get(VideoFragmentViewModelKt.class);
+        viewModel = new ViewModelProvider(getParentFragment()).get(VideoFragmentViewModelKt.class);
 
         formats = viewModel.getFormats();
 
@@ -104,6 +104,9 @@ public class QualityFragment extends BottomSheetDialogFragment {
         recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
 
 
+        if (formats.qualities==null){
+            dismiss();
+        }
         QualityAdapter adapter = new QualityAdapter(formats.qualities, formats.videoSizeInString);
         recyclerView.setAdapter(adapter);
 

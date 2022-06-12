@@ -13,6 +13,7 @@ import com.mugames.vidsnap.extractor.Twitter;
 import com.mugames.vidsnap.extractor.YouTube;
 import com.mugames.vidsnap.extractor.Extractor;
 import com.mugames.vidsnap.storage.AppPref;
+import com.mugames.vidsnap.utility.SingleEventLiveData;
 import com.mugames.vidsnap.utility.UtilityClass;
 import com.mugames.vidsnap.utility.bundles.DownloadDetails;
 import com.mugames.vidsnap.utility.bundles.Formats;
@@ -31,7 +32,7 @@ public class VideoFragmentViewModel extends AndroidViewModel implements UtilityI
 
     ArrayList<Integer> selected = new ArrayList<>();
 
-    MutableLiveData<Formats> formatsLiveData = new MutableLiveData<>();
+    protected SingleEventLiveData<Formats> formatsLiveData = new SingleEventLiveData<>();
 
     Formats formats;
     DownloadDetails details;
