@@ -273,6 +273,10 @@ public class JSInterpreterLegacy {
                 return res;
             }
             JSInterface anInterface=obj_m.get(member);
+            if (anInterface==null) {
+                Hashtable<String, JSInterface> stringJSInterfaceHashtable = extractObject(member);
+                obj_m.put(member, anInterface);
+            }
             return anInterface.resf(arg_val.toArray());
         }
 
@@ -324,7 +328,7 @@ public class JSInterpreterLegacy {
     private Hashtable<String, JSInterface> extractObject(String variable) {
         String FUNCTION_NAME="(?:[a-zA-Z$0-9]+|\"[a-zA-Z$0-9]+\"|'[a-zA-Z$0-9]+')";
         Hashtable<String, JSInterface> obj = new Hashtable<>();
-        Pattern obj_p=Pattern.compile(String.format("(?<!this\\.)%s\\s*=\\s*\\{\\s*((%s\\s*:\\s*function\\s*\\(.*?\\)\\s*\\{.*?\\}(?:,\\s*)?)*)\\}\\s*;",variable,FUNCTION_NAME));
+        Pattern obj_p=Pattern.compile(String.format("(?<!this\\.)%s\\s*=\\s*\\{\\s*((%s\\s*:\\s*function\\s*\\(.*?\\)\\s*\\{.*?\\}(?:,\\s*)?)*)\\}\\s*;",Matcher.quoteReplacement(variable),FUNCTION_NAME));
         //Pattern obj_p=Pattern.compile("(?<!this\\.)uw\\s*=\\s*\\{\\s*(((?:[a-zA-Z$0-9]+|\"[a-zA-Z$0-9]+\")\\s*:\\s*function\\s*\\(.*?\\)\\s*\\{.*?\\}(?:,\\s*)?)*)\\}\\s*;");
         Matcher obj_m=obj_p.matcher(code);
         if(obj_m.find()) {
