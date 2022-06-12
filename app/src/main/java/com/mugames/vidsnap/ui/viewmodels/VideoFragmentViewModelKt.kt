@@ -85,6 +85,7 @@ class VideoFragmentViewModelKt(application: Application) : VideoFragmentViewMode
         url: String,
         activity: MainActivity,
     ): com.mugames.vidsnap.extractor.Extractor? {
+        urlLink = url
         extractorKt = Extractor.findExtractor(url)
         extractorKt?.let {
             cookies?.let { cookie ->

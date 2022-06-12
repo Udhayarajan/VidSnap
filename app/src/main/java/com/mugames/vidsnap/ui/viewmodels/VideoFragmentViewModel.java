@@ -38,7 +38,7 @@ public class VideoFragmentViewModel extends AndroidViewModel implements UtilityI
     DownloadDetails details;
     Extractor extractor;
 
-    String urlLink;
+    protected String urlLink;
 
     public boolean isShareOnly = false;
 

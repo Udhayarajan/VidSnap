@@ -131,7 +131,7 @@ public class VideoFragment extends Fragment implements
         });
 
         viewModel.getResultLiveData().observe(getViewLifecycleOwner(), result -> {
-            if (result==null)
+            if (result == null)
                 return;
             if (result instanceof Result.Success) {
                 List<com.mugames.vidsnapkit.dataholders.Formats> formats = ((Result.Success) result).getFormats();
@@ -152,7 +152,7 @@ public class VideoFragment extends Fragment implements
                 ProgressState state = ((Result.Progress) result).getProgressState();
                 if (state instanceof ProgressState.End) {
                     ((UtilityInterface.DialogueInterface) activity).show("Almost done!!");
-                }else {
+                } else {
                     ((UtilityInterface.DialogueInterface) activity).show("Analysing");
                 }
             }
@@ -191,6 +191,10 @@ public class VideoFragment extends Fragment implements
         });
 
         viewModel.updateActivityReference(activity);
+        if (link != null && !link.equals(viewModel.getUrlLink())) {
+            urlBox.setText(link);
+            startProcess(link);
+        }
         return view;
 
     }
