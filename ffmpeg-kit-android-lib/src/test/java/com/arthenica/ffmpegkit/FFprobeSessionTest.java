@@ -26,18 +26,14 @@ import java.util.List;
 
 public class FFprobeSessionTest {
 
-    static {
-        System.setProperty("enable.ffmpeg.kit.test.mode", "true");
-    }
-
     private static final String[] TEST_ARGUMENTS = new String[]{"argument1", "argument2"};
 
     @Test
     public void constructorTest() {
         FFprobeSession ffprobeSession = new FFprobeSession(TEST_ARGUMENTS);
 
-        // 1. getExecuteCallback
-        Assert.assertNull(ffprobeSession.getExecuteCallback());
+        // 1. getCompleteCallback
+        Assert.assertNull(ffprobeSession.getCompleteCallback());
 
         // 2. getLogCallback
         Assert.assertNull(ffprobeSession.getLogCallback());
@@ -94,17 +90,17 @@ public class FFprobeSessionTest {
 
     @Test
     public void constructorTest2() {
-        ExecuteCallback executeCallback = new ExecuteCallback() {
+        FFprobeSessionCompleteCallback completeCallback = new FFprobeSessionCompleteCallback() {
 
             @Override
-            public void apply(Session session) {
+            public void apply(FFprobeSession session) {
             }
         };
 
-        FFprobeSession ffprobeSession = new FFprobeSession(TEST_ARGUMENTS, executeCallback);
+        FFprobeSession ffprobeSession = new FFprobeSession(TEST_ARGUMENTS, completeCallback);
 
-        // 1. getExecuteCallback
-        Assert.assertEquals(ffprobeSession.getExecuteCallback(), executeCallback);
+        // 1. getCompleteCallback
+        Assert.assertEquals(ffprobeSession.getCompleteCallback(), completeCallback);
 
         // 2. getLogCallback
         Assert.assertNull(ffprobeSession.getLogCallback());
@@ -161,10 +157,10 @@ public class FFprobeSessionTest {
 
     @Test
     public void constructorTest3() {
-        ExecuteCallback executeCallback = new ExecuteCallback() {
+        FFprobeSessionCompleteCallback completeCallback = new FFprobeSessionCompleteCallback() {
 
             @Override
-            public void apply(Session session) {
+            public void apply(FFprobeSession session) {
             }
         };
 
@@ -175,10 +171,10 @@ public class FFprobeSessionTest {
             }
         };
 
-        FFprobeSession ffprobeSession = new FFprobeSession(TEST_ARGUMENTS, executeCallback, logCallback);
+        FFprobeSession ffprobeSession = new FFprobeSession(TEST_ARGUMENTS, completeCallback, logCallback);
 
-        // 1. getExecuteCallback
-        Assert.assertEquals(ffprobeSession.getExecuteCallback(), executeCallback);
+        // 1. getCompleteCallback
+        Assert.assertEquals(ffprobeSession.getCompleteCallback(), completeCallback);
 
         // 2. getLogCallback
         Assert.assertEquals(ffprobeSession.getLogCallback(), logCallback);

@@ -72,6 +72,85 @@ public class FFmpegKitTest {
                     "             }\n" +
                     "         }\n" +
                     "     ],\n" +
+                    "     \"chapters\": [\n" +
+                    "         {\n" +
+                    "             \"id\": 0,\n" +
+                    "             \"time_base\": \"1/22050\",\n" +
+                    "             \"start\": 0,\n" +
+                    "             \"start_time\": \"0.000000\",\n" +
+                    "             \"end\": 11158238,\n" +
+                    "             \"end_time\": \"506.042540\",\n" +
+                    "             \"tags\": {\n" +
+                    "                \"title\": \"1 Laying Plans - 2 Waging War\"\n" +
+                    "            }\n" +
+                    "         },\n" +
+                    "         {\n" +
+                    "             \"id\": 1,\n" +
+                    "             \"time_base\": \"1/22050\",\n" +
+                    "             \"start\": 11158238,\n" +
+                    "             \"start_time\": \"506.042540\",\n" +
+                    "             \"end\": 21433051,\n" +
+                    "             \"end_time\": \"972.020454\",\n" +
+                    "             \"tags\": {\n" +
+                    "                \"title\": \"3 Attack By Stratagem - 4 Tactical Dispositions\"\n" +
+                    "            }\n" +
+                    "         },\n" +
+                    "         {\n" +
+                    "             \"id\": 2,\n" +
+                    "             \"time_base\": \"1/22050\",\n" +
+                    "             \"start\": 21433051,\n" +
+                    "             \"start_time\": \"972.020454\",\n" +
+                    "             \"end\": 35478685,\n" +
+                    "             \"end_time\": \"1609.010658\",\n" +
+                    "             \"tags\": {\n" +
+                    "                \"title\": \"5 Energy - 6 Weak Points and Strong\"\n" +
+                    "            }\n" +
+                    "         },\n" +
+                    "         {\n" +
+                    "             \"id\": 3,\n" +
+                    "             \"time_base\": \"1/22050\",\n" +
+                    "             \"start\": 35478685,\n" +
+                    "             \"start_time\": \"1609.010658\",\n" +
+                    "             \"end\": 47187043,\n" +
+                    "             \"end_time\": \"2140.001950\",\n" +
+                    "             \"tags\": {\n" +
+                    "                \"title\": \"7 Maneuvering - 8 Variation in Tactics\"\n" +
+                    "            }\n" +
+                    "         },\n" +
+                    "         {\n" +
+                    "             \"id\": 4,\n" +
+                    "             \"time_base\": \"1/22050\",\n" +
+                    "             \"start\": 47187043,\n" +
+                    "             \"start_time\": \"2140.001950\",\n" +
+                    "             \"end\": 66635594,\n" +
+                    "             \"end_time\": \"3022.022404\",\n" +
+                    "             \"tags\": {\n" +
+                    "                \"title\": \"9 The Army on the March - 10 Terrain\"\n" +
+                    "            }\n" +
+                    "         },\n" +
+                    "         {\n" +
+                    "             \"id\": 5,\n" +
+                    "             \"time_base\": \"1/22050\",\n" +
+                    "             \"start\": 66635594,\n" +
+                    "             \"start_time\": \"3022.022404\",\n" +
+                    "             \"end\": 83768105,\n" +
+                    "             \"end_time\": \"3799.007029\",\n" +
+                    "             \"tags\": {\n" +
+                    "                \"title\": \"11 The Nine Situations\"\n" +
+                    "            }\n" +
+                    "         },\n" +
+                    "         {\n" +
+                    "             \"id\": 6,\n" +
+                    "             \"time_base\": \"1/22050\",\n" +
+                    "             \"start\": 83768105,\n" +
+                    "             \"start_time\": \"3799.007029\",\n" +
+                    "             \"end\": 95659008,\n" +
+                    "             \"end_time\": \"4338.277007\",\n" +
+                    "             \"tags\": {\n" +
+                    "                \"title\": \"12 The Attack By Fire - 13 The Use of Spies\"\n" +
+                    "            }\n" +
+                    "         }\n" +
+                    "     ],\n" +
                     "     \"format\": {\n" +
                     "         \"filename\": \"sample.mp3\",\n" +
                     "         \"nb_streams\": 1,\n" +
@@ -459,6 +538,11 @@ public class FFmpegKitTest {
         Assert.assertNotNull(mediaInformation.getStreams());
         Assert.assertEquals(1, mediaInformation.getStreams().size());
         assertAudioStream(mediaInformation.getStreams().get(0), 0L, "mp3", "MP3 (MPEG audio layer 3)", "44100", "stereo", "fltp", "320000");
+
+        Assert.assertNotNull(mediaInformation.getChapters());
+        Assert.assertEquals(7, mediaInformation.getChapters().size());
+        assertChapter(mediaInformation.getChapters().get(0), 0L, "1/22050", 0L, "0.000000", 11158238L, "506.042540");
+        assertChapter(mediaInformation.getChapters().get(1), 1L, "1/22050", 11158238L, "506.042540", 21433051L, "972.020454");
     }
 
     @Test
@@ -536,7 +620,7 @@ public class FFmpegKitTest {
 
     @Test
     public void parseSimpleCommand() {
-        final String[] argumentArray = FFmpegKit.parseArguments("-hide_banner -loop 1 -i file.jpg -filter_complex [0:v]setpts=PTS-STARTPTS[video] -map [video] -vsync 2 -async 1 video.mp4");
+        final String[] argumentArray = FFmpegKitConfig.parseArguments("-hide_banner -loop 1 -i file.jpg -filter_complex [0:v]setpts=PTS-STARTPTS[video] -map [video] -vsync 2 -async 1 video.mp4");
 
         Assert.assertNotNull(argumentArray);
         Assert.assertEquals(14, argumentArray.length);
@@ -559,7 +643,7 @@ public class FFmpegKitTest {
 
     @Test
     public void parseSingleQuotesInCommand() {
-        String[] argumentArray = FFmpegKit.parseArguments("-loop 1 'file one.jpg'  -filter_complex  '[0:v]setpts=PTS-STARTPTS[video]'  -map  [video]  video.mp4 ");
+        String[] argumentArray = FFmpegKitConfig.parseArguments("-loop 1 'file one.jpg'  -filter_complex  '[0:v]setpts=PTS-STARTPTS[video]'  -map  [video]  video.mp4 ");
 
         Assert.assertNotNull(argumentArray);
         Assert.assertEquals(8, argumentArray.length);
@@ -576,7 +660,7 @@ public class FFmpegKitTest {
 
     @Test
     public void parseDoubleQuotesInCommand() {
-        String[] argumentArray = FFmpegKit.parseArguments("-loop  1 \"file one.jpg\"   -filter_complex \"[0:v]setpts=PTS-STARTPTS[video]\"  -map  [video]  video.mp4 ");
+        String[] argumentArray = FFmpegKitConfig.parseArguments("-loop  1 \"file one.jpg\"   -filter_complex \"[0:v]setpts=PTS-STARTPTS[video]\"  -map  [video]  video.mp4 ");
 
         Assert.assertNotNull(argumentArray);
         Assert.assertEquals(8, argumentArray.length);
@@ -590,7 +674,7 @@ public class FFmpegKitTest {
         Assert.assertEquals("[video]", argumentArray[6]);
         Assert.assertEquals("video.mp4", argumentArray[7]);
 
-        argumentArray = FFmpegKit.parseArguments(" -i   file:///tmp/input.mp4 -vcodec libx264 -vf \"scale=1024:1024,pad=width=1024:height=1024:x=0:y=0:color=black\"  -acodec copy  -q:v 0  -q:a   0 video.mp4");
+        argumentArray = FFmpegKitConfig.parseArguments(" -i   file:///tmp/input.mp4 -vcodec libx264 -vf \"scale=1024:1024,pad=width=1024:height=1024:x=0:y=0:color=black\"  -acodec copy  -q:v 0  -q:a   0 video.mp4");
 
         Assert.assertNotNull(argumentArray);
         Assert.assertEquals(13, argumentArray.length);
@@ -612,7 +696,7 @@ public class FFmpegKitTest {
 
     @Test
     public void parseDoubleQuotesAndEscapesInCommand() {
-        String[] argumentArray = FFmpegKit.parseArguments("  -i   file:///tmp/input.mp4 -vf \"subtitles=file:///tmp/subtitles.srt:force_style=\'FontSize=16,PrimaryColour=&HFFFFFF&\'\" -vcodec libx264   -acodec copy  -q:v 0 -q:a  0  video.mp4");
+        String[] argumentArray = FFmpegKitConfig.parseArguments("  -i   file:///tmp/input.mp4 -vf \"subtitles=file:///tmp/subtitles.srt:force_style=\'FontSize=16,PrimaryColour=&HFFFFFF&\'\" -vcodec libx264   -acodec copy  -q:v 0 -q:a  0  video.mp4");
 
         Assert.assertNotNull(argumentArray);
         Assert.assertEquals(13, argumentArray.length);
@@ -631,7 +715,7 @@ public class FFmpegKitTest {
         Assert.assertEquals("0", argumentArray[11]);
         Assert.assertEquals("video.mp4", argumentArray[12]);
 
-        argumentArray = FFmpegKit.parseArguments("  -i   file:///tmp/input.mp4 -vf \"subtitles=file:///tmp/subtitles.srt:force_style=\\\"FontSize=16,PrimaryColour=&HFFFFFF&\\\"\" -vcodec libx264   -acodec copy  -q:v 0 -q:a  0  video.mp4");
+        argumentArray = FFmpegKitConfig.parseArguments("  -i   file:///tmp/input.mp4 -vf \"subtitles=file:///tmp/subtitles.srt:force_style=\\\"FontSize=16,PrimaryColour=&HFFFFFF&\\\"\" -vcodec libx264   -acodec copy  -q:v 0 -q:a  0  video.mp4");
 
         Assert.assertNotNull(argumentArray);
         Assert.assertEquals(13, argumentArray.length);
@@ -658,7 +742,7 @@ public class FFmpegKitTest {
     }
 
     public String argumentsToString(final String[] arguments) {
-        return FFmpegKit.argumentsToString(arguments);
+        return FFmpegKitConfig.argumentsToString(arguments);
     }
 
     private void assertMediaInput(MediaInformation mediaInformation, String format, String filename) {
@@ -703,7 +787,7 @@ public class FFmpegKitTest {
         Assert.assertEquals(type, streamInformation.getType());
 
         Assert.assertEquals(codec, streamInformation.getCodec());
-        Assert.assertEquals(fullCodec, streamInformation.getFullCodec());
+        Assert.assertEquals(fullCodec, streamInformation.getCodecLong());
 
         Assert.assertEquals(bitrate, streamInformation.getBitrate());
     }
@@ -713,7 +797,7 @@ public class FFmpegKitTest {
         Assert.assertEquals("audio", streamInformation.getType());
 
         Assert.assertEquals(codec, streamInformation.getCodec());
-        Assert.assertEquals(fullCodec, streamInformation.getFullCodec());
+        Assert.assertEquals(fullCodec, streamInformation.getCodecLong());
 
         Assert.assertEquals(sampleRate, streamInformation.getSampleRate());
         Assert.assertEquals(channelLayout, streamInformation.getChannelLayout());
@@ -726,7 +810,7 @@ public class FFmpegKitTest {
         Assert.assertEquals("video", streamInformation.getType());
 
         Assert.assertEquals(codec, streamInformation.getCodec());
-        Assert.assertEquals(fullCodec, streamInformation.getFullCodec());
+        Assert.assertEquals(fullCodec, streamInformation.getCodecLong());
 
         Assert.assertEquals(format, streamInformation.getFormat());
 
@@ -741,6 +825,20 @@ public class FFmpegKitTest {
         Assert.assertEquals(realFrameRate, streamInformation.getRealFrameRate());
         Assert.assertEquals(timeBase, streamInformation.getTimeBase());
         Assert.assertEquals(codecTimeBase, streamInformation.getCodecTimeBase());
+    }
+
+    private void assertChapter(Chapter chapter, Long id, String timeBase, Long start, String startTime, Long end, String endTime) {
+        Assert.assertEquals(id, chapter.getId());
+        Assert.assertEquals(timeBase, chapter.getTimeBase());
+
+        Assert.assertEquals(start, chapter.getStart());
+        Assert.assertEquals(startTime, chapter.getStartTime());
+
+        Assert.assertEquals(end, chapter.getEnd());
+        Assert.assertEquals(endTime, chapter.getEndTime());
+
+        Assert.assertNotNull(chapter.getTags());
+        Assert.assertEquals(1, chapter.getTags().length());
     }
 
 }

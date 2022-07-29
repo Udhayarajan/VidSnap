@@ -19,8 +19,8 @@
 
 package com.arthenica.ffmpegkit;
 
+import android.annotation.SuppressLint;
 import android.os.Build;
-import android.util.Log;
 
 import com.arthenica.smartexception.java.Exceptions;
 
@@ -28,6 +28,7 @@ import java.text.SimpleDateFormat;
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 
 /**
  * <p>Responsible of loading native libraries.
@@ -36,17 +37,21 @@ public class NativeLoader {
 
     static String SO_PATH;//Added this to load SO files from custom path NOTE: IT IS NOT PART OF FFmpeg-kit
 
+
     static final String[] FFMPEG_LIBRARIES = {"avutil", "swscale", "swresample", "avcodec", "avformat", "avfilter", "avdevice"};
+
+    static final String[] LIBRARIES_LINKED_WITH_CXX = {"openh264", "rubberband", "snappy", "srt", "tesseract", "x265", "zimg"};
 
     static boolean isTestModeDisabled() {
         return (System.getProperty("enable.ffmpeg.kit.test.mode") == null);
     }
 
-
+    //Added this to load SO files from custom path NOTE: IT IS NOT PART OF FFmpeg-kit
     public static void setSOPath(String path){
         SO_PATH = path;
     }
 
+    @SuppressLint("UnsafeDynamicallyLoadedCode")
     private static void loadLibrary(final String libraryName) {
         if (isTestModeDisabled()) {
             try {
@@ -90,7 +95,7 @@ public class NativeLoader {
     }
 
     static String loadVersion() {
-        final String version = "4.4";
+        final String version = "4.5.1";
 
         if (isTestModeDisabled()) {
             return FFmpegKitConfig.getVersion();
@@ -121,7 +126,7 @@ public class NativeLoader {
         if (isTestModeDisabled()) {
             return FFmpegKitConfig.getBuildDate();
         } else {
-            return new SimpleDateFormat("yyyyMMdd").format(new Date());
+            return new SimpleDateFormat("yyyyMMdd", Locale.getDefault()).format(new Date());
         }
     }
 
@@ -143,8 +148,11 @@ public class NativeLoader {
 
             /* LOADING LINKED LIBRARIES MANUALLY ON API < 21 */
             final List<String> externalLibrariesEnabled = loadExternalLibraries();
-            if (externalLibrariesEnabled.contains("tesseract") || externalLibrariesEnabled.contains("x265") || externalLibrariesEnabled.contains("snappy") || externalLibrariesEnabled.contains("openh264") || externalLibrariesEnabled.contains("rubberband")) {
-                loadLibrary("c++_shared");
+            for (String dependantLibrary : LIBRARIES_LINKED_WITH_CXX) {
+                if (externalLibrariesEnabled.contains(dependantLibrary)) {
+                    loadLibrary("c++_shared");
+                    break;
+                }
             }
 
             if (AbiDetect.ARM_V7A.equals(loadNativeAbi())) {
@@ -207,11 +215,11 @@ public class NativeLoader {
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
             stringBuilder.append(", abis: ");
-            stringBuilder.append(FFmpegKit.argumentsToString(Build.SUPPORTED_ABIS));
+            stringBuilder.append(FFmpegKitConfig.argumentsToString(Build.SUPPORTED_ABIS));
             stringBuilder.append(", 32bit abis: ");
-            stringBuilder.append(FFmpegKit.argumentsToString(Build.SUPPORTED_32_BIT_ABIS));
+            stringBuilder.append(FFmpegKitConfig.argumentsToString(Build.SUPPORTED_32_BIT_ABIS));
             stringBuilder.append(", 64bit abis: ");
-            stringBuilder.append(FFmpegKit.argumentsToString(Build.SUPPORTED_64_BIT_ABIS));
+            stringBuilder.append(FFmpegKitConfig.argumentsToString(Build.SUPPORTED_64_BIT_ABIS));
         } else {
             stringBuilder.append(", cpu abis: ");
             stringBuilder.append(Build.CPU_ABI);

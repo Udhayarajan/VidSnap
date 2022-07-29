@@ -1,12 +1,14 @@
 apply plugin: 'com.android.library'
 
 android {
-    compileSdkVersion 31
-    ndkVersion "22.0.7026061"
+    compileSdkVersion 32
+    ndkVersion "22.1.7171670"
 
     defaultConfig {
-        minSdkVersion 21
-        targetSdkVersion 31
+        minSdkVersion 16
+        targetSdkVersion 32
+        versionCode 240451
+        versionName "4.5.1"
         project.archivesBaseName = "ffmpeg-kit"
         consumerProguardFiles 'proguard-rules.pro'
     }
@@ -26,6 +28,9 @@ android {
 
     testOptions {
         unitTests.returnDefaultValues = true
+        unitTests.all {
+            systemProperty 'enable.ffmpeg.kit.test.mode', 'true'
+        }
     }
 }
 
@@ -39,8 +44,8 @@ task javadoc(type: Javadoc) {
 }
 
 dependencies {
-    implementation 'com.arthenica:smart-exception-java:0.1.0'
-    testImplementation "androidx.test.ext:junit:1.1.2"
+    implementation 'com.arthenica:smart-exception-java:0.1.1'
+    testImplementation "androidx.test.ext:junit:1.1.3"
     testImplementation "org.json:json:20201115"
 }
 

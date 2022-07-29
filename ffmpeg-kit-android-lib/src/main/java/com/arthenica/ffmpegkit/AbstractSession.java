@@ -28,8 +28,8 @@ import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
- * Abstract session implementation which includes common features shared by <code>FFmpeg</code>
- * and <code>FFprobe</code> sessions.
+ * Abstract session implementation which includes common features shared by <code>FFmpeg</code>,
+ * <code>FFprobe</code> and <code>MediaInformation</code> sessions.
  */
 public abstract class AbstractSession implements Session {
 
@@ -49,12 +49,7 @@ public abstract class AbstractSession implements Session {
     protected final long sessionId;
 
     /**
-     * Session specific execute callback function.
-     */
-    protected final ExecuteCallback executeCallback;
-
-    /**
-     * Session specific log callback function.
+     * Session specific log callback.
      */
     protected final LogCallback logCallback;
 
@@ -117,16 +112,13 @@ public abstract class AbstractSession implements Session {
      * Creates a new abstract session.
      *
      * @param arguments              command arguments
-     * @param executeCallback        session specific execute callback function
-     * @param logCallback            session specific log callback function
+     * @param logCallback            session specific log callback
      * @param logRedirectionStrategy session specific log redirection strategy
      */
     public AbstractSession(final String[] arguments,
-                           final ExecuteCallback executeCallback,
                            final LogCallback logCallback,
                            final LogRedirectionStrategy logRedirectionStrategy) {
         this.sessionId = sessionIdGenerator.getAndIncrement();
-        this.executeCallback = executeCallback;
         this.logCallback = logCallback;
         this.createTime = new Date();
         this.startTime = null;
@@ -139,11 +131,8 @@ public abstract class AbstractSession implements Session {
         this.returnCode = null;
         this.failStackTrace = null;
         this.logRedirectionStrategy = logRedirectionStrategy;
-    }
 
-    @Override
-    public ExecuteCallback getExecuteCallback() {
-        return executeCallback;
+        FFmpegKitConfig.addSession(this);
     }
 
     @Override
@@ -189,7 +178,7 @@ public abstract class AbstractSession implements Session {
 
     @Override
     public String getCommand() {
-        return FFmpegKit.argumentsToString(arguments);
+        return FFmpegKitConfig.argumentsToString(arguments);
     }
 
     @Override

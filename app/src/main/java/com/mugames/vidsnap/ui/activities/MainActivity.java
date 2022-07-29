@@ -103,6 +103,7 @@ import java.util.HashMap;
 import java.util.Objects;
 import java.util.concurrent.CountDownLatch;
 
+import static com.mugames.vidsnap.postprocessor.FFMPEG.FFMPEG_VERSION;
 import static com.mugames.vidsnap.utility.Statics.ACTIVE_DOWNLOAD;
 import static com.mugames.vidsnap.utility.Statics.COMMUNICATOR;
 import static com.mugames.vidsnap.utility.Statics.FETCH_MESSAGE;
@@ -615,7 +616,9 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         }
         // Skip this for loop if you use static module loading of FFmpeg-kit
         for (DownloadDetails d : activityViewModel.tempDetails)
-            if ((d.audioURL != null || d.chunkUrl != null) && FileUtil.isFileNotExists(AppPref.getInstance(this).getCachePath(LIBRARY_PATH) + "lib.zip")) {
+            if ((d.audioURL != null || d.chunkUrl != null) &&
+                    FileUtil.isFileNotExists(AppPref.getInstance(this).getCachePath(LIBRARY_PATH) + FFMPEG_VERSION+"lib.zip")
+            ) {
                 fetchSOFiles(moduleDownloadCallback);
                 return;
             }
@@ -660,10 +663,10 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         final String abi = Build.SUPPORTED_ABIS[0];
         dialog.show("Preparing download");
         HashMap<String, String> abiHashMap = new HashMap<>();
-        abiHashMap.put("armeabi-v7a", "https://raw.githubusercontent.com/Udhayarajan/SOserver/master/armeabi-v7a.zip");
-        abiHashMap.put("arm64-v8a", "https://raw.githubusercontent.com/Udhayarajan/SOserver/master/arm64-v8a.zip");
-        abiHashMap.put("x86", "https://raw.githubusercontent.com/Udhayarajan/SOserver/master/x86.zip");
-        abiHashMap.put("x86_64", "https://raw.githubusercontent.com/Udhayarajan/SOserver/master/x86_64.zip");
+        abiHashMap.put("armeabi-v7a", "https://raw.githubusercontent.com/Udhayarajan/SOserver/master/"+FFMPEG_VERSION+"armeabi-v7a.zip");
+        abiHashMap.put("arm64-v8a", "https://raw.githubusercontent.com/Udhayarajan/SOserver/master/"+FFMPEG_VERSION+"arm64-v8a.zip");
+        abiHashMap.put("x86", "https://raw.githubusercontent.com/Udhayarajan/SOserver/master/"+FFMPEG_VERSION+"x86.zip");
+        abiHashMap.put("x86_64", "https://raw.githubusercontent.com/Udhayarajan/SOserver/master/"+FFMPEG_VERSION+"x86_64.zip");
 
         new MiniExecute(null).getSize(abiHashMap.get(abi), (size, bundle) -> runOnUiThread(() -> downloadAdditionalModule(size, abiHashMap.get(abi), callback)));
 

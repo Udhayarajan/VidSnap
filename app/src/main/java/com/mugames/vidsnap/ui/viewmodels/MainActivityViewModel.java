@@ -18,6 +18,7 @@
 package com.mugames.vidsnap.ui.viewmodels;
 
 import static com.mugames.vidsnap.firebase.FirebaseCallBacks.UpdateCallbacks;
+import static com.mugames.vidsnap.postprocessor.FFMPEG.FFMPEG_VERSION;
 
 import android.app.Application;
 import android.app.DownloadManager;
@@ -36,15 +37,16 @@ import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.Observer;
 
-import com.mugames.vidsnap.firebase.FirebaseManager;
 import com.mugames.vidsnap.R;
+import com.mugames.vidsnap.firebase.FirebaseManager;
 import com.mugames.vidsnap.network.Response;
 import com.mugames.vidsnap.storage.AppPref;
-import com.mugames.vidsnap.utility.VideoSharedBroadcast;
-import com.mugames.vidsnap.utility.bundles.DownloadDetails;
+import com.mugames.vidsnap.storage.FileUtil;
 import com.mugames.vidsnap.utility.DownloadReceiver;
 import com.mugames.vidsnap.utility.Statics;
 import com.mugames.vidsnap.utility.UtilityInterface;
+import com.mugames.vidsnap.utility.VideoSharedBroadcast;
+import com.mugames.vidsnap.utility.bundles.DownloadDetails;
 
 import org.jetbrains.annotations.NotNull;
 
@@ -112,7 +114,7 @@ public class MainActivityViewModel extends AndroidViewModel implements UtilityIn
         }
     }
 
-    public static Uri intentUriForEditing(Intent intent){
+    public static Uri intentUriForEditing(Intent intent) {
         return intent.getParcelableExtra(Intent.EXTRA_STREAM);
     }
 
@@ -190,7 +192,8 @@ public class MainActivityViewModel extends AndroidViewModel implements UtilityIn
 
         Uri uri = Uri.parse(url);
         DownloadManager.Request request = new DownloadManager.Request(uri);
-        request.setDestinationUri(Uri.fromFile(new File(AppPref.getInstance(getApplication()).getCachePath(AppPref.LIBRARY_PATH) + "lib.zip")));
+        FileUtil.deleteFile(AppPref.getInstance(getApplication()).getCachePath(AppPref.LIBRARY_PATH));
+        request.setDestinationUri(Uri.fromFile(new File(AppPref.getInstance(getApplication()).getCachePath(AppPref.LIBRARY_PATH) + FFMPEG_VERSION + "lib.zip")));
         downloadId = downloadManager.enqueue(request);
 
         downloadValues();

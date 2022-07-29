@@ -18,6 +18,7 @@
 package com.mugames.vidsnap.postprocessor;
 
 
+import android.annotation.SuppressLint;
 import android.content.Context;
 import android.os.Handler;
 import android.util.Log;
@@ -25,6 +26,8 @@ import android.util.Log;
 import com.arthenica.ffmpegkit.ExecuteCallback;
 import com.arthenica.ffmpegkit.FFmpegKit;
 import com.arthenica.ffmpegkit.FFmpegKitConfig;
+import com.arthenica.ffmpegkit.FFmpegSession;
+import com.arthenica.ffmpegkit.FFmpegSessionCompleteCallback;
 import com.arthenica.ffmpegkit.LogCallback;
 import com.arthenica.ffmpegkit.NativeLoader;
 import com.arthenica.ffmpegkit.Session;
@@ -46,13 +49,15 @@ import static com.mugames.vidsnap.storage.AppPref.LIBRARY_PATH;
 import org.jetbrains.annotations.NotNull;
 
 public class FFMPEG {
+    public static String FFMPEG_VERSION = "451"; //v4.5.1.LTS
+
     public static String jniPath;
     public static String filesDir;
     private static volatile int INSTANCE_COUNT;
 
     public static boolean isLibLoaded = false;
 
-    ExecuteCallback executeCallback;
+    FFmpegSessionCompleteCallback executeCallback;
     FFMPEGInfo info;
 
     Context context;
@@ -63,9 +68,9 @@ public class FFMPEG {
         new FFMPEG(ffmpegInfo, context, soLoadCallbacks);
     }
 
-    ExecuteCallback wrappedExecuteCallback = new ExecuteCallback() {
+    FFmpegSessionCompleteCallback wrappedExecuteCallback = new FFmpegSessionCompleteCallback() {
         @Override
-        public void apply(Session session) {
+        public void apply(FFmpegSession session) {
             deleteLibs();
             if (executeCallback != null)
                 executeCallback.apply(session);
@@ -86,7 +91,7 @@ public class FFMPEG {
         if (FileUtil.isFileNotExists(jniPath)) {
             new Thread(() -> {
                 try {
-                    FileUtil.unzip(new File(libsPath, "lib.zip"), new File(libsPath), () -> {
+                    FileUtil.unzip(new File(libsPath, FFMPEG_VERSION+"lib.zip"), new File(libsPath), () -> {
                         new Handler(context.getMainLooper()).post(() -> {
                             if (filesDir == null)
                                 filesDir = context.getFilesDir().getAbsolutePath() + File.separator;
@@ -107,7 +112,7 @@ public class FFMPEG {
     }
 
 
-    public void setExecuteCallback(ExecuteCallback executeCallback) {
+    public void setExecuteCallback(FFmpegSessionCompleteCallback executeCallback) {
         this.executeCallback = executeCallback;
     }
 
@@ -122,6 +127,7 @@ public class FFMPEG {
     }
 
 
+    @SuppressLint("UnsafeDynamicallyLoadedCode")
     static void loadJni(File file) throws IOException {
         if (!file.exists()) return;
         File lib = new File(filesDir + file.getName());
