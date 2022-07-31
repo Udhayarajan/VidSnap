@@ -40,6 +40,7 @@
             android:layout_width="0dp" >
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/url"
+                android:selectAllOnFocus="true"
                 android:maxLines="1"
                 android:inputType="textUri"
                 android:layout_width="match_parent"
