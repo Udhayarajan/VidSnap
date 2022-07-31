@@ -123,7 +123,7 @@ dependencies {
     //VidSnapKit
 //    implementation 'com.github.Udhayarajan:VidSnapKit:0.0.1'
 
-    implementation 'com.github.Udhayarajan:VidSnapKit:0.0.6-alpha'
+    implementation 'com.github.Udhayarajan:VidSnapKit:0.0.7-alpha'
 
 
 }
