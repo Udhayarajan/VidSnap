@@ -112,6 +112,8 @@ import static com.mugames.vidsnap.utility.Statics.OUTFILE_URI;
 import static com.mugames.vidsnap.utility.Statics.PROGRESS;
 import static com.mugames.vidsnap.utility.Statics.PROGRESS_UPDATE_AUDIO;
 import static com.mugames.vidsnap.utility.Statics.PROGRESS_UPDATE_MERGING;
+import static com.mugames.vidsnap.utility.Statics.PROGRESS_UPDATE_RECODE_AUDIO;
+import static com.mugames.vidsnap.utility.Statics.PROGRESS_UPDATE_RECODE_VIDEO;
 import static com.mugames.vidsnap.utility.Statics.PROGRESS_UPDATE_VIDEO;
 import static com.mugames.vidsnap.utility.Statics.REQUEST_WRITE;
 import static com.mugames.vidsnap.storage.AppPref.LIBRARY_PATH;
@@ -904,6 +906,8 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             if (resultCode == PROGRESS_UPDATE_AUDIO) msg = "Downloading Audio";
             else if (resultCode == PROGRESS_UPDATE_VIDEO) msg = "Downloading Video";
             else if (resultCode == PROGRESS_UPDATE_MERGING) msg = "Merging";
+            else if (resultCode == PROGRESS_UPDATE_RECODE_AUDIO) msg = "Recoding audio";
+            else if (resultCode == PROGRESS_UPDATE_RECODE_VIDEO) msg = "Recoding video";
             else msg = bundle.getString(FETCH_MESSAGE);
             updateShareDownloadProgress(bundle.getInt(PROGRESS), msg);
         });

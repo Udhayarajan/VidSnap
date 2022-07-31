@@ -215,7 +215,7 @@ public class FFMPEG {
         info.localOutputPath = file.getParent() + File.separator + file.getName().split("\\.")[0];
         switch (type) {
             case FFMPEGType.MERGE:
-                return findEncodeType();
+                return findEncodeType()+" -force_key_frames 0";
             case FFMPEGType.HLS_DOWNLOAD:
                 info.localOutputMime = MIMEType.VIDEO_MP4;
                 info.localOutputPath += ".mp4";
@@ -226,7 +226,7 @@ public class FFMPEG {
                 return "-i \"%s\" -c:a libmp3lame -q:a 8 \"%s\".mp3";
             // FIXME: 19-04-2022 I'm not worthy to recode entire VP9 webm as H264 MP4 :(
             case FFMPEGType.RE_ENCODE_AS_MP4:
-                return "-i \"%s\".webm \"%s\".mp4";
+                return "-i \"%s\".webm -crf 23 -c:v libx264 -cpu-used 5 -deadline realtime -preset ultrafast \"%s\".mp4";
         }
         return null;
     }

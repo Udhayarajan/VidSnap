@@ -38,6 +38,8 @@ public class Statics {
     public static final int PROGRESS_FAILED = 5756;
     public static final int PROGRESS_CANCELED = 5113;
     public static final int PROGRESS_UPDATE_MERGING = 1678;
+    public static final int PROGRESS_UPDATE_RECODE_AUDIO = 1679;
+    public static final int PROGRESS_UPDATE_RECODE_VIDEO = 1703;
     public static final int PROGRESS_UPDATE_AUDIO = 1456;
     public static final int PROGRESS_UPDATE_VIDEO = 7896;
     public static final int PROGRESS_DEFAULT = 1478;

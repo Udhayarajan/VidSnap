@@ -34,6 +34,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
 import com.google.android.material.snackbar.Snackbar
 import com.mugames.vidsnap.R
+import com.mugames.vidsnap.postprocessor.FFMPEG
 import com.mugames.vidsnap.storage.AppPref
 import com.mugames.vidsnap.storage.FileUtil
 import com.mugames.vidsnap.ui.activities.MainActivity
@@ -43,7 +44,6 @@ import com.mugames.vidsnap.ui.viewmodels.MainActivityViewModel
 import com.mugames.vidsnap.utility.OneTimeShareManager
 import com.mugames.vidsnap.utility.Statics.TAG
 import kotlinx.coroutines.launch
-import java.io.File
 
 
 private const val ARG_PARAM1 = "param1"
@@ -122,7 +122,7 @@ class EditFragment : Fragment() {
             viewModel.deleteAll(it.data?.getParcelableArrayExtra(Intent.EXTRA_STREAM))
         }
         if (FileUtil.isFileNotExists(AppPref.getInstance(requireContext())
-                .getCachePath(AppPref.LIBRARY_PATH) + "lib.zip")
+                .getCachePath(AppPref.LIBRARY_PATH) + FFMPEG.FFMPEG_VERSION + "lib.zip")
         ) (requireActivity() as MainActivity).fetchSOFiles {
             getUri()
         }

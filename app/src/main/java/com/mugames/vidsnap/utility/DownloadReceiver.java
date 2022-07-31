@@ -191,7 +191,12 @@ public class DownloadReceiver extends ResultReceiver implements Parcelable {
         NotificationCompat.Builder builder = new NotificationCompat.Builder(context, VidSnapApp.NOTIFY_DOWNLOADED);
         NotificationManagerCompat managerCompat = NotificationManagerCompat.from(context);
 
-        PendingIntent pendingIntent = PendingIntent.getActivity(context, 110, browserIntent, 0);
+        PendingIntent pendingIntent = null;
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
+            pendingIntent = PendingIntent.getActivity(context, 110, browserIntent, PendingIntent.FLAG_IMMUTABLE);
+        }else {
+            pendingIntent = PendingIntent.getActivity(context, 110, browserIntent, 0);
+        }
         builder.setPriority(NotificationCompat.PRIORITY_HIGH)
                 .setContentTitle("Download Failed")
                 .setContentText(details.fileName + "." + details.fileType)

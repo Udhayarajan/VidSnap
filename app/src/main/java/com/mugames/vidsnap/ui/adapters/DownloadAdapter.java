@@ -37,6 +37,8 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.bumptech.glide.Glide;
 import com.mugames.vidsnap.R;
 import com.mugames.vidsnap.network.Downloader;
+import com.mugames.vidsnap.storage.AppPref;
+import com.mugames.vidsnap.utility.MIMEType;
 import com.mugames.vidsnap.utility.bundles.DownloadDetails;
 import com.mugames.vidsnap.utility.DownloadReceiver;
 import com.mugames.vidsnap.utility.Statics;
@@ -82,7 +84,10 @@ public class DownloadAdapter extends ListAdapter<DownloadDetails, DownloadAdapte
     @Override
     public void onBindViewHolder(@NonNull DownloadViewHolder holder, int position) {
         DownloadDetails details = getItem(position);
-        holder.downloadText.setText(details.fileName+"."+ details.fileType);
+        String type = details.fileType;
+        if(AppPref.getInstance(fragment.getContext()).getBooleanValue(R.string.key_quality_video, true) &&
+                details.fileMime.equals(MIMEType.VIDEO_WEBM))type = "mp4";
+        holder.downloadText.setText(details.fileName+"."+ type);
 
         holder.cancelButton.setOnClickListener(v-> Downloader.cancelDownload(getItem(position).id));
 

@@ -54,7 +54,7 @@
         <SwitchPreferenceCompat
             app:key="@string/key_quality_video"
             app:title="Video Quality preference"
-            app:enabled="false"
+            app:defaultValue="true"
             app:summary=
                 "Optimised for video quality\nNOTE: Video may not be playable in some Video Player"
             app:summaryOn="Optimised for file support. There may be some video quality loss"/>

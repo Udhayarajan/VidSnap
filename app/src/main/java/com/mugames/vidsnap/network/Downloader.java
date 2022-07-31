@@ -35,6 +35,8 @@ import static com.mugames.vidsnap.utility.Statics.PROGRESS_FAILED;
 import static com.mugames.vidsnap.utility.Statics.PROGRESS_UPDATE;
 import static com.mugames.vidsnap.utility.Statics.PROGRESS_UPDATE_AUDIO;
 import static com.mugames.vidsnap.utility.Statics.PROGRESS_UPDATE_MERGING;
+import static com.mugames.vidsnap.utility.Statics.PROGRESS_UPDATE_RECODE_AUDIO;
+import static com.mugames.vidsnap.utility.Statics.PROGRESS_UPDATE_RECODE_VIDEO;
 import static com.mugames.vidsnap.utility.Statics.PROGRESS_UPDATE_VIDEO;
 import static com.mugames.vidsnap.utility.Statics.TOTAL_SIZE;
 import static com.mugames.vidsnap.VidSnapApp.NOTIFY_DOWNLOADING;
@@ -87,6 +89,7 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.channels.FileChannel;
+import java.sql.Time;
 import java.util.ArrayList;
 import java.util.Random;
 import java.util.Timer;
@@ -345,14 +348,16 @@ public class Downloader extends Service {
             @Override
             public void onSOLoadingSuccess(FFMPEG ffmpegInstance) {
                 int audioLength = MediaPlayer.create(context, Uri.fromFile(new File(TEMP_VIDEO_NAME))).getDuration();
+                final Timer timer = notifyProgress();
                 ffmpegInstance.setExecuteCallback(session -> {
                     Log.d(TAG, "apply: completed session " + session);
                     String[] args = session.getArguments();
-
+                    timer.cancel();
                     copyVideoToDestination(args[args.length - 1], MIMEType.AUDIO_MPEG);
                     removeDownloader();
                 });
-                ffmpegInstance.reEncodeToMp3(statistics -> sendUpdateFromFFmpeg(audioLength, statistics));
+                builder.setContentTitle("Recoding audio....");
+                ffmpegInstance.reEncodeToMp3(statistics -> sendUpdateFromFFmpeg(audioLength, statistics, PROGRESS_UPDATE_RECODE_AUDIO));
             }
 
             @Override
@@ -366,14 +371,15 @@ public class Downloader extends Service {
             @Override
             public void onSOLoadingSuccess(FFMPEG ffmpegInstance) {
                 int videoLength = MediaPlayer.create(context, Uri.fromFile(new File(TEMP_VIDEO_NAME))).getDuration();
-
+                final Timer timer = notifyProgress();
                 ffmpegInstance.setExecuteCallback(session -> {
                     String[] args = session.getArguments();
+                    timer.cancel();
                     copyVideoToDestination(args[args.length - 1], MIMEType.VIDEO_MP4);
                     removeDownloader();
                 });
-
-                ffmpegInstance.reEncodeToMp4(statistics -> sendUpdateFromFFmpeg(videoLength, statistics));
+                builder.setContentTitle("Recoding video...");
+                ffmpegInstance.reEncodeToMp4(statistics -> sendUpdateFromFFmpeg(videoLength, statistics, PROGRESS_UPDATE_RECODE_VIDEO));
             }
 
             @Override
@@ -401,8 +407,8 @@ public class Downloader extends Service {
         }
 
         boolean isReEncodingNeeded(String finalPath) {
-            boolean isOnlyMp4 = AppPref.getInstance(context).getBooleanValue(R.string.key_quality_video, false);
-            boolean isOnlyMp3 = AppPref.getInstance(context).getBooleanValue(R.string.key_quality_audio, false);
+            boolean isOnlyMp4 = AppPref.getInstance(context).getBooleanValue(R.string.key_quality_video, true);
+            boolean isOnlyMp3 = AppPref.getInstance(context).getBooleanValue(R.string.key_quality_audio, true);
 
             File file = new File(finalPath);
             String[] name = file.getName().split("\\.");
@@ -441,17 +447,17 @@ public class Downloader extends Service {
                 notifyTimer.cancel();
             });
 
-            ffmpeg.mergeAsync(statistics -> sendUpdateFromFFmpeg(videoLength, statistics));
+            ffmpeg.mergeAsync(statistics -> sendUpdateFromFFmpeg(videoLength, statistics, PROGRESS_UPDATE_MERGING));
         }
 
-        void sendUpdateFromFFmpeg(int length, Statistics statistics) {
-            float progress = 0;
+        void sendUpdateFromFFmpeg(int length, Statistics statistics, int prog) {
+            float progress;
             progress = (Float.parseFloat(String.valueOf(statistics.getTime())) / length) * 100;
             Bundle progressData = new Bundle();
             int val = (int) progress;
             notificationVal = val;
             progressData.putInt(PROGRESS, val);
-            sendBundle(PROGRESS_UPDATE_MERGING, progressData);
+            sendBundle(prog, progressData);
         }
 
         void copyVideoToDestination(String localFile, String localMime) {

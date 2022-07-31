@@ -33,6 +33,8 @@ import static com.mugames.vidsnap.utility.Statics.FETCH_MESSAGE;
 import static com.mugames.vidsnap.utility.Statics.PROGRESS;
 import static com.mugames.vidsnap.utility.Statics.PROGRESS_UPDATE_AUDIO;
 import static com.mugames.vidsnap.utility.Statics.PROGRESS_UPDATE_MERGING;
+import static com.mugames.vidsnap.utility.Statics.PROGRESS_UPDATE_RECODE_AUDIO;
+import static com.mugames.vidsnap.utility.Statics.PROGRESS_UPDATE_RECODE_VIDEO;
 import static com.mugames.vidsnap.utility.Statics.PROGRESS_UPDATE_VIDEO;
 import static com.mugames.vidsnap.utility.Statics.RESULT_CODE;
 import static com.mugames.vidsnap.utility.Statics.TOTAL_SIZE;
@@ -79,6 +81,8 @@ public class DownloadViewModel{
         if (resultCode == PROGRESS_UPDATE_AUDIO) status.setValue("Downloading Audio");
         else if (resultCode == PROGRESS_UPDATE_VIDEO) status.setValue("Downloading Video");
         else if (resultCode == PROGRESS_UPDATE_MERGING) status.setValue("Merging");
+        else if (resultCode == PROGRESS_UPDATE_RECODE_AUDIO) status.setValue("Recoding audio");
+        else if (resultCode == PROGRESS_UPDATE_RECODE_VIDEO) status.setValue("Recoding video");
         else status.setValue(resultData.getString(FETCH_MESSAGE));
 
 
