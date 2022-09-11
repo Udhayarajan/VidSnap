@@ -17,20 +17,13 @@
 
 package com.mugames.vidsnap.ui.adapters;
 
-import androidx.annotation.NonNull;
-import androidx.documentfile.provider.DocumentFile;
-import androidx.lifecycle.LifecycleOwner;
-import androidx.lifecycle.LiveData;
-import androidx.recyclerview.widget.DiffUtil;
-import androidx.recyclerview.widget.ListAdapter;
-import androidx.recyclerview.widget.RecyclerView;
+import static com.mugames.vidsnap.utility.UtilityClass.formatFileSize;
 
 import android.content.Intent;
-import android.content.IntentSender;
+import android.media.MediaMetadataRetriever;
 import android.net.Uri;
 import android.os.Build;
 import android.util.Base64;
-import android.util.Log;
 import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.MenuItem;
@@ -42,21 +35,25 @@ import android.widget.PopupMenu;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.annotation.NonNull;
+import androidx.lifecycle.LifecycleOwner;
+import androidx.recyclerview.widget.DiffUtil;
+import androidx.recyclerview.widget.ListAdapter;
+import androidx.recyclerview.widget.RecyclerView;
+
 import com.bumptech.glide.Glide;
-import com.mugames.vidsnap.VidSnapApp;
+import com.google.android.material.card.MaterialCardView;
+import com.mugames.vidsnap.R;
 import com.mugames.vidsnap.database.History;
 import com.mugames.vidsnap.database.HistoryDatabase;
 import com.mugames.vidsnap.storage.FileUtil;
-import com.mugames.vidsnap.ui.viewmodels.HistoryViewModel;
 import com.mugames.vidsnap.ui.activities.MainActivity;
-import com.mugames.vidsnap.R;
+import com.mugames.vidsnap.ui.viewmodels.HistoryViewModel;
 import com.mugames.vidsnap.utility.Statics;
 
 import org.jetbrains.annotations.NotNull;
 
-import static com.mugames.vidsnap.utility.UtilityClass.formatFileSize;
-
-import java.io.File;
+import java.util.concurrent.TimeUnit;
 
 
 public class HistoryRecyclerViewAdapter extends ListAdapter<History, HistoryRecyclerViewAdapter.ViewHolder> {
@@ -95,6 +92,10 @@ public class HistoryRecyclerViewAdapter extends ListAdapter<History, HistoryRecy
         return new ViewHolder(view);
     }
 
+    private boolean isNotImage(History currentHistory) {
+        return !(currentHistory.fileType.equals("jpeg") || currentHistory.fileType.equals("jpg")) && !currentHistory.fileType.equals("png");
+    }
+
     @Override
     public void onBindViewHolder(@NotNull final ViewHolder holder, int position) {
 //        holder.details = formats.get(position);
@@ -108,6 +109,28 @@ public class HistoryRecyclerViewAdapter extends ListAdapter<History, HistoryRecy
         holder.src.setText(currentHistory.source);
         holder.date.setText(currentHistory.getDate());
         holder.size.setText(formatFileSize(Long.parseLong(currentHistory.size), false));
+        holder.cardView.setVisibility(View.GONE);
+        if (isNotImage(currentHistory)) {
+            holder.cardView.setVisibility(View.VISIBLE);
+            try {
+                MediaMetadataRetriever retriever = new MediaMetadataRetriever();
+                //use one of overloaded setDataSource() functions to set your data source
+                retriever.setDataSource(holder.date.getContext(), Uri.parse(currentHistory.uriString));
+                String time = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION);
+                long timeInMillisec = Long.parseLong(time);
+                retriever.release();
+                holder.duration.setText(String.format("%d:%02d",
+                        TimeUnit.MILLISECONDS.toMinutes(timeInMillisec),
+                        TimeUnit.MILLISECONDS.toSeconds(timeInMillisec) -
+                                TimeUnit.MINUTES.toSeconds(TimeUnit.MILLISECONDS.toMinutes(timeInMillisec))
+                ));
+                holder.duration.setTextSize(12);
+            } catch (IllegalArgumentException e) {
+                holder.duration.setText("-NA-");
+                // File not found
+            }
+        }
+
 
         Glide.with(holder.thumbnail.getContext()).asBitmap()
                 .load(Base64.decode(currentHistory.image, Base64.DEFAULT))
@@ -182,6 +205,8 @@ public class HistoryRecyclerViewAdapter extends ListAdapter<History, HistoryRecy
         public final TextView date;
         public final TextView size;
         public final ImageView thumbnail;
+        public final TextView duration;
+        public final MaterialCardView cardView;
 
 
         public ViewHolder(View view) {
@@ -193,6 +218,8 @@ public class HistoryRecyclerViewAdapter extends ListAdapter<History, HistoryRecy
             date = view.findViewById(R.id.history_date);
             size = view.findViewById(R.id.history_size);
             thumbnail = view.findViewById(R.id.history_thumb);
+            duration = view.findViewById(R.id.history_duration);
+            cardView = view.findViewById(R.id.card_history_duration);
         }
 
         @Override

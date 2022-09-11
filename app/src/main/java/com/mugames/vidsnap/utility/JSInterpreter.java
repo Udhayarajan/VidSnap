@@ -25,6 +25,7 @@ import org.json.JSONObject;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -57,46 +58,22 @@ public class JSInterpreter {
     }
 
     public JSInterface extractFunction(String functionName) {
-        Pattern pattern = Pattern.compile(String.format("(?:function\\s+%s|[{;,]\\s*%s\\s*=\\s*function|var\\s+%s\\s*=\\s*function)\\s*\\(([^)]*)\\)\\s*\\{([^}]+)\\}"
-                , functionName, functionName, functionName));
-        Matcher func_m = pattern.matcher(code);
-        if (func_m.find()) {
-            String[] argnames = func_m.group(1).split(",");
-            return buildFunction(argnames, func_m.group(2));
-        }
-        return null;
+        return extractFunctionFromCode(extractFunctionCode(functionName));
     }
 
     public JSFunctionCode extractFunctionCode(String functionName) {
+        functionName = Matcher.quoteReplacement(functionName);
         Matcher matcher = Pattern.compile(String.format(
-                "function\\s+%s\\s*\\(([^)]*)\\)\\s*(\\{(?:(?!\\};)[^\"]|\"([^\"]|\\\\\")*\")+\\})",
+                "(?:function\\s+%s|[{;,]\\s*%s\\s*=\\s*function|var\\s+%s\\s*=\\s*function)\\s*\\(([^)]*)\\)\\s*(\\{(?:(?!\\};)[^\\\"]|\\\"([^\\\"]|\\\\\\\")*\\\")+\\})",
+                functionName,
+                functionName,
                 functionName
         )).matcher(code);
-        if (!matcher.find()) {
-            matcher = Pattern.compile(String.format(
-                    "[{;,]\\s*%s\\s*=\\s*function\\s*\\((.*?)\\)\\s*(\\{[\\w\\W]*?\\};)",
-                    functionName
-            )).matcher(code);
-            if (!matcher.find()) {
-                matcher = Pattern.compile(String.format(
-                        "var\\s+%s\\s*=\\s*function\\s*\\(([^)]*)\\)\\s*(\\{(?:(?!};)[^\"]|\"([^\"]|\\\\\")*\")+\\})",
-                        functionName
-                )).matcher(code);
-                if (!matcher.find()) {
-                    Log.w("JSInterpreter", "extractFunctionCode: not found Download will be throttled");
-                    return null;
-                }
-            }
+        if (matcher.find()){
+            String localCode = separateAtParen(matcher.group(2),"}").get(0);
+            return new JSFunctionCode(matcher.group(1).split(","), localCode);
         }
-        ArrayList<String> separate = separateAtParen(matcher.group(2), "}");
-        if (separate.size() >= 2) {
-            String args = matcher.group(1);
-            String[] argsArray = null;
-            if (args != null) {
-                argsArray = args.split(",");
-            }
-            return new JSFunctionCode(argsArray, separate.get(0));
-        } else return new JSFunctionCode(separate.get(0));
+        throw new IllegalArgumentException("Function " + functionName + " not found");
     }
 
 
@@ -113,9 +90,9 @@ public class JSInterpreter {
             String body = separated.get(0);
             String remaining = separated.get(1);
             Log.d("JSIP", "extractFunctionFromCode: " + code.substring(0, start));
-            String name = namedObject(
-                    extractFunctionFromCode(new JSFunctionCode(mobj.group(1).split(","), body))
-            );
+            JSInterface function = extractFunctionFromCode(new JSFunctionCode(mobj.group(1).split(","), body));
+            String name = namedObject(function);
+            functions.put(name, function);
             jsCode = jsCode.substring(0, start) + name + remaining;
         }
         return buildFunction(functionCode.args, jsCode);
@@ -205,19 +182,16 @@ public class JSInterpreter {
     }
 
     JSInterface buildFunction(String[] argnames, String function_code) {
-        return new JSInterface() {
-            @Override
-            public Object resf(Object[] values) {
-                for (int i = 0; i < argnames.length; i++) {
-                    localVars.put(argnames[i], values[i]);
-                }
-                JSResultArray resultArray = new JSResultArray();
-                for (String stmt : function_code.replace("\n", "").split(";")) {
-                    resultArray = interpretStatement(stmt, 100);
-                    if (resultArray.abort) break;
-                }
-                return resultArray.res;
+        return values -> {
+            for (int i = 0; i < argnames.length; i++) {
+                localVars.put(argnames[i], values[i]);
             }
+            JSResultArray resultArray = new JSResultArray();
+            for (String stmt : function_code.replace("\n", "").split(";")) {
+                resultArray = interpretStatement(stmt, 100);
+                if (resultArray.abort) break;
+            }
+            return resultArray.res;
         };
     }
 
@@ -442,17 +416,20 @@ public class JSInterpreter {
             Pattern p = Pattern.compile(String.format("(%s)(?:\\[([^\\]]+?)\\])?\\s*\\%s(.*)$", NAME_REGEX, s));
             Matcher m = p.matcher(expr);
             if (!m.find()) continue;
-            char[] right_val;
+            char[] right_val = null;
             Object o = interpretExpression(m.group(3), recurLimit - 1);
             try {
                 right_val = stringToCharArray((String) o);
             } catch (Exception e) {
                 try {
                     right_val = stringToCharArray(charArrayToSting((char[]) o));
-
                 } catch (Exception exception) {
-                    right_val = new char[1];
-                    right_val[0] = (char) o;
+                    if (o instanceof JSInterface){
+                        Object res = ((JSInterface) o);
+                    }else {
+                        right_val = new char[1];
+                        right_val[0] = (char) o;
+                    }
                 }
             }
 
@@ -542,98 +519,11 @@ public class JSInterpreter {
                 remaining = arg_str;
                 arg_str = null;
             }
-            if (remaining != null) {
+            if (remaining != null && !remaining.isEmpty()) {
                 return interpretExpression(namedObject(evalMethod(member,variable,arg_str,recurLimit)) + remaining, recurLimit);
             } else {
                 return evalMethod(member,variable,arg_str,recurLimit);
             }
-
-//            if (localVars.containsKey(variable)) obj = localVars.get(variable);
-//            else {
-//                if (!objects.contains(variable)) {
-//                    objects.put(variable, extractObject(variable));
-//                }
-//                obj_m = objects.get(variable);
-//            }
-//
-//            if (arg_str == null) {
-//                if (member.equals("length")) {
-//                    assert obj != null;
-//                    int x = obj_m.size();
-//                    if (x == 0) x = stringToCharArray(charArrayToSting((char[]) obj)).length;
-//                    return x;
-//                }
-//                return (obj_m.get(member));
-//            }
-//            assert expr.endsWith(")");
-//            if (arg_str.isEmpty()) {
-//                argVal = new ArrayList<>();
-//            } else {
-//                for (String v : arg_str.split(",")) {
-//                    argVal.add(interpretExpression(v, recurLimit));
-//                }
-//            }
-//            if (member.equals("split")) {
-//                assert obj != null;
-//                return (obj);
-//            }
-//            if (member.equals("join")) {
-//                char[] va = joinArray(stringToCharArray((String) argVal.get(0)), (char[]) obj);
-//                localVars.put(variable, va);
-//                return va;
-//            }
-//            if (member.equals("reverse")) {
-//                char[] va = reverse(stringToCharArray(charArrayToSting((char[]) obj)));
-//                localVars.put(variable, va);
-//                return va;
-//            }
-//            if (member.equals("slice")) {
-//                Object va = ((String) obj).substring(Integer.parseInt(String.valueOf((argVal.get(0)))));
-//                localVars.put(variable, va);
-//                return va;
-//            }
-//            if (member.equals("splice")) {
-//                int index = Integer.parseInt((argVal.get(0) + ""));
-//                int howMany = Integer.parseInt((argVal.get(1) + ""));
-//                char[] t = (char[]) obj;
-//                String t_s = charArrayToSting(t);
-//                int isize = Math.min(index + howMany, t.length);
-//                char[] res = new char[isize];
-//                for (int i = index; i < isize; i++) {
-//                    res[i] = t_s.charAt(i);
-//                    obj = popCharArray((char[]) obj, index);
-//                }
-//                localVars.put(variable, obj);
-//                return res;
-//            }
-//            if (member.equals("unshift")) {
-//                if (obj instanceof Collection)
-//                    throw new IllegalArgumentException("OBJ must be type of list");
-//                if (argVal.isEmpty())
-//                    throw new IllegalArgumentException("Argument values are null");
-//                char[] temp = new char[argVal.size()];
-//                char[] tempObj = new char[((Collection) obj).size()];
-//                for (int i = 0; i < argVal.size(); i++) {
-//                    temp[i] = (char) argVal.get(i);
-//                }
-//                for (char item : reverse(temp)) {
-//                    //TODO line 434
-//                }
-//            } else if (member.equals("pop")) {
-//                if (obj instanceof Collection)
-//                    throw new IllegalArgumentException("OBJ must be type of list");
-//                if (argVal.isEmpty())
-//                    throw new IllegalArgumentException("Argument values are null");
-//                //TODO 441
-//            } else if (member.equals("push")) {
-//
-//            } else if (member.equals("forEach")) {
-//
-//            } else if (member.equals("indexOf")) {
-//
-//            }
-//            JSInterface anInterface = obj_m.get(member);
-//            return anInterface.resf(argVal.toArray());
         }
 
         m_p = Pattern.compile(String.format("^(%s)\\(([a-zA-Z0-9_$,]*)\\)$", NAME_REGEX));
@@ -661,10 +551,21 @@ public class JSInterpreter {
         Object obj;
         if (variable.equals("String")) obj = "";
         else if (localVars.containsKey(variable)) obj = localVars.get(variable);
-        else obj = extractObject(variable);//Line 380
+        else{
+            obj = extractObject(variable);//Line 380
+            Hashtable<String, JSInterface> hashtable = (Hashtable<String, JSInterface>) obj;
+            localVars.put(variable,hashtable);
+            obj = localVars.get(variable);
+        }
 
         if (argStr == null) {
-            if (member.equals("length")) return ((String) obj).length();
+            if (member.equals("length")){
+                try{
+                    return ((String) obj).length();
+                }catch (Exception e){
+                    return ((char[]) obj).length;
+                }
+            }
         }
         ArrayList<Object> argVals = new ArrayList<>();
         for (String v : separate(argStr, ",", -1)) {
@@ -680,83 +581,88 @@ public class JSInterpreter {
             }
         }
 
-        if (member.equals("split")) {
-            return UtilityClass.stringToCharArray((String) obj);
-        } else if (member.equals("join")) {
-            return joinArray(stringToCharArray((String) argVals.get(0)), (char[]) obj);
-        } else if (member.equals("reverse")) {
-            return reverse(stringToCharArray(charArrayToSting((char[]) obj)));
-        } else if (member.equals("slice")) {
+        switch (member) {
+            case "split":
+                return UtilityClass.stringToCharArray((String) obj);
+            case "join":
+                return joinArray(stringToCharArray((String) argVals.get(0)), (char[]) obj);
+            case "reverse":
+                return reverse(stringToCharArray(charArrayToSting((char[]) obj)));
+            case "slice":
+                throw new RuntimeException("Not implemented");
+            case "splice": {
+                ArrayList<Character> objList = convertCharArrayToCharacterList((char[]) obj);
+                argVals.add(objList.size());
+                int index = Integer.parseInt(String.valueOf(argVals.get(0)));
+                int howMany = Integer.parseInt(String.valueOf(argVals.get(1)));
+                argVals.remove(argVals.size() - 1);
+                if (index < 0) index += objList.size();
+                ArrayList<Integer> addItems = new ArrayList<>();
+                for (int i = 2; i < argVals.size(); i++) {
+                    addItems.add(Integer.parseInt(String.valueOf(argVals.get(i))));
+                }
 
-        } else if (member.equals("splice")) {
-            ArrayList<Character> objList = convertCharArrayToCharacterList((char[]) obj);
-            argVals.add(objList.size());
-            int index = Integer.parseInt(String.valueOf(argVals.get(0)));
-            int howMany = Integer.parseInt(String.valueOf(argVals.get(1)));
-            argVals.remove(argVals.size() - 1);
-            if (index < 0) index += objList.size();
-            ArrayList<Integer> addItems = new ArrayList<>();
-            for (int i = 2; i < argVals.size(); i++) {
-                addItems.add(Integer.parseInt(String.valueOf(argVals.get(i))));
-            }
-
-            ArrayList<Object> res = new ArrayList<>();
-            for (int i = index; i < Math.min(index + howMany, objList.size()); i++) {
-                res.add(objList.get(objList.size() - 1));
-                objList.remove(objList.size() - 1);
-            }
-            for (int i = 0; i < addItems.size(); i++) {
+                ArrayList<Object> res = new ArrayList<>();
+                for (int i = index; i < Math.min(index + howMany, objList.size()); i++) {
+                    res.add(objList.get(objList.size() - 1));
+                    objList.remove(objList.size() - 1);
+                }
+                for (int i = 0; i < addItems.size(); i++) {
 //                objList.add(index+i,); //Line 428
+                }
+                return convertObjectListToCharArray(res);
             }
-            return convertObjectListToCharArray(res);
-        } else if (member.equals("unshift")) {
-            ArrayList<Character> tempObj = convertCharArrayToCharacterList((char[]) obj);
-            for (char c : reverse(convertObjectListToCharArray(argVals))) {
-                tempObj.add(0, c);
+            case "unshift":
+                ArrayList<Character> tempObj = convertCharArrayToCharacterList((char[]) obj);
+                for (char c : reverse(convertObjectListToCharArray(argVals))) {
+                    tempObj.add(0, c);
+                }
+                return tempObj.toArray();
+            case "pop":
+                if (obj == null) return null;
+                String v = charArrayToSting((char[]) obj);
+                return stringToCharArray(v.substring(0, v.length() - 1));
+            case "push": {
+                ArrayList<Character> objList = convertCharArrayToCharacterList((char[]) obj);
+                ArrayList<Object> tempList = new ArrayList<>(objList);
+                for (Object o : argVals) {
+                    tempList.add((char) o);
+                }
+                return convertObjectListToCharArray(tempList);
             }
-            return tempObj.toArray();
-        } else if (member.equals("pop")) {
-            if (obj == null) return null;
-            String v = charArrayToSting((char[]) obj);
-            return stringToCharArray(v.substring(0, v.length() - 1));
-        } else if (member.equals("push")) {
-            ArrayList<Character> objList = convertCharArrayToCharacterList((char[]) obj);
-            ArrayList<Object> tempList = new ArrayList<>(objList);
-            for (Object o : argVals) {
-                tempList.add((char) o);
+            case "forEach": {
+                JSInterface f = (JSInterface) argVals.get(0);
+                ArrayList<Object> objects = new ArrayList<>();
+                char[] objArray = ((char[]) obj);
+                for (int i = 0; i < objArray.length; i++) {
+                    objects.add((char[]) f.resf(new Object[]{objArray[i], i, objArray}));
+                }
+                return convertObjectListToCharArray(objects);
             }
-            return convertObjectListToCharArray(tempList);
-        } else if (member.equals("forEach")) {
-            JSInterface f = (JSInterface) argVals.get(0);
-            ArrayList<Object> objects = new ArrayList<>();
-            char[] objArray = ((char[]) obj);
-            for (int i = 0; i < objArray.length; i++) {
-                objects.add((char[]) f.resf(new Object[]{objArray[i], i, objArray}));
-            }
-            return convertObjectListToCharArray(objects);
-        } else if (member.equals("indexOf")) {
-            char idx = (char) argVals.get(0);
-            int start = 0;
-            try {
-                start = Integer.parseInt(String.valueOf(argVals.get(1)));
-            } catch (ArrayIndexOutOfBoundsException e) {
-            }
+            case "indexOf": {
+                char idx = (char) argVals.get(0);
+                int start = 0;
+                try {
+                    start = Integer.parseInt(String.valueOf(argVals.get(1)));
+                } catch (ArrayIndexOutOfBoundsException e) {
+                }
 
-            int index = -1;
-            char[] objArray = (char[]) obj;
-            for (int i = start; i < objArray.length; i++) {
-                if (objArray[i] == idx) index = i;
-            }
-            return index;
+                int index = -1;
+                char[] objArray = (char[]) obj;
+                for (int i = start; i < objArray.length; i++) {
+                    if (objArray[i] == idx) index = i;
+                }
+                return index;
 
+            }
         }
-        return null;
+        return ((JSInterface)((Hashtable<String,JSInterpreter>) obj).get(member)).resf(argVals.toArray());
     }
 
     private Hashtable<String, JSInterface> extractObject(String variable) {
         String FUNCTION_NAME = "(?:[a-zA-Z$0-9]+|\"[a-zA-Z$0-9]+\"|'[a-zA-Z$0-9]+')";
         Hashtable<String, JSInterface> obj = new Hashtable<>();
-        Pattern obj_p = Pattern.compile(String.format("(?<!this\\.)%s\\s*=\\s*\\{\\s*((%s\\s*:\\s*function\\s*\\(.*?\\)\\s*\\{.*?\\}(?:,\\s*)?)*)\\}\\s*;", variable, FUNCTION_NAME));
+        Pattern obj_p = Pattern.compile(String.format("(?<!this\\.)%s\\s*=\\s*\\{\\s*((%s\\s*:\\s*function\\s*\\(.*?\\)\\s*\\{.*?\\}(?:,\\s*)?)*)\\}\\s*;", Matcher.quoteReplacement(variable), FUNCTION_NAME));
         //Pattern obj_p=Pattern.compile("(?<!this\\.)uw\\s*=\\s*\\{\\s*(((?:[a-zA-Z$0-9]+|\"[a-zA-Z$0-9]+\")\\s*:\\s*function\\s*\\(.*?\\)\\s*\\{.*?\\}(?:,\\s*)?)*)\\}\\s*;");
         Matcher obj_m = obj_p.matcher(code);
         if (obj_m.find()) {
@@ -786,8 +692,6 @@ public class JSInterpreter {
     }
 }
 
-class JSBreak extends IllegalArgumentException {
-}
+class JSBreak extends IllegalArgumentException {}
 
-class JSContinue extends IllegalArgumentException {
-}
+class JSContinue extends IllegalArgumentException {}

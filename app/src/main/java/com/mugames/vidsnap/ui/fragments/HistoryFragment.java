@@ -100,9 +100,11 @@ public class HistoryFragment extends Fragment {
         recyclerView.setLayoutManager(new LinearLayoutManager(context));
         recyclerView.setBackgroundColor(ContextCompat.getColor(requireContext(), R.color.list_background));
         recyclerView.setAdapter(adapter);
+        binding.loadingIndicator.show();
         historyViewModel.getAllValues().observe(getViewLifecycleOwner(), new Observer<List<History>>() {
             @Override
             public void onChanged(List<History> histories) {
+                binding.loadingIndicator.hide();
                 swapViewVisibility(!histories.isEmpty());
                 adapter.submitList(histories);
             }

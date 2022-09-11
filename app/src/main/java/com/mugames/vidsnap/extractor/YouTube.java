@@ -144,6 +144,12 @@ public class YouTube extends Extractor {
 
     void analyzeCompleted() {
         Log.d(TAG, "video updateVideoSize: ");
+//        try {
+//            unThrottleFormats();
+//        } catch (JSONException e) {
+//            e.printStackTrace();
+//            Log.e(TAG, "analyzeCompleted: failed to find n parameter", e);
+//        }
         fetchDataFromURLs();
     }
 
@@ -323,7 +329,7 @@ public class YouTube extends Extractor {
                 got++;
                 if (sp == null) url += "&signature=" + decryptedSign;
                 else url += ("&" + sp + "=" + decryptedSign);
-                Log.d(TAG, "tryDecrypt: signature = "+decryptedSign);
+                Log.d(TAG, "tryDecrypt: signature = " + decryptedSign);
                 Log.d(TAG, "Video_Info: \n" + url);
                 formats.mainFileURLs.set(index, url);
                 boolean isLast = got == formats.mainFileURLs.size();
@@ -337,28 +343,21 @@ public class YouTube extends Extractor {
     }
 
     String extractNFunction() throws JSONException {
-        String target = "([a-zA-Z0-9$]{3})(?:\\[(\\d+)\\])?";
         Matcher matcher = Pattern.compile(
-                String.format("\\.get\\(\"n\"\\)\\)&&\\(b=(%s)\\([a-zA-Z0-9]\\)", target))
+                        "\\.get\\(\\\"n\\\"\\)\\)&&\\(b=(([a-zA-Z_$][\\w$]*)(?:\\[(\\d+)\\])?)\\([\\w$]+\\)"
+                )
                 .matcher(jsCode);
         if (matcher.find()) {
-            String nameIdx = matcher.group(1);
-            if (nameIdx != null) {
-                Matcher m1 = Pattern.compile(target).matcher(nameIdx);
-                if (m1.find()) {
-                    String name = m1.group(1);
-                    String idx = m1.group(2);
-                    if (idx == null) return name;
-                    else {
-                        matcher = Pattern.compile(String.format("var %s\\s*=\\s*(\\[.+?\\]);", name)).matcher(jsCode);
-                        if (matcher.find()) {
-                            String json = matcher.group(1);
-                            JSONArray jsonArray = new JSONArray(json);
-                            return jsonArray.getString(Integer.parseInt(idx));
-                        }
-                    }
-                }
-
+            String name = matcher.group(2);
+            String idx = matcher.group(3);
+            if (idx==null){
+                return name;
+            }
+            matcher = Pattern.compile(String.format("var %s\\s*=\\s*(\\[.+?\\]);", name)).matcher(jsCode);
+            if (matcher.find()) {
+                String json = matcher.group(1);
+                JSONArray jsonArray = new JSONArray(json);
+                return jsonArray.getString(Integer.parseInt(idx));
             }
         }
         throw new JSONException("Unable to find function name");
@@ -367,14 +366,14 @@ public class YouTube extends Extractor {
     void unThrottleFormats() throws JSONException {
         String funcCode = null;
         for (String signedUrl : formats.mainFileURLs) {
-            Hashtable<String,String> parsed = parseUrl(signedUrl);
+            Hashtable<String, String> parsed = parseUrl(signedUrl);
             if (jsNFunctionName == null) jsNFunctionName = extractNFunction();
-            if (funcCode==null){
+            if (funcCode == null) {
                 JSInterpreter jsInterpreter = new JSInterpreter(jsCode, null);
                 JSInterpreter.JSFunctionCode functionCode = jsInterpreter.extractFunctionCode(jsNFunctionName);
                 JSInterface jsInterface = jsInterpreter.extractFunctionFromCode(functionCode);
                 Object o = jsInterface.resf(new Object[]{parsed.get("n")});
-                Log.d(TAG, "unThrottleFormats: "+String.valueOf(o));
+                Log.d(TAG, "unThrottleFormats: " + String.valueOf(o));
             }
         }
     }

@@ -267,6 +267,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         } else if (intent.getBooleanExtra(ACTIVE_DOWNLOAD, false)) {
             replaceFragment(DownloadFragment.newInstance(), DownloadFragment.class.getName());
         }
+        setIntent(null);
     }
 
 
@@ -425,7 +426,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     }
 
 
-    public void setupBadge(Integer size) {
+    private void setupBadge(Integer size) {
         if (textView_activeDownload != null) {
             if (size == 0) {
                 if (textView_activeDownload.getVisibility() != View.GONE) {

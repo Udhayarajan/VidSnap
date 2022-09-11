@@ -66,8 +66,8 @@ class VideoFragmentViewModelKt(application: Application) : VideoFragmentViewMode
                             false))
                     }
 
-                format.thumbnail.forEach {
-                    formats.thumbNailsURL.add(it.second)
+                format.imageData.forEach {
+                    formats.thumbNailsURL.add(it.url)
                 }
 
 

@@ -1,5 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
-<!--
+<?xml version="1.0" encoding="utf-8"?><!--
   ~  This file is part of VidSnap.
   ~
   ~  VidSnap is free software: you can redistribute it and/or modify
@@ -18,8 +17,13 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
-    <androidx.recyclerview.widget.RecyclerView
-        xmlns:app="http://schemas.android.com/apk/res-auto"
+    <com.google.android.material.progressindicator.LinearProgressIndicator
+        android:id="@+id/loading_indicator"
+        android:indeterminate="true"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content" />
+
+    <androidx.recyclerview.widget.RecyclerView xmlns:app="http://schemas.android.com/apk/res-auto"
         xmlns:tools="http://schemas.android.com/tools"
         android:id="@+id/recycler_view"
         android:name="com.mugames.vidsnap.ui.main.DownloadedFragment"
@@ -30,6 +34,8 @@
         app:layoutManager="LinearLayoutManager"
         tools:context=".ui.fragments.HistoryFragment"
         tools:listitem="@layout/fragment_history_item" />
-    <include layout="@layout/fragment_no_record"
-        android:id="@+id/no_record_container"/>
+
+    <include
+        android:id="@+id/no_record_container"
+        layout="@layout/fragment_no_record" />
 </FrameLayout>
