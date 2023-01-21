@@ -51,7 +51,7 @@ public class HttpRequest{
     String type;
     String data;
 
-    public HttpRequest(MainActivity activity, String videoURL, String cookies, Hashtable<String,String> headers, String type, String data, String user_agent, UtilityInterface.ResponseCallBack callBack){
+    public HttpRequest(MainActivity activity, String videoURL, String cookies, Hashtable<String,String> headers, String type, String data, UtilityInterface.ResponseCallBack callBack){
         try {
             this.cookies=cookies;
             this.callBack=callBack;

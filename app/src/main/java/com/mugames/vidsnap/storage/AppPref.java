@@ -39,10 +39,13 @@ import android.content.SharedPreferences;
 import android.net.Uri;
 import android.os.Environment;
 
+import androidx.annotation.Nullable;
 import androidx.preference.PreferenceManager;
 
 import com.mugames.vidsnap.R;
 import com.mugames.vidsnap.utility.Statics;
+
+import org.jetbrains.annotations.NotNull;
 
 import java.io.File;
 
@@ -75,7 +78,7 @@ public class AppPref {
     final SharedPreferences sharedPreferences;
     final Context context;
 
-    String TAG = Statics.TAG+":AppPref";
+    String TAG = Statics.TAG + ":AppPref";
 
 
     private AppPref(Context context) {
@@ -84,9 +87,9 @@ public class AppPref {
     }
 
     public static AppPref getInstance(Context context) {
-        if (instance==null ){
-            synchronized (AppPref.class){
-                if(instance==null)
+        if (instance == null) {
+            synchronized (AppPref.class) {
+                if (instance == null)
                     instance = new AppPref(context.getApplicationContext());
             }
         }
@@ -104,23 +107,24 @@ public class AppPref {
         return sharedPreferences.getString(context.getString(id), def);
     }
 
-    public void setBooleanValue(int key, boolean value){
+    public void setBooleanValue(int key, boolean value) {
         SharedPreferences.Editor editor = sharedPreferences.edit();
         editor.putBoolean(context.getString(key), value);
         editor.apply();
     }
 
-    public boolean getBooleanValue(int id, boolean def){
+    public boolean getBooleanValue(int id, boolean def) {
         return sharedPreferences.getBoolean(context.getString(id), def);
     }
 
     /**
      * save path got from DOCUMENT_TREE
+     *
      * @param intent intent that we got from document tree
-     *  displayable string eg: External Storage>folder> etc..
-     * */
+     *               displayable string eg: External Storage>folder> etc..
+     */
 
-    public void setSavePath(Intent intent){
+    public void setSavePath(Intent intent) {
         String path;
         Uri uri;
         if (intent != null) {
@@ -128,7 +132,7 @@ public class AppPref {
             takeFlags &= (Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
 
             uri = intent.getData();
-            context.getContentResolver().takePersistableUriPermission(uri,takeFlags);
+            context.getContentResolver().takePersistableUriPermission(uri, takeFlags);
             setStringValue(R.string.key_download, uri.toString());
 
         } else {
@@ -139,9 +143,9 @@ public class AppPref {
 
     }
 
-    public Uri getSavePath(){
-        String p= getStringValue(R.string.key_download, null);
-        if(p==null)  return null;
+    public Uri getSavePath() {
+        String p = getStringValue(R.string.key_download, null);
+        if (p == null) return null;
         return Uri.parse(p);
     }
 
@@ -154,16 +158,25 @@ public class AppPref {
         return context.getExternalFilesDirs(folderName)[index] + "/";
     }
 
-    public void setWhatsAppUri(Intent intent){
+    public void setWhatsAppUri(Intent intent) {
         Uri uri = intent.getData();
         int flag = intent.getFlags() & Intent.FLAG_GRANT_READ_URI_PERMISSION;
-        context.getContentResolver().takePersistableUriPermission(uri,flag);
-        setStringValue(R.string.whatsappUri,uri.toString());
+        context.getContentResolver().takePersistableUriPermission(uri, flag);
+        setStringValue(R.string.whatsappUri, uri.toString());
     }
 
     public Uri getWhatsAppUri() {
-        String uri = getStringValue(R.string.whatsappUri,null);
-        if(uri==null) return null;
+        String uri = getStringValue(R.string.whatsappUri, null);
+        if (uri == null) return null;
         return Uri.parse(uri);
+    }
+
+    public void saveFcmToken(@NotNull String token) {
+        setStringValue(R.string.key_fcm_token, token);
+    }
+
+    @Nullable
+    public String getFcmToken() {
+        return getStringValue(R.string.key_fcm_token, null);
     }
 }

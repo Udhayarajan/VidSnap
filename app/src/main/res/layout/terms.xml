@@ -48,8 +48,8 @@
         android:id="@+id/term_checkbox"
         android:text="I have read and agree to the terms and conditions above"
         android:layout_width="match_parent"
+        android:enabled="false"
         android:layout_height="wrap_content"/>
-
 
     <LinearLayout
         android:layout_below="@id/term_checkbox"

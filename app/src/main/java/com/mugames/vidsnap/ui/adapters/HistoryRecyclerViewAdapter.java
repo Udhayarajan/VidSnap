@@ -53,6 +53,7 @@ import com.mugames.vidsnap.utility.Statics;
 
 import org.jetbrains.annotations.NotNull;
 
+import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 
 
@@ -128,6 +129,8 @@ public class HistoryRecyclerViewAdapter extends ListAdapter<History, HistoryRecy
             } catch (IllegalArgumentException e) {
                 holder.duration.setText("-NA-");
                 // File not found
+            } catch (IOException e) {
+                throw new RuntimeException(e);
             }
         }
 

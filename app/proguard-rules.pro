@@ -33,3 +33,11 @@
 -keep class com.arthenica.ffmpegkit.AbiDetect {
     native <methods>;
 }
+
+-dontwarn java.beans.Transient
+-dontwarn java.lang.management.ThreadInfo
+-dontwarn javax.lang.model.element.Element
+-dontwarn org.osgi.framework.Bundle
+-dontwarn org.osgi.framework.BundleContext
+-dontwarn org.osgi.framework.FrameworkUtil
+-dontwarn org.osgi.framework.ServiceReference

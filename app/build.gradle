@@ -7,21 +7,31 @@ plugins {
 }
 
 android {
-    compileSdkVersion 32
+    compileSdkVersion 33
     buildToolsVersion "30.0.3"
 
+    lintOptions {
+        checkReleaseBuilds false
+        // Or, if you prefer, you can continue to check for errors in release builds,
+        // but continue the build even when errors are found:
+        abortOnError false
+    }
+
+    packagingOptions {
+        exclude 'META-INF/DEPENDENCIES'
+    }
     defaultConfig {
         applicationId "com.mugames.vidsnap"
         minSdkVersion 21
-        targetSdkVersion 32
-        versionCode 11
-        versionName "4.1.0"
+        targetSdkVersion 33
+        versionCode 12
+        versionName "5.0.0(beta)"
         multiDexEnabled true
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
 
     buildTypes {
-        debug{
+        debug {
             minifyEnabled false
             ext.enableCrashlytics = false
         }
@@ -75,7 +85,7 @@ dependencies {
     implementation 'androidx.core:core-ktx:1.8.0'
     implementation "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
 
-//    implementation files('libs/java-json.jar')
+    implementation 'org.json:json:20220924'
 
     implementation 'androidx.preference:preference-ktx:1.2.0'
     implementation 'com.google.firebase:firebase-config:'
@@ -86,13 +96,18 @@ dependencies {
     implementation "androidx.tonyodev.fetch2:xfetch2:3.1.6"
 
     //FFmpeg-kit
-    implementation project(path: ':ffmpeg-kit-android-lib') //Comment this line on static built library
+    implementation project(path: ':ffmpeg-kit-android-lib')
+    //Comment this line on static built library
 //    implementation 'com.arthenica:ffmpeg-kit-full:4.4.LTS' // Uncomment this line on static built library
 
     //Glide
-    implementation 'com.github.bumptech.glide:glide:4.12.0'
+    implementation 'com.github.bumptech.glide:glide:4.13.1'
     implementation 'androidx.browser:browser:1.4.0'
-    annotationProcessor 'com.github.bumptech.glide:compiler:4.12.0'
+
+    //FCM
+    implementation 'com.google.firebase:firebase-messaging-ktx:23.1.0'
+
+    annotationProcessor 'com.github.bumptech.glide:compiler:4.13.1'
 
 
     testImplementation 'junit:junit:4.13.2'
@@ -100,8 +115,6 @@ dependencies {
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.4.0'
 
     implementation 'androidx.appcompat:appcompat:1.5.0'
-
-
 
 
     //Room
@@ -120,10 +133,16 @@ dependencies {
     //LeakCanary
     debugImplementation 'com.squareup.leakcanary:leakcanary-android:2.8.1'
 
-    //VidSnapKit
-//    implementation 'com.github.Udhayarajan:VidSnapKit:0.0.1'
+    // CircleImageView
+    implementation 'de.hdodenhof:circleimageview:3.1.0'
 
-    implementation 'com.github.Udhayarajan:VidSnapKit:1.1.0-beta'
+    //Json to Object converter
+    // https://mvnrepository.com/artifact/com.fasterxml.jackson.core/jackson-core
+    implementation 'com.fasterxml.jackson.core:jackson-annotations:2.14.1'
+    implementation 'com.fasterxml.jackson.core:jackson-databind:2.14.1'
+
+    //VidSnapKit
+    implementation 'io.github.udhayarajan:VidSnapKit:2.0.3'
 
 
 }

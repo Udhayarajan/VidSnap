@@ -153,6 +153,8 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main_preview);
 
+        FirebaseCrashlytics.getInstance().setCustomKey("FCMToken", AppPref.getInstance(this).getFcmToken());
+
 
         activityViewModel = new ViewModelProvider(this).get(MainActivityViewModel.class);
         activityViewModel.getActiveDownload().observe(this, this::setupBadge);
@@ -492,7 +494,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                 .setCancelable(true)
                 .setTitle("Oops!!")
                 .setMessage(reason);
-        Log.e(TAG, "error: ", e);
+        Log.e(TAG, "reason" + reason + " error: ", e);
 
 
         if (e != null && !BuildConfig.DEBUG) {
@@ -620,7 +622,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         // Skip this for loop if you use static module loading of FFmpeg-kit
         for (DownloadDetails d : activityViewModel.tempDetails)
             if ((d.audioURL != null || d.chunkUrl != null) &&
-                    FileUtil.isFileNotExists(AppPref.getInstance(this).getCachePath(LIBRARY_PATH) + FFMPEG_VERSION+"lib.zip")
+                    FileUtil.isFileNotExists(AppPref.getInstance(this).getCachePath(LIBRARY_PATH) + FFMPEG_VERSION + "lib.zip")
             ) {
                 fetchSOFiles(moduleDownloadCallback);
                 return;
@@ -666,10 +668,10 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         final String abi = Build.SUPPORTED_ABIS[0];
         dialog.show("Preparing download");
         HashMap<String, String> abiHashMap = new HashMap<>();
-        abiHashMap.put("armeabi-v7a", "https://raw.githubusercontent.com/Udhayarajan/SOserver/master/"+FFMPEG_VERSION+"armeabi-v7a.zip");
-        abiHashMap.put("arm64-v8a", "https://raw.githubusercontent.com/Udhayarajan/SOserver/master/"+FFMPEG_VERSION+"arm64-v8a.zip");
-        abiHashMap.put("x86", "https://raw.githubusercontent.com/Udhayarajan/SOserver/master/"+FFMPEG_VERSION+"x86.zip");
-        abiHashMap.put("x86_64", "https://raw.githubusercontent.com/Udhayarajan/SOserver/master/"+FFMPEG_VERSION+"x86_64.zip");
+        abiHashMap.put("armeabi-v7a", "https://raw.githubusercontent.com/Udhayarajan/SOserver/master/" + FFMPEG_VERSION + "armeabi-v7a.zip");
+        abiHashMap.put("arm64-v8a", "https://raw.githubusercontent.com/Udhayarajan/SOserver/master/" + FFMPEG_VERSION + "arm64-v8a.zip");
+        abiHashMap.put("x86", "https://raw.githubusercontent.com/Udhayarajan/SOserver/master/" + FFMPEG_VERSION + "x86.zip");
+        abiHashMap.put("x86_64", "https://raw.githubusercontent.com/Udhayarajan/SOserver/master/" + FFMPEG_VERSION + "x86_64.zip");
 
         new MiniExecute(null).getSize(abiHashMap.get(abi), (size, bundle) -> runOnUiThread(() -> downloadAdditionalModule(size, abiHashMap.get(abi), callback)));
 
@@ -846,7 +848,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
 
     public void logOutInsta(ConfigurationCallback configurationCallback) {
-        openWebPage("https://instagram.com/accounts/logout/", new String[]{"https://www.instagram.com/", "https://www.instagram.com/accounts/login/?next=/accounts/logout/"}, getStringValue(R.string.key_instagram, null), new UtilityInterface.CookiesInterface() {
+        openWebPage("https://instagram.com/accounts/logout/", new String[]{"https://www.instagram.com/", "https://www.instagram.com/accounts/login/?next=/accounts/logout/", "https://www.instagram.com/accounts/login/?next=%2Faccounts%2Flogout%2F"}, getStringValue(R.string.key_instagram, null), new UtilityInterface.CookiesInterface() {
             @Override
             public void onReceivedCookies(String cookies) {
                 Toast.makeText(MainActivity.this, "Logout Successful", Toast.LENGTH_SHORT).show();

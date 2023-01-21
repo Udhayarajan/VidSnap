@@ -18,9 +18,12 @@
 package com.mugames.vidsnap;
 
 import android.view.View;
+import android.view.ViewTreeObserver;
 import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.CompoundButton;
+import android.widget.ScrollView;
+import android.widget.Toast;
 
 import androidx.appcompat.app.AlertDialog;
 
@@ -45,17 +48,25 @@ public class Terms {
         agree.setAlpha(.75f);
         agree.setEnabled(false);
         CheckBox checkBox=v.findViewById(R.id.term_checkbox);
-        checkBox.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
-            @Override
-            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
-                if(checkBox.isChecked()){
-                    agree.setAlpha(1);
-                    agree.setEnabled(true);
-                }
-                else {
-                    agree.setAlpha(.75f);
-                    agree.setEnabled(false);
-                }
+        Toast.makeText(activity, "Scroll and read to end to enable \"Agree", Toast.LENGTH_LONG).show();
+
+        ScrollView scrollView = v.findViewById(R.id.term_content);
+        scrollView.getViewTreeObserver().addOnScrollChangedListener(() -> {
+            View view = scrollView.getChildAt(scrollView.getChildCount() - 1);
+            int topDetector = scrollView.getScrollY();
+            int bottomDetector = view.getBottom() - (scrollView.getHeight() + scrollView.getScrollY());
+            if (bottomDetector == 0) {
+                checkBox.setEnabled(true);
+            }
+        });
+        checkBox.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            if(checkBox.isChecked()){
+                agree.setAlpha(1);
+                agree.setEnabled(true);
+            }
+            else {
+                agree.setAlpha(.75f);
+                agree.setEnabled(false);
             }
         });
 

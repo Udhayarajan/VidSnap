@@ -17,7 +17,6 @@
 package com.mugames.vidsnap.ui.viewmodels
 
 import android.app.Application
-import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.viewModelScope
 import com.mugames.vidsnap.R
 import com.mugames.vidsnap.firebase.FirebaseManager
@@ -40,40 +39,7 @@ class VideoFragmentViewModelKt(application: Application) : VideoFragmentViewMode
 
     var ktFormats = listOf<Formats>()
         set(value) {
-            formats.setIsMultiVideos(value.size > 1)
-            value.forEach { format ->
-                format.audioData.forEach { audioData ->
-                    formats.audioURLs.add(audioData.url)
-                    formats.audioMime.add(audioData.mimeType)
-                }
-
-                if (value.size > 1)
-                    format.videoData[0].apply {
-                        formats.mainFileURLs.add(url)
-                        formats.fileMime.add(mimeType)
-                        formats.qualities.add(quality)
-                        formats.videoSizes.add(size)
-                        formats.videoSizeInString.add(UtilityClass.formatFileSize(size,
-                            false))
-                    }
-                else
-                    format.videoData.forEach { videoData ->
-                        formats.mainFileURLs.add(videoData.url)
-                        formats.fileMime.add(videoData.mimeType)
-                        formats.qualities.add(videoData.quality)
-                        formats.videoSizes.add(videoData.size)
-                        formats.videoSizeInString.add(UtilityClass.formatFileSize(videoData.size,
-                            false))
-                    }
-
-                format.imageData.forEach {
-                    formats.thumbNailsURL.add(it.url)
-                }
-
-
-                formats.title = format.title
-                formats.src = format.src
-            }
+            formats = value.toFormats()
             field = value
         }
     val resultLiveData = SingleEventLiveData<Result>()
@@ -143,13 +109,15 @@ class VideoFragmentViewModelKt(application: Application) : VideoFragmentViewMode
                 details = UtilityClass.LoginDetailsProvider(
                     "Facebook requested you to sign-in. Without sign-in video can't be downloaded",
                     "https://www.facebook.com/login/",
-                    arrayOf("https://m.facebook.com/login/save-device/?login_source=login#_=_",
+                    arrayOf(
+                        "https://m.facebook.com/login/save-device/?login_source=login#_=_",
                         "https://m.facebook.com/?_rdr",
                         "https://m.facebook.com/home.php?_rdr",
                         "https://m.facebook.com/home.php",
                         "https://m.facebook.com/?ref=dbl&_rdr",
                         "https://m.facebook.com/?ref=dbl&_rdr#~!/home.php?ref=dbl",
-                        "https://m.facebook.com/?ref=dbl&_rdr#!/home.php?ref=dbl"),
+                        "https://m.facebook.com/?ref=dbl&_rdr#!/home.php?ref=dbl"
+                    ),
                     R.string.key_facebook
                 ) { cookie ->
                     endFetchCookies(cookie)
@@ -178,4 +146,103 @@ class EmptyExtractor : com.mugames.vidsnap.extractor.Extractor("Nothing") {
     override fun analyze(url: String?) {
         TODO("Not yet implemented")
     }
+}
+
+fun List<Formats>.toFormats(): com.mugames.vidsnap.utility.bundles.Formats {
+    val formats = com.mugames.vidsnap.utility.bundles.Formats()
+    formats.setIsMultiVideos(this.size > 1)
+    this.forEach { format ->
+        format.audioData.forEach { audioData ->
+            formats.audioURLs.add(audioData.url)
+            formats.audioMime.add(audioData.mimeType)
+        }
+
+        if (this.size > 1) {
+            if (format.videoData.size > 0)
+                format.videoData[0].apply {
+                    formats.mainFileURLs.add(url)
+                    formats.fileMime.add(mimeType)
+                    formats.qualities.add(quality)
+                    formats.videoSizes.add(size)
+                    formats.videoSizeInString.add(
+                        UtilityClass.formatFileSize(
+                            size,
+                            false
+                        )
+                    )
+                }
+            else if (format.audioData.size > 0) {
+                format.audioData[0].apply {
+                    formats.mainFileURLs.add(url)
+                    formats.fileMime.add(mimeType)
+                    formats.qualities.add("--")
+                    formats.videoSizes.add(size)
+                    formats.videoSizeInString.add(
+                        UtilityClass.formatFileSize(
+                            size,
+                            false
+                        )
+                    )
+                }
+            } else if (format.imageData.size > 0) {
+                format.imageData[0].apply {
+                    formats.mainFileURLs.add(url)
+                    formats.fileMime.add(mimeType)
+                    formats.qualities.add(resolution)
+                    formats.videoSizes.add(size)
+                    formats.videoSizeInString.add(
+                        UtilityClass.formatFileSize(
+                            size,
+                            false
+                        )
+                    )
+                }
+            }
+        } else if (format.videoData.isNotEmpty())
+            format.videoData.forEach { videoData ->
+                formats.mainFileURLs.add(videoData.url)
+                formats.fileMime.add(videoData.mimeType)
+                formats.qualities.add(videoData.quality)
+                formats.videoSizes.add(videoData.size)
+                formats.videoSizeInString.add(
+                    UtilityClass.formatFileSize(
+                        videoData.size,
+                        false
+                    )
+                )
+            }
+        else if (format.imageData.isNotEmpty()) {
+            formats.apply {
+                format.imageData.forEach {
+                    mainFileURLs.add(it.url)
+                    fileMime.add(it.mimeType)
+                    videoSizes.add(it.size)
+                    videoSizeInString.add(
+                        UtilityClass.formatFileSize(
+                            it.size,
+                            false
+                        )
+                    )
+                }
+            }
+        }
+
+        if (format.audioData.isNotEmpty()) {
+            format.audioData.sortBy { it.size }
+            format.audioData.forEach {
+                formats.audioURLs.add(it.url)
+                formats.audioMime.add(it.mimeType)
+                formats.audioSizes.add(it.size)
+            }
+        }
+
+        format.imageData.forEach {
+            formats.thumbNailsURL.add(it.url)
+        }
+
+        formats.title = format.title
+        formats.src = format.src
+    }
+
+    return formats
 }

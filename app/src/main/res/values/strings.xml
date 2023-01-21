@@ -33,7 +33,11 @@
     We use Google Analytics to analyze our users\' experience. Crash also a part of Analytics. We don\'t collect any other details other than the crash log.\n
 
         <b><u>License:</u></b>\n
-    This app\'s source code is licensed under GNU GPL v3. Goto 3 line(≡) icon-> About (ⓘ) for more details
+    This app\'s source code is licensed under GNU GPL v3. Goto 3 line(≡) icon-> About (ⓘ) for more details\n
+
+        <b><u>Instagram Story Saver:</u></b>\n
+    Don\'t use insta story saver as secret story viewer because Instagram may temporarily suspend your account
+        because of suspicious activity.
     </string>
 
     <string name="about_us">Thanks for your interest to visit about section of this app. Created by me and tested by/with my friends . Contact us via <b>Social Contact</b>
@@ -49,10 +53,11 @@
     <string name="key_facebook">fbCookies</string>
     <string name="key_clear_history_cache">cacheHistory</string>
     <string name="key_media_link">shareLinkOnCrash</string>
-    <string name="key_terms_con">454513512.c</string>
+    <string name="key_terms_con">454513512.d</string>
     <string name="key_force_clear">clearAllData0</string>
     <string name="key_quality_audio">audioqaulpref</string>
     <string name="key_quality_video">videoqualpref</string>
+    <string name="key_fcm_token">fcmtokenforfutureuse</string>
 
     <!-- Messages Preferences -->
     <string name="signature_title">Your signature</string>
@@ -63,6 +68,7 @@
     <string-array name="social_media_type">
         <item>--Select--</item>
         <item>WhatsApp</item>
+        <item>Instagram</item>
     </string-array>
 
 
