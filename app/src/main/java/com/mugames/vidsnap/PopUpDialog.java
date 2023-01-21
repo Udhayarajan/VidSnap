@@ -39,6 +39,7 @@ public class PopUpDialog{
             View v = activity.getLayoutInflater().inflate(R.layout.loading_dialog, null);
             textView = v.findViewById(R.id.process_name);
             textView.setText(text);
+            textView.setSelected(true);
             dialogBuilder.setView(v);
             dialogBuilder.setCancelable(false);
             dialog = dialogBuilder.create();

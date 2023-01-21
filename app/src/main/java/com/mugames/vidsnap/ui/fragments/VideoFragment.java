@@ -147,7 +147,9 @@ public class VideoFragment extends Fragment implements
                         && !((Error.Instagram404Error) error).isCookiesUsed())
                     viewModel.onClickAnalysisWithCookies(urlBox.getText().toString(), activity);
                 else
-                    activity.error(error.getMessage(), error.getE());
+                    ((MainActivity) requireActivity()).error(
+                            result + "\nReason: " + ((Result.Failed) result).getError().getMessage(), ((Result.Failed) result).getError().getE()
+                    );
             } else {
                 ProgressState state = ((Result.Progress) result).getProgressState();
                 if (state instanceof ProgressState.End) {
@@ -173,6 +175,7 @@ public class VideoFragment extends Fragment implements
         });
 
         link = getArguments() != null ? getArguments().getString(URL_KEY) : null;
+        setArguments(null);
 
         if (link == null)
             link = viewModel.getUrlLink();

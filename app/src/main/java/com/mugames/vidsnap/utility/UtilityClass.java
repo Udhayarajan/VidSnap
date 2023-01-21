@@ -46,7 +46,7 @@ public class UtilityClass {
         int preExist = 0;
         boolean value = false;
         boolean secJson = false;
-        if(query.startsWith("{") && query.endsWith("}")) return query;
+        if (query.startsWith("{") && query.endsWith("}")) return query;
         StringBuilder parsed = new StringBuilder();
         for (char ch : query.toCharArray()) {
             if (ch == '{') preExist += 1;
@@ -168,7 +168,7 @@ public class UtilityClass {
         return list;
     }
 
-    public synchronized static char[] convertObjectListToCharArray(ArrayList<Object> list){
+    public synchronized static char[] convertObjectListToCharArray(ArrayList<Object> list) {
         char[] chars = new char[list.size()];
         for (int i = 0; i < list.size(); i++) {
             chars[i] = (char) list.get(i);
@@ -189,13 +189,13 @@ public class UtilityClass {
     }
 
     public static String decodeHTML(String text) {
-        if(text==null)
+        if (text == null)
             return null;
 
         String decoded;
 
 
-        decoded = HtmlCompat.fromHtml(text,HtmlCompat.FROM_HTML_MODE_LEGACY).toString();
+        decoded = HtmlCompat.fromHtml(text, HtmlCompat.FROM_HTML_MODE_LEGACY).toString();
 
 
         try {
@@ -218,24 +218,23 @@ public class UtilityClass {
     }
 
 
-    public static String bitmapToString(Bitmap bitmap){
-        if(bitmap==null) return "";
+    public static String bitmapToString(Bitmap bitmap) {
+        if (bitmap == null) return "";
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-        bitmap.compress(Bitmap.CompressFormat.JPEG,100,outputStream);
-        return Base64.encodeToString(outputStream.toByteArray(),Base64.DEFAULT);
+        bitmap.compress(Bitmap.CompressFormat.JPEG, 100, outputStream);
+        return Base64.encodeToString(outputStream.toByteArray(), Base64.DEFAULT);
     }
 
     public static byte[] bitmapToBytes(Bitmap bmp) {
-        if(bmp==null) return null;
+        if (bmp == null) return null;
         ByteArrayOutputStream stream = new ByteArrayOutputStream();
         bmp.compress(Bitmap.CompressFormat.JPEG, 100, stream);
         return stream.toByteArray();
     }
 
 
-
     public static Bitmap bytesToBitmap(byte[] bitmapData, int imageWidth, int imageHeight) {
-        if(bitmapData==null) return null;
+        if (bitmapData == null) return null;
         Bitmap bitmap = BitmapFactory.decodeByteArray(bitmapData, 0, bitmapData.length);
         if (bitmap == null) {
             Bitmap bmp = Bitmap.createBitmap(imageWidth, imageHeight, Bitmap.Config.ARGB_8888);
@@ -321,13 +320,23 @@ public class UtilityClass {
             JSONArray value = null;
             try {
                 value = object.getJSONArray(name);
-            } catch (Exception e) {}
+            } catch (Exception e) {
+            }
+            return value;
+        }
+
+        public static JSONArray getArray_or_Null(JSONArray array, int index) {
+            JSONArray value = null;
+            try {
+                value = array.getJSONArray(index);
+            } catch (Exception e) {
+            }
             return value;
         }
 
     }
 
-    public static class LoginDetailsProvider{
+    public static class LoginDetailsProvider {
         String reason;
         String loginURL;
         String[] loginDoneUrl;

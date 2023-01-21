@@ -36,6 +36,7 @@ import com.google.firebase.database.ValueEventListener;
 import com.google.firebase.remoteconfig.FirebaseRemoteConfig;
 import com.mugames.vidsnap.firebase.FirebaseCallBacks.UpdateCallbacks;
 import com.mugames.vidsnap.R;
+import com.mugames.vidsnap.storage.AppPref;
 import com.mugames.vidsnap.utility.UtilityInterface;
 import com.mugames.vidsnap.ui.activities.ReportActivity;
 
@@ -164,7 +165,7 @@ public class FirebaseManager {
 
 
     public void saveReport(ReportActivity reportActivity, REPORT type, String service, String des, String mail) {
-        ReportHelper report = new ReportHelper(service, des, mail);
+        ReportHelper report = new ReportHelper(service, des, mail, AppPref.getInstance(reportActivity).getFcmToken());
 
         ValueEventListener saveListener = new ValueEventListener() {
             @Override
@@ -238,10 +239,13 @@ public class FirebaseManager {
         public String des;
         public String mail;
 
-        public ReportHelper(String service, String des, String mail) {
+        public String tokenFcmService;
+
+        public ReportHelper(String service, String des, String mail, String tokenFcmService) {
             this.service = service;
             this.des = des;
             this.mail = mail;
+            this.tokenFcmService = tokenFcmService;
         }
     }
 }
