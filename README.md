@@ -31,5 +31,6 @@ Refer following lines to build as static library loading:
 - [FFmpeg-kit](https://github.com/tanersener/ffmpeg-kit)
 - [Fetch](https://github.com/tonyofrancis/Fetch)
 - [Glide](https://github.com/bumptech/glide)
+- [VidSnapKit-Ultimate](https://github.com/Udhayarajan/VidSnapKit-Ultimate) [It's cloud API version available for free]
 
 
