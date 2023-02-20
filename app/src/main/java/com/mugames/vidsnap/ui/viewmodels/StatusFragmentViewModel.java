@@ -80,6 +80,7 @@ public class StatusFragmentViewModel extends AndroidViewModel implements Utility
     }
 
     public ArrayList<Integer> getSelectedList() {
+        if (selectedList == null) return new ArrayList<>();
         return selectedList;
     }
 

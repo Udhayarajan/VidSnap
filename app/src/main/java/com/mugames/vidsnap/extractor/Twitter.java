@@ -47,11 +47,9 @@ public class Twitter extends Extractor {
     String auth = "Bearer AAAAAAAAAAAAAAAAAAAAAPYXBAAAAAAACLXUNDekMxqa8h%2F40K4moUkGsoc%3DTYfbDKbT3jJPCEVnMYqilB28NHfOPqkca3qaAxGfsyKCs0wRbw";
 
 
-
     JSONObject info;
 
     Hashtable<String, String> headers = new Hashtable<>();
-
 
 
     public Twitter() {
@@ -64,7 +62,7 @@ public class Twitter extends Extractor {
         httpURL = url;
         tweetID = getTweetID(url);
         if (tweetID == null) {
-            getDialogueInterface().error("Sorry!! Tweet doesn't exist",null);
+            getDialogueInterface().error("Sorry!! Tweet doesn't exist", null);
             return;
         }
         getToken();
@@ -88,9 +86,9 @@ public class Twitter extends Extractor {
 
     private void getToken() {
         getDialogueInterface().show("Getting Token");
-        HttpRequest request = new HttpRequest(base_url+"guest/activate.json",response -> {
-            if (response.getException() != null){
-                getDialogueInterface().error(response.getResponse(),response.getException());
+        HttpRequest request = new HttpRequest(base_url + "guest/activate.json", response -> {
+            if (response.getException() != null) {
+                getDialogueInterface().error(response.getResponse(), response.getException());
                 return;
             }
             try {
@@ -109,9 +107,9 @@ public class Twitter extends Extractor {
     }
 
     void extractVideo() {
-        HttpRequest request = new HttpRequest(base_url+"statuses/show/"+tweetID+".json"+query,response ->{
-            if (response.getException() != null){
-                getDialogueInterface().error(response.getResponse(),response.getException());
+        HttpRequest request = new HttpRequest(base_url + "statuses/show/" + tweetID + ".json" + query, response -> {
+            if (response.getException() != null) {
+                getDialogueInterface().error(response.getResponse(), response.getException());
                 return;
             }
             identifyDownloader(response.getResponse());
@@ -121,7 +119,7 @@ public class Twitter extends Extractor {
         request.start();
     }
 
-    private void identifyDownloader(String response){
+    private void identifyDownloader(String response) {
         try {
             getDialogueInterface().show("Identifying..");
             JSONObject jsonObject = new JSONObject(response);
@@ -168,7 +166,12 @@ public class Twitter extends Extractor {
                             else
                                 vmap_url = get_binding_value(binding_values, "player_stream_url");
                             for (String s1 : new String[]{"_original", "_x_large", "_large", "", "_small"}) {
-                                JSONObject image = new JSONObject(get_binding_value(binding_values, "player_image" + s1));
+                                String jsonString = get_binding_value(binding_values, "player_image" + s1);
+                                if (jsonString == null) {
+                                    getDialogueInterface().error("This media can't be downloaded. It may be a retweet so paste URL of main tweet", null);
+                                    return;
+                                }
+                                JSONObject image = new JSONObject(jsonString);
                                 String img_url = UtilityClass.JSONGetter.getString_or_Null(image, "url");
                                 if (img_url != null && !img_url.contains("/player-placeholder")) {
                                     formats.thumbNailsURL.add(img_url);
@@ -179,7 +182,7 @@ public class Twitter extends Extractor {
                             break;
                     }
                 } else {
-                    getDialogueInterface().error("This media can't be downloaded. It may be a retweet so paste URL of main tweet",null);
+                    getDialogueInterface().error("This media can't be downloaded. It may be a retweet so paste URL of main tweet", null);
                 }
             }
 
@@ -190,9 +193,9 @@ public class Twitter extends Extractor {
 
     private void fromVMap(String url) {
 
-        HttpRequest request = new HttpRequest(url,res -> {
-            if (res.getException() != null){
-                getDialogueInterface().error(res.getResponse(),res.getException());
+        HttpRequest request = new HttpRequest(url, res -> {
+            if (res.getException() != null) {
+                getDialogueInterface().error(res.getResponse(), res.getException());
                 return;
             }
             String response = res.getResponse();
@@ -216,7 +219,7 @@ public class Twitter extends Extractor {
                 updateUI();
                 return;
             }
-            getDialogueInterface().error("Sorry! Something wrong in vmap.",new Exception("Problem with vmap"));
+            getDialogueInterface().error("Sorry! Something wrong in vmap.", new Exception("Problem with vmap"));
         });
         request.setType(HttpRequest.GET);
         request.start();
@@ -273,9 +276,9 @@ public class Twitter extends Extractor {
     }
 
     void extractBroadcasts() {
-        HttpRequest request = new HttpRequest(String.format(base_url + "broadcasts/show.json?ids=%s", tweetID),response -> {
-            if (response.getException() != null){
-                getDialogueInterface().error(response.getResponse(),response.getException());
+        HttpRequest request = new HttpRequest(String.format(base_url + "broadcasts/show.json?ids=%s", tweetID), response -> {
+            if (response.getException() != null) {
+                getDialogueInterface().error(response.getResponse(), response.getException());
                 return;
             }
             parseBroadcastResponse(response.getResponse());
@@ -285,15 +288,15 @@ public class Twitter extends Extractor {
         request.start();
     }
 
-    void parseBroadcastResponse(String response){
+    void parseBroadcastResponse(String response) {
         try {
             JSONObject broadcasts = new JSONObject(response).getJSONObject("broadcasts").getJSONObject(tweetID);
             info = extractInfo(broadcasts);
             String mediaKey = broadcasts.getString("media_key");
 
-            HttpRequest request = new HttpRequest(String.format(base_url + "live_video_stream/status/%s", mediaKey),res1 -> {
-                if (res1.getException() != null){
-                    getDialogueInterface().error(res1.getResponse(),res1.getException());
+            HttpRequest request = new HttpRequest(String.format(base_url + "live_video_stream/status/%s", mediaKey), res1 -> {
+                if (res1.getException() != null) {
+                    getDialogueInterface().error(res1.getResponse(), res1.getException());
                     return;
                 }
                 String response1 = res1.getResponse();
@@ -306,7 +309,7 @@ public class Twitter extends Extractor {
                     String m3u8_url = UtilityClass.JSONGetter.getString_or_Null(source, "noRedirectPlaybackUrl");
                     if (nullOrEmpty(m3u8_url)) m3u8_url = source.getString("location");
                     if (m3u8_url.contains("/live_video_stream/geoblocked/")) {
-                        getDialogueInterface().error("Geo restricted try with VPN",null);
+                        getDialogueInterface().error("Geo restricted try with VPN", null);
                         return;
                     }
                     new m3u8(this).extract_m3u8(m3u8_url, info);

@@ -40,6 +40,7 @@ import androidx.annotation.RequiresApi;
 import androidx.core.content.FileProvider;
 import androidx.documentfile.provider.DocumentFile;
 
+import com.google.firebase.crashlytics.FirebaseCrashlytics;
 import com.mugames.vidsnap.BuildConfig;
 import com.mugames.vidsnap.extractor.Extractor;
 import com.mugames.vidsnap.storage.AppPref;
@@ -74,7 +75,11 @@ public class WhatsApp extends Extractor {
     @RequiresApi(Build.VERSION_CODES.R)
     void analyzeAboveR() {
         Uri whatsappUri = AppPref.getInstance(getContext()).getWhatsAppUri();
-        DocumentFile[] statuses = DocumentFile.fromTreeUri(getContext(),whatsappUri).listFiles();
+        if (whatsappUri == null) {
+            FirebaseCrashlytics.getInstance().recordException(new Exception("WhatsApp uri is null"));
+            return;
+        }
+        DocumentFile[] statuses = DocumentFile.fromTreeUri(getContext(), whatsappUri).listFiles();
         for (DocumentFile file : statuses) {
             fetchDetailsOfFile(file);
         }

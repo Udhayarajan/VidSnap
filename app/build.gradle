@@ -25,7 +25,7 @@ android {
         minSdkVersion 21
         targetSdkVersion 33
         versionCode 12
-        versionName "5.0.0(beta)"
+        versionName "5.0.2(beta)"
         multiDexEnabled true
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -85,8 +85,6 @@ dependencies {
     implementation 'androidx.core:core-ktx:1.8.0'
     implementation "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
 
-    implementation 'org.json:json:20220924'
-
     implementation 'androidx.preference:preference-ktx:1.2.0'
     implementation 'com.google.firebase:firebase-config:'
     implementation 'com.google.firebase:firebase-database:20.0.5'
@@ -106,6 +104,7 @@ dependencies {
 
     //FCM
     implementation 'com.google.firebase:firebase-messaging-ktx:23.1.0'
+//    implementation project(path: ':JSON-java-master')
 
     annotationProcessor 'com.github.bumptech.glide:compiler:4.13.1'
 
@@ -142,7 +141,7 @@ dependencies {
     implementation 'com.fasterxml.jackson.core:jackson-databind:2.14.1'
 
     //VidSnapKit
-    implementation 'io.github.udhayarajan:VidSnapKit:2.0.3'
+    implementation 'io.github.udhayarajan:VidSnapKit:2.0.9'
 
 
 }

@@ -231,7 +231,7 @@ public final class FileUtil {
         List<String> pathSegments = providerUri.getPathSegments();
         if (pathSegments.get(0).equals("external_files")) {
             StringBuilder path = new StringBuilder(AppPref.getInstance(context).getCachePath(pathSegments.get(1)));
-            path.deleteCharAt(path.length()-1);
+            path.deleteCharAt(path.length() - 1);
             for (int i = 2; i < pathSegments.size(); i++) {
                 path.append(File.separator).append(pathSegments.get(i));
             }
@@ -324,6 +324,8 @@ public final class FileUtil {
 
     public static String getValidFile(String path, String name, String extension) {
         int num = 1;
+
+        if (name == null) name = "VidSnapFile";
 
         if (path == null) {
             return name + "." + extension;
@@ -526,13 +528,13 @@ public final class FileUtil {
         copyFile(context, src, dest, null);
     }
 
-        /**
-         * @param context   application context
-         * @param parentUri parent directory's uri
-         * @param fileName  current filename without extensions
-         * @param mimeType  mime type of current file
-         * @return New uri for a file eg. if file exist name will be file(1)
-         */
+    /**
+     * @param context   application context
+     * @param parentUri parent directory's uri
+     * @param fileName  current filename without extensions
+     * @param mimeType  mime type of current file
+     * @return New uri for a file eg. if file exist name will be file(1)
+     */
     public static Uri pathToNewUri(Context context, Uri parentUri, String fileName, String mimeType) {
         DocumentFile directory;
         try {
