@@ -17,7 +17,6 @@
 
 package com.mugames.vidsnap.extractor;
 
-import com.mugames.json.XML;
 import com.mugames.vidsnap.utility.UtilityClass;
 import com.mugames.vidsnap.network.HttpRequest;
 import com.mugames.vidsnap.utility.MIMEType;
@@ -27,7 +26,7 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.io.IOException;
+
 import java.util.Hashtable;
 import java.util.Objects;
 import java.util.regex.Matcher;
@@ -388,7 +387,7 @@ public class Facebook extends Extractor {
         xml = xml.replaceAll("\\\\\u003C", "<");
 
         try {
-            JSONArray AdaptionSet = XML.toJSONObject(xml).getJSONObject("MPD").getJSONObject("Period").getJSONArray("AdaptationSet");
+            JSONArray AdaptionSet = null;
             JSONArray videos = AdaptionSet.getJSONObject(0).getJSONArray("Representation");
             JSONObject audios = AdaptionSet.getJSONObject(1);
 
@@ -427,8 +426,6 @@ public class Facebook extends Extractor {
             }
         } catch (JSONException e) {
             e.printStackTrace();
-        } catch (IOException e) {
-            throw new RuntimeException(e);
         }
     }
 
