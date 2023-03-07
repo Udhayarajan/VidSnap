@@ -138,7 +138,7 @@ public class VideoFragment extends Fragment implements
                 onAnalyzeCompleted(formats);
             } else if (result instanceof Result.Failed) {
                 Error error = ((Result.Failed) result).getError();
-                if (error instanceof Error.LoginInRequired ||
+                if (error instanceof Error.LoginRequired ||
                         error instanceof Error.InvalidCookies)
                     viewModel.onClickAnalysisWithCookies(urlBox.getText().toString(), activity);
                 else if (error instanceof Error.InternalError && error.getE() instanceof SSLProtocolException)
