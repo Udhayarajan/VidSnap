@@ -25,7 +25,7 @@ android {
         minSdkVersion 21
         targetSdkVersion 33
         versionCode 12
-        versionName "5.0.0(beta)"
+        versionName "5.0.3(beta)"
         multiDexEnabled true
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -34,6 +34,8 @@ android {
         debug {
             minifyEnabled false
             ext.enableCrashlytics = false
+            applicationIdSuffix '.dev'
+            versionNameSuffix ' [DEBUG]'
         }
         release {
             minifyEnabled true
@@ -72,24 +74,22 @@ dependencies {
     implementation 'com.google.firebase:firebase-crashlytics'
     implementation 'com.google.firebase:firebase-analytics'
 
-    implementation 'androidx.appcompat:appcompat:1.5.0'
-    implementation "androidx.activity:activity-ktx:1.5.1"
-    implementation "androidx.fragment:fragment-ktx:1.5.2"
-    implementation 'com.google.android.material:material:1.6.1'
+    implementation 'androidx.appcompat:appcompat:1.6.1'
+    implementation "androidx.activity:activity-ktx:1.6.1"
+    implementation "androidx.fragment:fragment-ktx:1.5.5"
+    implementation 'com.google.android.material:material:1.8.0'
     implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
     implementation 'androidx.lifecycle:lifecycle-livedata-ktx:2.5.1'
     implementation 'androidx.lifecycle:lifecycle-viewmodel-ktx:2.5.1'
     implementation 'androidx.legacy:legacy-support-v4:1.0.0'
     implementation 'androidx.recyclerview:recyclerview:1.2.1'
 
-    implementation 'androidx.core:core-ktx:1.8.0'
+    implementation 'androidx.core:core-ktx:1.9.0'
     implementation "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
-
-    implementation 'org.json:json:20220924'
 
     implementation 'androidx.preference:preference-ktx:1.2.0'
     implementation 'com.google.firebase:firebase-config:'
-    implementation 'com.google.firebase:firebase-database:20.0.5'
+    implementation 'com.google.firebase:firebase-database:20.1.0'
 
     //Fetch
     implementation "androidx.tonyodev.fetch2okhttp:xfetch2okhttp:3.1.6"
@@ -102,23 +102,23 @@ dependencies {
 
     //Glide
     implementation 'com.github.bumptech.glide:glide:4.13.1'
-    implementation 'androidx.browser:browser:1.4.0'
+    implementation 'androidx.browser:browser:1.5.0'
 
     //FCM
-    implementation 'com.google.firebase:firebase-messaging-ktx:23.1.0'
+    implementation 'com.google.firebase:firebase-messaging-ktx:23.1.1'
 
     annotationProcessor 'com.github.bumptech.glide:compiler:4.13.1'
 
 
     testImplementation 'junit:junit:4.13.2'
-    androidTestImplementation 'androidx.test.ext:junit:1.1.3'
-    androidTestImplementation 'androidx.test.espresso:espresso-core:3.4.0'
+    androidTestImplementation 'androidx.test.ext:junit:1.1.5'
+    androidTestImplementation 'androidx.test.espresso:espresso-core:3.5.1'
 
-    implementation 'androidx.appcompat:appcompat:1.5.0'
+    implementation 'androidx.appcompat:appcompat:1.6.1'
 
 
     //Room
-    def room_version = "2.4.3"
+    def room_version = "2.5.0"
     implementation "androidx.room:room-runtime:$room_version"
     annotationProcessor "androidx.room:room-compiler:$room_version"
     // optional - RxJava2 support for Room
@@ -138,11 +138,11 @@ dependencies {
 
     //Json to Object converter
     // https://mvnrepository.com/artifact/com.fasterxml.jackson.core/jackson-core
-    implementation 'com.fasterxml.jackson.core:jackson-annotations:2.14.1'
-    implementation 'com.fasterxml.jackson.core:jackson-databind:2.14.1'
+    implementation 'com.fasterxml.jackson.core:jackson-annotations:2.14.2'
+    implementation 'com.fasterxml.jackson.core:jackson-databind:2.14.2'
 
     //VidSnapKit
-    implementation 'io.github.udhayarajan:VidSnapKit:2.0.3'
+    implementation 'io.github.udhayarajan:VidSnapKit:3.3.6'
 
 
 }
