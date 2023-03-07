@@ -17,9 +17,13 @@
 
 package com.mugames.vidsnap.ui.fragments;
 
+import android.Manifest;
 import android.app.Activity;
 import android.content.Context;
+import android.content.Intent;
 import android.content.IntentSender;
+import android.content.pm.PackageManager;
+import android.os.Build;
 import android.os.Bundle;
 
 import androidx.activity.result.ActivityResult;
@@ -31,6 +35,7 @@ import androidx.activity.result.contract.ActivityResultContract;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.core.app.ActivityCompat;
 import androidx.core.app.ActivityOptionsCompat;
 import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
@@ -46,6 +51,7 @@ import android.widget.Toast;
 
 import com.mugames.vidsnap.database.History;
 import com.mugames.vidsnap.databinding.FragmentHistoryBinding;
+import com.mugames.vidsnap.ui.activities.MainActivity;
 import com.mugames.vidsnap.ui.viewmodels.HistoryViewModel;
 import com.mugames.vidsnap.R;
 import com.mugames.vidsnap.utility.Statics;
@@ -64,6 +70,10 @@ public class HistoryFragment extends Fragment {
     HistoryViewModel historyViewModel;
     ActivityResultLauncher<IntentSenderRequest> deleteLauncher;
     FragmentHistoryBinding binding;
+
+    HistoryRecyclerViewAdapter adapter;
+
+    private ActivityResultLauncher<String> readPermissionResultLauncher;
 
     public HistoryFragment() {
     }
@@ -86,6 +96,15 @@ public class HistoryFragment extends Fragment {
                 historyViewModel.deletePendingUri();
             } else Toast.makeText(requireContext(), "Unable to delete", Toast.LENGTH_SHORT).show();
         });
+
+        readPermissionResultLauncher = registerForActivityResult(new ActivityResultContracts.RequestPermission(), result -> {
+            if (result) {
+                loadData();
+            } else {
+                Toast.makeText(requireContext(), "Permission Denied", Toast.LENGTH_SHORT).show();
+                requireActivity().onBackPressed();
+            }
+        });
     }
 
     @Override
@@ -93,7 +112,7 @@ public class HistoryFragment extends Fragment {
                              Bundle savedInstanceState) {
         binding = FragmentHistoryBinding.inflate(inflater, container, false);
         View view = binding.getRoot();
-        HistoryRecyclerViewAdapter adapter = new HistoryRecyclerViewAdapter(getViewLifecycleOwner(), historyViewModel);
+        adapter = new HistoryRecyclerViewAdapter(getViewLifecycleOwner(), historyViewModel);
 
         Context context = view.getContext();
         RecyclerView recyclerView = binding.recyclerView;
@@ -101,14 +120,11 @@ public class HistoryFragment extends Fragment {
         recyclerView.setBackgroundColor(ContextCompat.getColor(requireContext(), R.color.list_background));
         recyclerView.setAdapter(adapter);
         binding.loadingIndicator.show();
-        historyViewModel.getAllValues().observe(getViewLifecycleOwner(), new Observer<List<History>>() {
-            @Override
-            public void onChanged(List<History> histories) {
-                binding.loadingIndicator.hide();
-                swapViewVisibility(!histories.isEmpty());
-                adapter.submitList(histories);
-            }
-        });
+        if (ActivityCompat.checkSelfPermission(requireActivity(), Manifest.permission.READ_EXTERNAL_STORAGE) == PackageManager.PERMISSION_DENIED) {
+            readPermissionResultLauncher.launch(Manifest.permission.READ_EXTERNAL_STORAGE);
+        } else {
+            loadData();
+        }
 
         historyViewModel.getIntentSender().observe(getViewLifecycleOwner(), intentSender -> {
             if (intentSender != null) {
@@ -119,15 +135,27 @@ public class HistoryFragment extends Fragment {
         binding.noRecordContainer.errorReason.setText("No old downloads found");
         return view;
     }
-    private void swapViewVisibility(boolean hasElement){
-        if (hasElement){
+
+    private void swapViewVisibility(boolean hasElement) {
+        if (hasElement) {
             binding.recyclerView.setVisibility(View.VISIBLE);
             binding.recyclerView.setBackgroundColor(ContextCompat.getColor(requireContext(), R.color.list_background));
             binding.noRecordContainer.noRecordFragmentParent.setVisibility(View.GONE);
-        }else {
+        } else {
             binding.recyclerView.setVisibility(View.GONE);
             binding.noRecordContainer.noRecordFragmentParent.setVisibility(View.VISIBLE);
             binding.getRoot().setBackgroundColor(ContextCompat.getColor(requireContext(), R.color.notification_color));
         }
+    }
+
+    private void loadData() {
+        historyViewModel.getAllValues().observe(getViewLifecycleOwner(), new Observer<List<History>>() {
+            @Override
+            public void onChanged(List<History> histories) {
+                binding.loadingIndicator.hide();
+                swapViewVisibility(!histories.isEmpty());
+                adapter.submitList(histories);
+            }
+        });
     }
 }
