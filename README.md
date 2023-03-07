@@ -16,7 +16,7 @@ We would like to thank the creators of
 
 Without these libraries, this project would not have been possible.
 
-# Installation
+## Installation
 To use VidSnap, you can download the APK from the [releases](https://github.com/Udhayarajan/VidSnap/releases/) page. Once downloaded, simply install the APK on your Android device, and you are good to go!
 
 ## Usage
@@ -26,7 +26,7 @@ Click the download button
 The video will be downloaded and saved in your device's gallery
 
 
-## NOTE: 
+## NOTE 
 - The commit message says FFmpeg is used with min-gpl but later after commit `.so` files are replaced with `full-gpl`
 
 - If you build/modify this app of your own, please make sure that you are comply with [GNU GPL v3](https://www.gnu.org/licenses/gpl-3.0.en.html) Rules.
