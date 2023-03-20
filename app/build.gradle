@@ -24,8 +24,8 @@ android {
         applicationId "com.mugames.vidsnap"
         minSdkVersion 21
         targetSdkVersion 33
-        versionCode 12
-        versionName "5.0.3(beta)"
+        versionCode 13
+        versionName "6.0.0"
         multiDexEnabled true
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -142,7 +142,7 @@ dependencies {
     implementation 'com.fasterxml.jackson.core:jackson-databind:2.14.2'
 
     //VidSnapKit
-    implementation 'io.github.udhayarajan:VidSnapKit:3.3.6'
+    implementation 'io.github.udhayarajan:VidSnapKit:4.0.3'
 
 
 }
