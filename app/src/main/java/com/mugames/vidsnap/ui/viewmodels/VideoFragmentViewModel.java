@@ -47,7 +47,7 @@ public class VideoFragmentViewModel extends AndroidViewModel implements UtilityI
     }
 
 
-    public Extractor onClickAnalysis(String url, MainActivity activity) {
+    public Extractor onClickAnalysis(String url, MainActivity activity, boolean isUserClickCall) {
         if (url.contains("youtu")) {
             extractor = new YouTube();
         } else if (url.contains("instagram")) {

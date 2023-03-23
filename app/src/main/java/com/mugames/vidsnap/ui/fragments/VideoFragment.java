@@ -217,7 +217,7 @@ public class VideoFragment extends Fragment implements
         if (activity != null)
             ((UtilityInterface.DialogueInterface) activity).show("Analysing");
         if (viewModel != null) {
-            if (viewModel.onClickAnalysis(link, (MainActivity) requireActivity()) == null)
+            if (viewModel.onClickAnalysis(link, (MainActivity) requireActivity(), true) == null)
                 unLockAnalysis();
             else {
                 viewModel.clearDetails();

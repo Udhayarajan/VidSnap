@@ -37,6 +37,7 @@ import kotlinx.coroutines.launch
 
 class VideoFragmentViewModelKt(application: Application) : VideoFragmentViewModel(application) {
 
+    private var isCookieUsed = false
     var ktFormats = listOf<Formats>()
         set(value) {
             formats = value.toFormats()
@@ -50,8 +51,10 @@ class VideoFragmentViewModelKt(application: Application) : VideoFragmentViewMode
     override fun onClickAnalysis(
         url: String,
         activity: MainActivity,
+        isUserClickCall: Boolean
     ): com.mugames.vidsnap.extractor.Extractor? {
         urlLink = url
+        isCookieUsed = !isUserClickCall
         extractorKt = Extractor.findExtractor(url)
         extractorKt?.let {
             cookies?.let { cookie ->
@@ -66,16 +69,27 @@ class VideoFragmentViewModelKt(application: Application) : VideoFragmentViewMode
             formats = com.mugames.vidsnap.utility.bundles.Formats()
             return EmptyExtractor()
         } ?: run {
-            return super.onClickAnalysis(url, activity)
+            return super.onClickAnalysis(url, activity, false)
         }
     }
 
     fun onClickAnalysisWithCookies(url: String, activity: MainActivity) {
-
+        if (isCookieUsed) {
+            resultLiveData.postValue(
+                Result.Failed(
+                    com.mugames.vidsnapkit.dataholders.Error.InternalError(
+                        "With provided cookies the media can't be accessed Try re-login with proper account"
+                    )
+                )
+            )
+            return
+        }
         fun getCookies(): String? {
             if (extractorKt is Instagram) {
+                isCookieUsed = true
                 return activity.getCookies(R.string.key_instagram)
             } else if (extractorKt is Facebook) {
+                isCookieUsed = true
                 return activity.getCookies(R.string.key_facebook)
             }
             return null
@@ -86,7 +100,7 @@ class VideoFragmentViewModelKt(application: Application) : VideoFragmentViewMode
 
             fun endFetchCookies(cookie: String) {
                 cookies = cookie
-                onClickAnalysis(url, activity)
+                onClickAnalysis(url, activity, false)
             }
 
             //For Instagram first try with cloud cookies
@@ -132,7 +146,7 @@ class VideoFragmentViewModelKt(application: Application) : VideoFragmentViewMode
 
         getCookies()?.let {
             cookies = it
-            onClickAnalysis(url, activity)
+            onClickAnalysis(url, activity, false)
         } ?: run { login() }
     }
 
