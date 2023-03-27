@@ -44,6 +44,7 @@ public class Statics {
     public static final int PROGRESS_UPDATE_VIDEO = 7896;
     public static final int PROGRESS_DEFAULT = 1478;
     public static final int REQUEST_WRITE = 1248;
+    public static final int REQUEST_POST_NOTIFICATION = 7911;
     public static final int REQUEST_STATUS = 4987;
 
     public static final String ACTION_CANCEL_DOWNLOAD = "com.mugames.vidsnap.Statics.ACTION_CANCEL_DOWNLOAD";

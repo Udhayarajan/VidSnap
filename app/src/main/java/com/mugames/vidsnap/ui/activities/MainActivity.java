@@ -46,6 +46,7 @@ import androidx.appcompat.app.ActionBarDrawerToggle;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.app.AppCompatDelegate;
 import androidx.appcompat.widget.Toolbar;
+import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.core.view.GravityCompat;
 import androidx.documentfile.provider.DocumentFile;
@@ -543,6 +544,14 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                 activityViewModel.tempDetails.clear();
             }
         }
+        if (requestCode == Statics.REQUEST_POST_NOTIFICATION) {
+            if (grantResults[0] == PackageManager.PERMISSION_GRANTED)
+                realDownload();
+            else {
+                Toast.makeText(this, "Unable to start download service", Toast.LENGTH_SHORT).show();
+                activityViewModel.tempDetails.clear();
+            }
+        }
     }
 
 
@@ -740,7 +749,14 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
     private void realDownload() {
         safeDismissPopUp();
-        for (DownloadDetails details : activityViewModel.tempDetails) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (ActivityCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+                ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.POST_NOTIFICATIONS}, Statics.REQUEST_POST_NOTIFICATION);
+                return;
+            }
+        }
+        for (
+                DownloadDetails details : activityViewModel.tempDetails) {
             Intent download = detailsToIntent(details);
             if (details.isShareOnlyDownload) {
                 addShareOnlyListener();
@@ -883,7 +899,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         intent.putExtra(VideoSharedBroadcast.DETAILS_ID, resultData.getInt(VideoSharedBroadcast.DETAILS_ID));
         activityViewModel.setTempResultIntent(intent);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP_MR1) {
-            oneTimeShareManager.addReceiver(intent, intent.getParcelableExtra(Intent.EXTRA_STREAM), null);
+            oneTimeShareManager.addReceiver(intent, UtilityClass.getParcelableExtra(intent, Intent.EXTRA_STREAM, Uri.class), null);
         } else {
             oneTimeShareManager.launch(Intent.createChooser(intent, "Choose application to share"));
         }

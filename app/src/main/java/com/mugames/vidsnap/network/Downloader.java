@@ -41,10 +41,12 @@ import static com.mugames.vidsnap.utility.Statics.PROGRESS_UPDATE_VIDEO;
 import static com.mugames.vidsnap.utility.Statics.TOTAL_SIZE;
 import static com.mugames.vidsnap.VidSnapApp.NOTIFY_DOWNLOADING;
 
+import android.Manifest;
 import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.media.MediaPlayer;
 import android.net.Uri;
 import android.os.Build;
@@ -52,11 +54,14 @@ import android.os.Bundle;
 import android.os.IBinder;
 import android.os.ResultReceiver;
 import android.util.Log;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.core.app.ActivityCompat;
 import androidx.core.app.NotificationCompat;
 import androidx.core.app.NotificationManagerCompat;
+import androidx.core.app.ServiceCompat;
 import androidx.core.content.FileProvider;
 
 import com.arthenica.ffmpegkit.Statistics;
@@ -69,6 +74,7 @@ import com.mugames.vidsnap.R;
 import com.mugames.vidsnap.storage.AppPref;
 import com.mugames.vidsnap.utility.CancelDownloadReceiver;
 import com.mugames.vidsnap.utility.MIMEType;
+import com.mugames.vidsnap.utility.UtilityClass;
 import com.mugames.vidsnap.utility.bundles.DownloadDetails;
 import com.mugames.vidsnap.storage.FileUtil;
 import com.mugames.vidsnap.utility.Statics;
@@ -208,7 +214,7 @@ public class Downloader extends Service {
             TEMP_AUDIO_NAME = FileUtil.getValidFile(path, ran + "Audio", "mp3");
             TEMP_RESULT_NAME = FileUtil.getValidFile(path, ran + "FullVideo", "mp4");
 
-            details = intent.getParcelableExtra(COMMUNICATOR);
+            details = UtilityClass.getParcelableExtra(intent, COMMUNICATOR, DownloadDetails.class);
 
 
             receiver = details.receiver;
@@ -233,6 +239,10 @@ public class Downloader extends Service {
                     .setSmallIcon(R.drawable.ic_notification_icon)
                     .setContentIntent(getActivityOpenerIntent(context));
 
+            if (ActivityCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+                Toast.makeText(context, "Unable to start service ", Toast.LENGTH_SHORT).show();
+                return;
+            }
             manager.notify(ran, builder.build());
             currentThread = new Thread(() -> {
 
@@ -341,7 +351,7 @@ public class Downloader extends Service {
             notificationTimer.cancel();
             downloaders.remove(this);
             if (activeDownload == 0)
-                stopForeground(true);
+                ServiceCompat.stopForeground(Downloader.this, ServiceCompat.STOP_FOREGROUND_REMOVE);
         }
 
         ReflectionInterfaces.SOLoadCallbacks audioRecodeCallback = new ReflectionInterfaces.SOLoadCallbacks() {
@@ -584,6 +594,10 @@ public class Downloader extends Service {
                     Log.d(TAG, "Notify: Called");
                     builder.setProgress(100, notificationVal, false);
                     builder.setContentText(notificationVal + " %");
+                    if (ActivityCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+                        Toast.makeText(context, "POST_NOTIFICATION permission not found", Toast.LENGTH_SHORT).show();
+                        return;
+                    }
                     manager.notify(ran, builder.build());
                 }
             }, 0, 2000);

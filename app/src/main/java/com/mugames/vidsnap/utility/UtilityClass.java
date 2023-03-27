@@ -17,8 +17,12 @@
 package com.mugames.vidsnap.utility;
 
 
+import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.os.Build;
+import android.os.Bundle;
+import android.os.Parcelable;
 import android.util.Base64;
 
 import androidx.core.text.HtmlCompat;
@@ -267,6 +271,18 @@ public class UtilityClass {
         }
         if (isSpeed) return hrSize + "/s";
         return hrSize;
+    }
+
+    public static <T extends Parcelable> T getParcelableExtra(Intent intent, String name, Class<T> clazz) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            return intent.getParcelableExtra(name, clazz);
+        } else return intent.getParcelableExtra(name);
+    }
+
+    public static <T extends Parcelable> T getParcelable(Bundle bundle, String name, Class<T> clazz) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            return bundle.getParcelable(name, clazz);
+        } else return bundle.getParcelable(name);
     }
 
 

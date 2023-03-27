@@ -43,6 +43,7 @@ import com.mugames.vidsnap.ui.viewmodels.EmptyIntent
 import com.mugames.vidsnap.ui.viewmodels.MainActivityViewModel
 import com.mugames.vidsnap.utility.OneTimeShareManager
 import com.mugames.vidsnap.utility.Statics.TAG
+import com.mugames.vidsnap.utility.UtilityClass
 import kotlinx.coroutines.launch
 
 
@@ -82,8 +83,10 @@ class EditFragment : Fragment() {
                 if (intent is EmptyIntent) return@collect
                 activityViewModel.tempResultIntent = intent
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP_MR1) {
-                    oneTimeShareManager.addReceiver(intent,
-                        list = intent.getParcelableArrayListExtra(Intent.EXTRA_STREAM))
+                    oneTimeShareManager.addReceiver(
+                        intent,
+                        list = intent.getParcelableArrayListExtra(Intent.EXTRA_STREAM)
+                    )
                 } else {
                     oneTimeShareManager.launch(intent)
                 }
@@ -112,7 +115,8 @@ class EditFragment : Fragment() {
     override fun onAttach(context: Context) {
         super.onAttach(context)
         fun getUri() = arguments?.let {
-            it.getParcelable<Uri>(ARG_PARAM1)?.let { it1 -> proceedWithUri(it1) }
+            UtilityClass.getParcelable(it, ARG_PARAM1, Uri::class.java)
+                ?.let { it1 -> proceedWithUri(it1) }
         } ?: run {
             view?.let { v -> Snackbar.make(v, "Uri is null", Snackbar.LENGTH_LONG).show() }
         }
@@ -121,8 +125,10 @@ class EditFragment : Fragment() {
         oneTimeShareManager = OneTimeShareManager(requireActivity()) {
             viewModel.deleteAll(it.data?.getParcelableArrayExtra(Intent.EXTRA_STREAM))
         }
-        if (FileUtil.isFileNotExists(AppPref.getInstance(requireContext())
-                .getCachePath(AppPref.LIBRARY_PATH) + FFMPEG.FFMPEG_VERSION + "lib.zip")
+        if (FileUtil.isFileNotExists(
+                AppPref.getInstance(requireContext())
+                    .getCachePath(AppPref.LIBRARY_PATH) + FFMPEG.FFMPEG_VERSION + "lib.zip"
+            )
         ) (requireActivity() as MainActivity).fetchSOFiles {
             getUri()
         }
