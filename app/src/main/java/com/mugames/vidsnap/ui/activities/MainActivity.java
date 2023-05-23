@@ -616,8 +616,13 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     }
 
     public void download(ArrayList<DownloadDetails> details) {
-        if (details != null)
+        if (details != null) {
+            if (details.get(0).src == null || details.get(0).videoURL == null || details.get(0).videoSize <= 0) {
+                error("Unknown error occurred. Please try again", null);
+                return;
+            }
             activityViewModel.tempDetails.addAll(details);
+        }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             if (checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_DENIED) {
                 requestPermissions(new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, REQUEST_WRITE);

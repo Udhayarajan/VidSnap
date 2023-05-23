@@ -7,8 +7,6 @@ android {
     defaultConfig {
         minSdkVersion 16
         targetSdkVersion 32
-        versionCode 240451
-        versionName "4.5.1"
         project.archivesBaseName = "ffmpeg-kit"
         consumerProguardFiles 'proguard-rules.pro'
     }
@@ -32,6 +30,7 @@ android {
             systemProperty 'enable.ffmpeg.kit.test.mode', 'true'
         }
     }
+    namespace 'com.arthenica.ffmpegkit'
 }
 
 task javadoc(type: Javadoc) {
