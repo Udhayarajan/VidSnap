@@ -56,9 +56,6 @@ public class VideoFragmentViewModel extends AndroidViewModel implements UtilityI
             extractor = new Twitter();
         } else if (url.contains("fb") || url.contains("facebook")) {
             extractor = new Facebook();
-        } else {
-            extractor = null;
-            activity.error("URL Seems to be wrong", null);
         }
         if (extractor != null) {
             extractor.setContext(getApplication());
@@ -74,7 +71,7 @@ public class VideoFragmentViewModel extends AndroidViewModel implements UtilityI
 
     }
 
-    public String getUrlLink(){
+    public String getUrlLink() {
         return urlLink;
     }
 
@@ -145,5 +142,7 @@ public class VideoFragmentViewModel extends AndroidViewModel implements UtilityI
     }
 
     //To prevent same instance of `details` it must be `null`ed before extraction
-    public void clearDetails(){details = null;}
+    public void clearDetails() {
+        details = null;
+    }
 }

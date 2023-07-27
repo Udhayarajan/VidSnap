@@ -111,7 +111,10 @@ public class DownloadReceiver extends ResultReceiver implements Parcelable {
                 DownloadDetails details = DownloadDetails.findDetails(id);
                 File file = new File(FileUtil.getPathFromTreeUri(context, outputUri));
                 details.fileName = file.getName().split("\\.")[0];
-                details.fileType = file.getName().split("\\.")[1];
+                var fileType = "";
+                if (file.getName().split("\\.").length > 1)
+                    fileType = file.getName().split("\\.")[1];
+                details.fileType = fileType;
                 details.fileMime = MimeTypeMap.getSingleton().getMimeTypeFromExtension(details.fileType);
                 downloadDetailsList.remove(DownloadDetails.findDetails(id));
                 scan(outputUri.toString(), downloadDetails);
@@ -194,7 +197,7 @@ public class DownloadReceiver extends ResultReceiver implements Parcelable {
         PendingIntent pendingIntent = null;
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
             pendingIntent = PendingIntent.getActivity(context, 110, browserIntent, PendingIntent.FLAG_IMMUTABLE);
-        }else {
+        } else {
             pendingIntent = PendingIntent.getActivity(context, 110, browserIntent, 0);
         }
         builder.setPriority(NotificationCompat.PRIORITY_HIGH)

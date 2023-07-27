@@ -67,7 +67,7 @@ public class DownloadDetails implements Parcelable {
     public long videoSize;
     public long audioSize;
 
-    private Uri thumbNailPath;
+    private Uri thumbNailPath = Uri.parse("");
     int thumbWidth;
     int thumbHeight;
 
@@ -182,14 +182,14 @@ public class DownloadDetails implements Parcelable {
                 downloadDetailsList) {
             if (details.id == id) return details;
         }
-        throw new IllegalArgumentException("id: "+id+" has no details\nAvailable are"+downloadDetailsList);
+        throw new IllegalArgumentException("id: " + id + " has no details\nAvailable are" + downloadDetailsList);
     }
 
     @Nullable
-    public static DownloadDetails findDetailsOrNull(int id){
-        try{
+    public static DownloadDetails findDetailsOrNull(int id) {
+        try {
             return findDetails(id);
-        }catch (IllegalArgumentException e){
+        } catch (IllegalArgumentException e) {
             e.printStackTrace();
             return null;
         }

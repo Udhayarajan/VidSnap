@@ -80,6 +80,7 @@ import com.mugames.vidsnap.storage.FileUtil;
 import com.mugames.vidsnap.utility.Statics;
 import com.mugames.vidsnap.ui.activities.MainActivity;
 
+import com.mugames.vidsnapkit.MimeType;
 import com.tonyodev.fetch2.Download;
 import com.tonyodev.fetch2.Fetch;
 import com.tonyodev.fetch2.FetchConfiguration;
@@ -411,6 +412,9 @@ public class Downloader extends Service {
                     initFFMPEG(videoRecodeCallback);
                     return;
                 }
+            }
+            if (finalMime.equals("")){
+                finalMime = MimeType.Companion.fromCodecs(finalPath,"");
             }
             copyVideoToDestination(finalPath, finalMime);
             removeDownloader();

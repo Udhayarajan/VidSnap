@@ -17,9 +17,10 @@
 
 package com.mugames.vidsnap.database;
 
-import android.app.Application;
+import android.content.Context;
 
 import androidx.lifecycle.LiveData;
+import androidx.paging.PagingSource;
 
 import java.util.List;
 
@@ -28,10 +29,10 @@ public class HistoryRepository {
     LiveData<List<History>> allValues;
     LiveData<Boolean> dataAvailable;
 
-    public HistoryRepository(Application application) {
-        HistoryDatabase historyDatabase = HistoryDatabase.getInstance(application);
+    public HistoryRepository(Context context) {
+        HistoryDatabase historyDatabase = HistoryDatabase.getInstance(context);
         historyDao = historyDatabase.historyDao();
-        allValues = historyDao.getAllValues();
+//        allValues = historyDao.getAllValues();
         dataAvailable = historyDao.isEntryAvailable();
     }
 
@@ -40,7 +41,11 @@ public class HistoryRepository {
     }
 
     public void clear() {
-        new DeleteAllHistoryAsync(historyDao).backgroundTask();
+        new DeleteAllHistoryAsync(historyDao, null).backgroundTask();
+    }
+
+    public void delete(History history) {
+        new DeleteAllHistoryAsync(historyDao, history).backgroundTask();
     }
 
     public LiveData<List<History>> getAllValues() {
@@ -68,17 +73,25 @@ public class HistoryRepository {
 
     private static class DeleteAllHistoryAsync {
         HistoryDao historyDao;
+        History history;
 
-        public DeleteAllHistoryAsync(HistoryDao historyDao) {
+        public DeleteAllHistoryAsync(HistoryDao historyDao, History history) {
             this.historyDao = historyDao;
+            this.history = history;
         }
 
         public void backgroundTask() {
             Thread thread = new Thread(() -> {
-                historyDao.deleteTable();
+                if (history == null)
+                    historyDao.deleteTable();
+                else
+                    historyDao.removeItem(history);
             });
             thread.start();
         }
     }
 
+    public PagingSource<Integer, History> getPaginationSource() {
+        return new HistoryPagingSource(historyDao);
+    }
 }

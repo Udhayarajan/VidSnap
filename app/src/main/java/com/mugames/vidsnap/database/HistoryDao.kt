@@ -14,32 +14,28 @@
  *  You should have received a copy of the GNU General Public License
  *  along with VidSnap.  If not, see <https://www.gnu.org/licenses/>.
  */
+package com.mugames.vidsnap.database
 
-package com.mugames.vidsnap.database;
-
-import androidx.lifecycle.LiveData;
-import androidx.room.Dao;
-import androidx.room.Delete;
-import androidx.room.Insert;
-import androidx.room.Query;
-
-import java.util.List;
+import androidx.lifecycle.LiveData
+import androidx.room.Dao
+import androidx.room.Delete
+import androidx.room.Insert
+import androidx.room.Query
 
 @Dao
-public interface HistoryDao {
-
+interface HistoryDao {
     @Insert
-    void insertItem(History history);
+    fun insertItem(history: History)
 
     @Query("DELETE FROM HISTORY")
-    void deleteTable();
-
-    @Query("SELECT * from HISTORY ORDER BY date DESC")
-    LiveData<List<History>> getAllValues();
+    fun deleteTable()
 
     @Query("SELECT COUNT(1) FROM HISTORY")
-    LiveData<Boolean> isEntryAvailable();
+    fun isEntryAvailable(): LiveData<Boolean?>?
+
+    @Query("SELECT * from HISTORY ORDER BY date DESC LIMIT :limit OFFSET :offset")
+    suspend fun paginatedHistory(limit: Int, offset: Int): List<History>?
 
     @Delete
-    void removeItem(History history);
+    fun removeItem(history: History)
 }

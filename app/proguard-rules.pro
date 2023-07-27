@@ -41,3 +41,4 @@
 -dontwarn org.osgi.framework.BundleContext
 -dontwarn org.osgi.framework.FrameworkUtil
 -dontwarn org.osgi.framework.ServiceReference
+-dontwarn org.slf4j.impl.StaticLoggerBinder

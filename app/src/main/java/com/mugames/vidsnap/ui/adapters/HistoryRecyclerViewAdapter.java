@@ -37,6 +37,7 @@ import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.lifecycle.LifecycleOwner;
+import androidx.paging.PagingDataAdapter;
 import androidx.recyclerview.widget.DiffUtil;
 import androidx.recyclerview.widget.ListAdapter;
 import androidx.recyclerview.widget.RecyclerView;
@@ -57,7 +58,7 @@ import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 
 
-public class HistoryRecyclerViewAdapter extends ListAdapter<History, HistoryRecyclerViewAdapter.ViewHolder> {
+public class HistoryRecyclerViewAdapter extends PagingDataAdapter<History, HistoryRecyclerViewAdapter.ViewHolder> {
 
     String TAG = Statics.TAG + ":HistoryRecyclerViewAdapter";
 
@@ -107,7 +108,7 @@ public class HistoryRecyclerViewAdapter extends ListAdapter<History, HistoryRecy
             holder.name.setText(currentHistory.fileName + currentHistory.fileType);
         else
             holder.name.setText(currentHistory.fileName + "." + currentHistory.fileType);
-        holder.src.setText(currentHistory.source);
+        holder.src.setText(currentHistory.source.substring(0, Math.min(currentHistory.source.length(), 20)));
         holder.date.setText(currentHistory.getDate());
         holder.size.setText(formatFileSize(Long.parseLong(currentHistory.size), false));
         holder.cardView.setVisibility(View.GONE);
@@ -198,6 +199,7 @@ public class HistoryRecyclerViewAdapter extends ListAdapter<History, HistoryRecy
             new Thread(() -> HistoryDatabase.getInstance(activity).historyDao().removeItem(currentHistory)).start();
             return;
         }
+        activity.getContentResolver().delete(currentHistory.getUri(), null, null);
         historyViewModel.deleteThisItem(currentHistory);
     }
 

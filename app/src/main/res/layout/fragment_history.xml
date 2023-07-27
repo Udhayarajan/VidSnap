@@ -17,12 +17,6 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
-    <com.google.android.material.progressindicator.LinearProgressIndicator
-        android:id="@+id/loading_indicator"
-        android:indeterminate="true"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content" />
-
     <androidx.recyclerview.widget.RecyclerView xmlns:app="http://schemas.android.com/apk/res-auto"
         xmlns:tools="http://schemas.android.com/tools"
         android:id="@+id/recycler_view"
@@ -38,4 +32,10 @@
     <include
         android:id="@+id/no_record_container"
         layout="@layout/fragment_no_record" />
+    <com.google.android.material.progressindicator.LinearProgressIndicator
+        android:id="@+id/loading_indicator"
+        android:indeterminate="true"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content" />
+
 </FrameLayout>

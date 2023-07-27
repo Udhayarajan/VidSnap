@@ -25,10 +25,14 @@ import com.mugames.vidsnap.utility.SingleEventLiveData
 import com.mugames.vidsnap.utility.UtilityClass
 import com.mugames.vidsnapkit.dataholders.Formats
 import com.mugames.vidsnapkit.dataholders.Result
+import com.mugames.vidsnapkit.dataholders.VideoResource
 import com.mugames.vidsnapkit.extractor.Extractor
 import com.mugames.vidsnapkit.extractor.Facebook
 import com.mugames.vidsnapkit.extractor.Instagram
+import com.mugames.vidsnapkit.network.HttpRequestService
 import kotlinx.coroutines.launch
+import java.net.URL
+
 
 /**
  * @author Udhaya
@@ -54,6 +58,8 @@ class VideoFragmentViewModelKt(application: Application) : VideoFragmentViewMode
         isUserClickCall: Boolean
     ): com.mugames.vidsnap.extractor.Extractor? {
         urlLink = url
+        if (url.contains("cdninstagram"))
+            return null
         isCookieUsed = !isUserClickCall
         extractorKt = Extractor.findExtractor(url)
         extractorKt?.let {
@@ -153,6 +159,32 @@ class VideoFragmentViewModelKt(application: Application) : VideoFragmentViewMode
     fun reset() {
         isShareOnly = false
         formats = com.mugames.vidsnap.utility.bundles.Formats()
+    }
+
+    fun directDownloadFrom(url: String) {
+        viewModelScope.launch {
+            val path = URL(url).path
+            val parts = path.split("/".toRegex()).dropLastWhile { it.isEmpty() }
+                .toTypedArray()
+            val formats = Formats(
+                title = "Unrecognized direct download",
+                src = if (parts.isNotEmpty()) parts[parts.size - 1] else "Direct download",
+                url = url,
+                videoData = mutableListOf(
+                    VideoResource(
+                        url = url,
+                        mimeType = "",
+                        quality = "",
+                        size = HttpRequestService.create().getSize(url)
+                    )
+                )
+            )
+            resultLiveData.postValue(
+                Result.Success(
+                    formats = listOf(formats)
+                )
+            )
+        }
     }
 }
 

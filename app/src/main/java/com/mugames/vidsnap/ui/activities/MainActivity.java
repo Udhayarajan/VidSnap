@@ -662,12 +662,9 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                 e.printStackTrace();
             }
             for (DownloadDetails details : activityViewModel.tempDetails) {
-                FileUtil.scanMedia(this, details.pathUri.toString(), new MediaScannerConnection.OnScanCompletedListener() {
-                    @Override
-                    public void onScanCompleted(String s, Uri uri) {
-                        History history = new History(details, uri);
-                        new Thread(() -> HistoryDatabase.getInstance(getApplicationContext()).historyDao().insertItem(history)).start();
-                    }
+                FileUtil.scanMedia(this, details.pathUri.toString(), (s, uri) -> {
+                    History history = new History(details, uri);
+                    new Thread(() -> HistoryDatabase.getInstance(getApplicationContext()).historyDao().insertItem(history)).start();
                 });
 
             }

@@ -49,10 +49,10 @@ import com.bumptech.glide.Glide;
 import com.bumptech.glide.request.FutureTarget;
 import com.bumptech.glide.request.target.CustomTarget;
 import com.bumptech.glide.request.transition.Transition;
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.firebase.crashlytics.FirebaseCrashlytics;
 import com.mugames.vidsnap.R;
 import com.mugames.vidsnap.storage.AppPref;
-import com.mugames.vidsnap.storage.FileUtil;
 import com.mugames.vidsnap.ui.activities.MainActivity;
 import com.mugames.vidsnap.ui.adapters.DownloadableAdapter;
 import com.mugames.vidsnap.ui.viewmodels.VideoFragmentViewModelKt;
@@ -218,7 +218,7 @@ public class VideoFragment extends Fragment implements
             ((UtilityInterface.DialogueInterface) activity).show("Analysing");
         if (viewModel != null) {
             if (viewModel.onClickAnalysis(link, (MainActivity) requireActivity(), true) == null)
-                unLockAnalysis();
+                askForDirectDownload();
             else {
                 viewModel.clearDetails();
                 viewModel.getDownloadDetails().srcUrl = link;
@@ -240,6 +240,23 @@ public class VideoFragment extends Fragment implements
             }
         }
     }
+
+    private void askForDirectDownload() {
+        unLockAnalysis();
+        ((UtilityInterface.DialogueInterface) activity).dismiss();
+        var dialog = new MaterialAlertDialogBuilder(requireContext())
+                .setTitle("Direct Download?")
+                .setMessage("We can't identify what kind of url you have given. Would to like to just download the content in the URL?")
+                .setPositiveButton("Yes", (dialog1, which) -> directDownload())
+                .setNegativeButton("No", (dialog1, which) -> dialog1.dismiss());
+        dialog.create().show();
+    }
+
+    private void directDownload() {
+        viewModel.getDownloadDetails().srcUrl = link;
+        viewModel.directDownloadFrom(link);
+    }
+
 
     private void hideKeyboard(View v) {
         if (v == null)
@@ -327,6 +344,21 @@ public class VideoFragment extends Fragment implements
         if (viewModel.getFormats() == null) return;
         QualityFragment dialogFragment = new QualityFragment();
         dialogFragment.setOnDownloadButtonClicked(this::safeDismissBottomSheet);
+
+        if (formats.fileMime.get(0).equals("")) {
+            var downloadDetails = new ArrayList<DownloadDetails>();
+            var downloadDetail = new DownloadDetails();
+            downloadDetail.src = viewModel.getFormats().src;
+            downloadDetail.srcUrl = link;
+            downloadDetail.fileMime = "";
+            downloadDetail.videoURL = link;
+            downloadDetail.videoSize = viewModel.getFormats().videoSizes.get(0);
+            downloadDetail.pathUri = AppPref.getInstance(requireContext()).getSavePath();
+            downloadDetails.add(downloadDetail);
+            activity.download(downloadDetails);
+            viewModel.clearDetails();
+            return;
+        }
 
         Glide.with(requireContext())
                 .asBitmap()
