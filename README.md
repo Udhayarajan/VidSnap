@@ -16,6 +16,9 @@ We would like to thank the creators of
 
 Without these libraries, this project would not have been possible.
 
+## Connect
+Connect with us over discord [VidSnap](https://discord.gg/wwVtmXWXCM). For real-time communication.
+
 ## Installation
 To use VidSnap, you can download the APK from the [releases](https://github.com/Udhayarajan/VidSnap/releases/) page. Once downloaded, simply install the APK on your Android device, and you are good to go!
 
